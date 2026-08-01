@@ -1,436 +1,160 @@
 (() => {
-  const VERTEX_SHADER = `#version 300 es
-  in vec2 a_position;
-  void main() {
-    gl_Position = vec4(a_position, 0.0, 1.0);
-  }`;
+  'use strict';
 
-  const FRAGMENT_SHADER = `#version 300 es
-  precision highp float;
+  const APP_RAW = Object.freeze({
+    radius: 0.230414746543779,
+    iterations: 12,
+    brightness: 1.14239631336406,
+    contrast: 1.0241935483871,
+    saturation: 1.112,
+    bodyVisibility: 20,
+    bodyMaxAlpha: 1,
+    bodyOutputBrightness: 1.81152073732719,
+    bodyLensBasePull: 300,
+    bodyLensPullDp: 600,
+    bodyLensConcentration: 10,
+    bodyLensCornerBoost: 0,
+    bodyLensExtraDistance: 200,
+    bodyLensReachDp: 180,
+    bodyLensDark: 0.23041474654378,
+    bodyLensDebug: 0,
+    bodyLowFrequencyWidth: 1.25059907834101,
+    bodyLowFrequencyCurve: 0.2,
+    bodyLowFrequencyGain: 12.4423963133641,
+    bodyBrightness: 0.545161290322581,
+    glassIntensity: 1.35,
+    edgeMode: 5,
+    shoulderWidthPx: 21.7162162162162,
+    shoulderMaxAngleDeg: 89.5,
+    shoulderFalloffRoundness: 0,
+    shoulderMaterialStrength: 4,
+    shoulderTangentialFlowStrength: 0,
+    shoulderTangentialCorrection: 0.45,
+    shoulderCaptureWidthPx: 96
+  });
 
-  uniform vec2 u_resolution;
-  uniform float u_time;
-  uniform vec4 u_mainRect;
-  uniform float u_mainRadius;
-  uniform vec4 u_sideRect;
-  uniform float u_sideRadius;
-  uniform vec4 u_controls[8];
-  uniform int u_controlCount;
-  uniform vec2 u_pointer;
-  uniform float u_motion;
+  const REFERENCE_SHORT_EDGE_PX = 160;
+  const MIN_OPTICAL_SCALE = 0.28;
 
-  out vec4 outColor;
-
-  float sat(float value) {
-    return clamp(value, 0.0, 1.0);
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
   }
 
-  float hash21(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
+  function mulberry32(seed) {
+    let state = seed >>> 0;
+    return () => {
+      state += 0x6D2B79F5;
+      let value = state;
+      value = Math.imul(value ^ (value >>> 15), value | 1);
+      value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    };
   }
-
-  float noise2(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    float a = hash21(i);
-    float b = hash21(i + vec2(1.0, 0.0));
-    float c = hash21(i + vec2(0.0, 1.0));
-    float d = hash21(i + vec2(1.0, 1.0));
-    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-  }
-
-  float fbm(vec2 p) {
-    float value = 0.0;
-    float amplitude = 0.52;
-    mat2 rotation = mat2(0.82, -0.57, 0.57, 0.82);
-    for (int i = 0; i < 4; i++) {
-      value += amplitude * noise2(p);
-      p = rotation * p * 2.03 + 13.7;
-      amplitude *= 0.48;
-    }
-    return value;
-  }
-
-  float fourPointStar(vec2 p, float scale) {
-    p *= scale;
-    float core = smoothstep(0.10, 0.0, length(p));
-    float horizontal = exp(-abs(p.y) * 34.0) * exp(-abs(p.x) * 4.2);
-    float vertical = exp(-abs(p.x) * 34.0) * exp(-abs(p.y) * 4.2);
-    return core + (horizontal + vertical) * 0.34;
-  }
-
-  vec3 scene(vec2 uv) {
-    uv = clamp(uv, 0.0, 1.0);
-
-    vec3 top = vec3(0.038, 0.018, 0.078);
-    vec3 upper = vec3(0.205, 0.070, 0.235);
-    vec3 lower = vec3(0.025, 0.080, 0.190);
-    vec3 color = mix(top, upper, smoothstep(0.02, 0.53, 1.0 - uv.y));
-    color = mix(color, lower, smoothstep(0.55, 1.0, 1.0 - uv.y));
-
-    float drift = u_time * 0.010 * u_motion;
-    float first = fbm(uv * vec2(3.0, 2.05) + vec2(drift, -drift * 0.45));
-    float second = fbm(uv.yx * vec2(4.15, 2.85) + vec2(6.7, -drift));
-
-    float pinkCloud = smoothstep(
-      0.42,
-      0.82,
-      first + 0.31 * exp(-length((uv - vec2(0.24, 0.28)) * vec2(1.10, 1.85)))
-    );
-    float cyanCloud = smoothstep(
-      0.47,
-      0.84,
-      second + 0.29 * exp(-length((uv - vec2(0.79, 0.32)) * vec2(1.22, 1.95)))
-    );
-    float violetCloud = smoothstep(0.52, 0.88, first * 0.55 + second * 0.52);
-
-    color += vec3(0.50, 0.055, 0.32) * pinkCloud * 0.32;
-    color += vec3(0.035, 0.32, 0.54) * cyanCloud * 0.30;
-    color += vec3(0.20, 0.055, 0.39) * violetCloud * 0.16;
-
-    vec2 grid = uv * vec2(25.0, 15.0);
-    vec2 cell = floor(grid);
-    vec2 local = fract(grid) - 0.5;
-    float seed = hash21(cell + 7.1);
-    vec2 jitter = vec2(hash21(cell + 2.3), hash21(cell + 9.6)) - 0.5;
-    local -= jitter * 0.62;
-    float tinyStar = smoothstep(0.024, 0.0, length(local)) * step(0.78, seed);
-    vec3 tinyColor = mix(vec3(1.0, 0.48, 0.78), vec3(0.40, 0.90, 1.0), step(0.50, seed));
-    tinyColor = mix(tinyColor, vec3(0.82, 0.68, 1.0), step(0.82, seed));
-    color += tinyColor * tinyStar * (0.55 + 0.28 * sin(u_time * 0.52 + seed * 18.0));
-
-    vec2 largeGrid = uv * vec2(7.0, 4.2);
-    vec2 largeCell = floor(largeGrid);
-    vec2 largeLocal = fract(largeGrid) - 0.5;
-    float largeSeed = hash21(largeCell + 31.4);
-    vec2 largeJitter = vec2(hash21(largeCell + 12.2), hash21(largeCell + 18.8)) - 0.5;
-    largeLocal -= largeJitter * 0.44;
-    float largeStar = fourPointStar(largeLocal, 7.8) * step(0.84, largeSeed);
-    vec3 largeColor = mix(vec3(1.0, 0.60, 0.82), vec3(0.52, 0.92, 1.0), step(0.52, largeSeed));
-    color += largeColor * largeStar * 0.62;
-
-    return color;
-  }
-
-  float roundedBoxSdf(vec2 p, vec2 halfSize, float radius) {
-    vec2 q = abs(p) - halfSize + radius;
-    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
-  }
-
-  vec2 perimeterNormal(vec2 p, vec2 halfSize, float radius) {
-    vec2 core = max(halfSize - vec2(radius), vec2(0.0));
-    vec2 nearest = clamp(p, -core, core);
-    vec2 radial = p - nearest;
-    float radialLength = length(radial);
-    if (radialLength > 0.0001) return radial / radialLength;
-    vec2 ratio = abs(p) / max(core, vec2(1.0));
-    if (ratio.x > ratio.y) return vec2(p.x < 0.0 ? -1.0 : 1.0, 0.0);
-    return vec2(0.0, p.y < 0.0 ? -1.0 : 1.0);
-  }
-
-  vec2 softLimit(vec2 vector, float limitPx) {
-    float vectorLength = length(vector);
-    float softened = vectorLength / (1.0 + vectorLength / max(limitPx, 1.0));
-    return vector * (softened / max(vectorLength, 0.0001));
-  }
-
-  vec3 sceneAtPixel(vec2 pixel) {
-    return scene(pixel / u_resolution);
-  }
-
-  vec3 blurScene(vec2 pixel, float radiusPx) {
-    vec2 dx = vec2(radiusPx, 0.0);
-    vec2 dy = vec2(0.0, radiusPx);
-    vec3 color = sceneAtPixel(pixel) * 0.40;
-    color += sceneAtPixel(pixel + dx) * 0.15;
-    color += sceneAtPixel(pixel - dx) * 0.15;
-    color += sceneAtPixel(pixel + dy) * 0.15;
-    color += sceneAtPixel(pixel - dy) * 0.15;
-    return color;
-  }
-
-  vec3 blurPyramid(vec2 pixel, float amount) {
-    float safeAmount = clamp(amount, 0.0, 3.0);
-    vec3 clearColor = sceneAtPixel(pixel);
-    vec3 lowColor = blurScene(pixel, 1.65);
-    vec3 mediumColor = blurScene(pixel, 3.70);
-    vec3 highColor = blurScene(pixel, 6.60);
-    if (safeAmount < 1.0) return mix(clearColor, lowColor, safeAmount);
-    if (safeAmount < 2.0) return mix(lowColor, mediumColor, safeAmount - 1.0);
-    return mix(mediumColor, highColor, safeAmount - 2.0);
-  }
-
-  vec2 centerTransport(vec2 p, vec2 halfSize, float minSize) {
-    vec2 unit = p / max(halfSize, vec2(1.0));
-    vec2 unit2 = unit * unit;
-    float envelope = exp(-(unit2.x * unit2.x + unit2.y * unit2.y) * 1.35);
-    vec2 flow = vec2(
-      unit.x * (1.0 - 0.23 * unit2.y),
-      -0.34 * unit.y * (1.0 - 0.18 * unit2.x)
-    );
-    flow.x += unit.x * 0.15 * (1.0 - 0.58 * unit2.y);
-    flow.y += unit.y * 0.24 * (1.0 - 0.66 * unit2.x);
-    flow += vec2(-unit.y, unit.x) * 0.012;
-    return flow * minSize * 0.054 * envelope;
-  }
-
-  vec4 newGlassAt(vec2 frag, vec4 rect, float radius, float intensity) {
-    if (rect.z <= 1.0 || rect.w <= 1.0) return vec4(0.0);
-
-    vec2 center = rect.xy + rect.zw * 0.5;
-    vec2 halfSize = rect.zw * 0.5;
-    vec2 p = frag - center;
-    float minSize = min(rect.z, rect.w);
-    float safeRadius = min(radius, minSize * 0.5);
-    float sdf = roundedBoxSdf(p, halfSize, safeRadius);
-    float mask = 1.0 - smoothstep(-0.65, 0.95, sdf);
-    if (mask <= 0.001) return vec4(0.0);
-
-    float depth = max(-sdf, 0.0);
-    vec2 normal = perimeterNormal(p, halfSize, safeRadius);
-    vec2 tangent = vec2(-normal.y, normal.x);
-
-    float reach = min(max(safeRadius * 1.05, 30.0), minSize * 0.46);
-    float depthRatio = sat(depth / max(reach, 1.0));
-    float smoothDepth = depthRatio * depthRatio * (3.0 - 2.0 * depthRatio);
-    float bodyWeight = pow(1.0 - smoothDepth, 1.46);
-    float remaining = max(reach - depth, 0.0);
-    float displacement = remaining
-      * (1.0 - exp(-(29.0 * pow(bodyWeight, 1.24)) / max(remaining, 1.0)))
-      * 0.98;
-
-    vec2 sourcePoint = p;
-    float sourceDepth = depth;
-    vec2 sourceNormal = normal;
-
-    float shoulderWidth = min(max(24.0, safeRadius * 0.94), minSize * 0.235);
-    float shoulderX = sat(depth / max(shoulderWidth, 1.0));
-    float shoulder = 1.0 - smoothstep(0.0, shoulderWidth, depth);
-
-    if (depth < shoulderWidth) {
-      float mappedDepth = shoulderWidth * mix(0.78, 0.98, pow(shoulderX, 0.58));
-      float inwardDistance = max(mappedDepth - depth, 0.0);
-      float cornerAmount = 1.0 - max(abs(normal.x), abs(normal.y));
-      float tangentialDistance = sin((p.x - p.y) * 0.010) * shoulder * (2.4 + cornerAmount * 2.0);
-      sourcePoint = p - normal * inwardDistance + tangent * tangentialDistance;
-      sourceDepth = mappedDepth;
-      sourceNormal = perimeterNormal(sourcePoint, halfSize, safeRadius);
-    }
-
-    float sourceRatio = sat(sourceDepth / max(reach, 1.0));
-    float sourceSmooth = sourceRatio * sourceRatio * (3.0 - 2.0 * sourceRatio);
-    float sourceWeight = pow(1.0 - sourceSmooth, 1.46);
-    float sourceRemaining = max(reach - sourceDepth, 0.0);
-    float sourceDisplacement = sourceRemaining
-      * (1.0 - exp(-(29.0 * pow(sourceWeight, 1.24)) / max(sourceRemaining, 1.0)))
-      * 0.98;
-
-    vec2 opticalCoord = sourcePoint
-      - sourceNormal * sourceDisplacement
-      + centerTransport(sourcePoint, halfSize, minSize);
-
-    vec2 pointerDelta = (u_pointer - frag) / max(u_resolution.x, u_resolution.y);
-    float pointerField = exp(-dot(pointerDelta, pointerDelta) * 30.0);
-    opticalCoord += pointerDelta * minSize * 0.018 * pointerField;
-    opticalCoord = p + softLimit(opticalCoord - p, 82.0);
-
-    vec2 sampledPixel = center + opticalCoord;
-    float blurAmount = clamp(0.65 + sourceWeight * 1.15 + shoulder * 0.38, 0.0, 2.35);
-    vec3 glassColor = blurPyramid(sampledPixel, blurAmount);
-
-    float dispersionWidth = max(13.0, safeRadius * 0.52);
-    float dispersionEnvelope = 1.0 - smoothstep(0.0, dispersionWidth, depth);
-    float cornerAmount = 1.0 - max(abs(normal.x), abs(normal.y));
-    float dispersionMask = pow(dispersionEnvelope, 1.62) * (0.48 + cornerAmount * 0.24);
-    vec2 split = normal * (3.1 + shoulder * 2.0);
-    vec3 redSample = blurPyramid(sampledPixel + split, blurAmount);
-    vec3 blueSample = blurPyramid(sampledPixel - split, blurAmount);
-    vec3 prismColor = vec3(redSample.r, (redSample.g + blueSample.g) * 0.5, blueSample.b);
-    glassColor = mix(glassColor, prismColor, dispersionMask);
-
-    glassColor *= 1.035 + sourceWeight * 0.075;
-    glassColor -= vec3(0.020, 0.025, 0.035) * sourceWeight;
-
-    vec2 lightDirection = normalize(vec2(-0.62, 0.78));
-    float lightFacing = pow(sat(dot(normal, lightDirection)), 2.7);
-    float outerRim = pow(shoulder, 2.8);
-    float edgeLine = exp(-abs(sdf) * 0.45);
-    float volumeShadow = 0.055 * shoulder * (0.30 + 0.70 * (1.0 - lightFacing));
-    glassColor *= 1.0 - volumeShadow;
-    glassColor = mix(glassColor, vec3(0.90, 0.965, 1.0), 0.075 * shoulder * lightFacing);
-    glassColor = mix(glassColor, vec3(0.95, 0.985, 1.0), 0.13 * outerRim * lightFacing);
-    glassColor += vec3(0.76, 0.88, 1.0) * edgeLine * 0.10;
-
-    float opticalCoverage = mask * (0.90 + shoulder * 0.08) * intensity;
-    return vec4(clamp(glassColor, 0.0, 1.0), clamp(opticalCoverage, 0.0, 1.0));
-  }
-
-  float legacyThickness(vec2 p, vec2 halfSize, float radius, float edgeWidth) {
-    float sdf = roundedBoxSdf(p, halfSize, radius);
-    float inside = max(-sdf, 0.0);
-    float rimWide = 1.0 - smoothstep(0.0, edgeWidth, inside);
-    float rimCore = 1.0 - smoothstep(0.0, max(edgeWidth * 0.28, 2.0), inside);
-    vec2 unit = p / max(halfSize, vec2(1.0));
-    float dome = pow(sat(1.0 - length(unit * vec2(0.42, 0.72)) * 0.74), 1.65);
-    return dome * 0.20 + rimWide * 0.48 + rimCore * 0.36;
-  }
-
-  vec4 legacyGlassAt(vec2 frag, vec4 rect, float radius) {
-    if (rect.z <= 1.0 || rect.w <= 1.0) return vec4(0.0);
-
-    vec2 center = rect.xy + rect.zw * 0.5;
-    vec2 halfSize = rect.zw * 0.5;
-    vec2 p = frag - center;
-    float minSize = min(rect.z, rect.w);
-    float safeRadius = min(radius, minSize * 0.5);
-    float sdf = roundedBoxSdf(p, halfSize, safeRadius);
-    float mask = 1.0 - smoothstep(0.0, 1.25, sdf);
-    if (mask <= 0.001) return vec4(0.0);
-
-    float inside = max(-sdf, 0.0);
-    float edgeWidth = clamp(minSize * 0.29, 8.0, 20.0);
-    float coreWidth = max(edgeWidth * 0.28, 2.4);
-    float rimWide = 1.0 - smoothstep(0.0, edgeWidth, inside);
-    float rimCore = 1.0 - smoothstep(0.0, coreWidth, inside);
-    vec2 normal = perimeterNormal(p, halfSize, safeRadius);
-    vec2 tangent = vec2(-normal.y, normal.x);
-
-    float stepPx = 1.5;
-    float leftThickness = legacyThickness(p - vec2(stepPx, 0.0), halfSize, safeRadius, edgeWidth);
-    float rightThickness = legacyThickness(p + vec2(stepPx, 0.0), halfSize, safeRadius, edgeWidth);
-    float upThickness = legacyThickness(p - vec2(0.0, stepPx), halfSize, safeRadius, edgeWidth);
-    float downThickness = legacyThickness(p + vec2(0.0, stepPx), halfSize, safeRadius, edgeWidth);
-    vec2 gradient = vec2(rightThickness - leftThickness, downThickness - upThickness);
-    float gradientLength = length(gradient);
-    gradient *= smoothstep(0.0004, 0.012, gradientLength)
-      * min(1.0, 0.22 / max(gradientLength, 0.0001));
-
-    vec2 refraction = gradient * (46.0 + rimWide * 116.0);
-    refraction += -normal * rimWide * 7.0;
-    refraction = softLimit(refraction, 38.0 + rimWide * 24.0);
-
-    vec2 sampledPixel = frag + refraction;
-    vec3 glassColor = blurPyramid(sampledPixel, 0.45 + rimWide * 0.95);
-
-    float dragPull = 10.0 + rimWide * 15.0;
-    float smear = edgeWidth * 0.40;
-    vec3 dragged = sceneAtPixel(frag - normal * dragPull + tangent * smear) * 0.35;
-    dragged += sceneAtPixel(frag - normal * dragPull - tangent * smear) * 0.35;
-    dragged += sceneAtPixel(frag - normal * dragPull * 1.75) * 0.30;
-    glassColor = mix(glassColor, dragged, rimWide * 0.43);
-
-    vec3 redSample = blurPyramid(sampledPixel + normal * 3.0, 0.60);
-    vec3 blueSample = blurPyramid(sampledPixel - normal * 3.2, 0.60);
-    vec3 prism = vec3(redSample.r, (redSample.g + blueSample.g) * 0.5, blueSample.b);
-    glassColor = mix(glassColor, prism, rimCore * 0.48);
-
-    float edgeLine = exp(-abs(sdf) * 0.56);
-    float facing = pow(sat(dot(normal, normalize(vec2(-0.58, 0.82)))), 2.5);
-    glassColor *= 1.02 + rimCore * 0.09;
-    glassColor += vec3(0.92, 0.97, 1.0) * edgeLine * (0.16 + facing * 0.12);
-    glassColor -= vec3(0.025, 0.020, 0.033) * rimWide * (1.0 - facing) * 0.55;
-
-    float opticalCoverage = mask * (0.94 + rimCore * 0.05);
-    return vec4(clamp(glassColor, 0.0, 1.0), clamp(opticalCoverage, 0.0, 1.0));
-  }
-
-  vec3 applyGlass(vec3 backgroundColor, vec4 glassLayer) {
-    return mix(backgroundColor, glassLayer.rgb, glassLayer.a);
-  }
-
-  void main() {
-    vec2 frag = gl_FragCoord.xy;
-    vec3 color = scene(frag / u_resolution);
-
-    color = applyGlass(color, newGlassAt(frag, u_mainRect, u_mainRadius, 1.0));
-    color = applyGlass(color, newGlassAt(frag, u_sideRect, u_sideRadius, 0.94));
-
-    for (int index = 0; index < 8; index++) {
-      if (index >= u_controlCount) break;
-      vec4 rect = u_controls[index];
-      float radius = min(rect.w * 0.48, rect.z * 0.48);
-      color = applyGlass(color, legacyGlassAt(frag, rect, radius));
-    }
-
-    float vignette = 1.0 - smoothstep(0.34, 0.94, distance(frag / u_resolution, vec2(0.5)));
-    color *= 0.88 + vignette * 0.12;
-    outColor = vec4(color, 1.0);
-  }`;
 
   class BlogGlassRenderer {
     constructor(canvas) {
       this.canvas = canvas;
-      this.gl = canvas.getContext('webgl2', {
-        alpha: false,
+      this.output = canvas.getContext('2d', { alpha: true, desynchronized: true });
+      this.glCanvas = document.createElement('canvas');
+      this.gl = this.glCanvas.getContext('webgl', {
+        alpha: true,
         antialias: false,
         depth: false,
         stencil: false,
         premultipliedAlpha: false,
+        preserveDrawingBuffer: true,
         powerPreference: 'high-performance'
       });
+
+      this.sourceCanvas = document.createElement('canvas');
+      this.colourCanvas = document.createElement('canvas');
+      this.blurA = document.createElement('canvas');
+      this.blurB = document.createElement('canvas');
+      this.blurCanvas = document.createElement('canvas');
+      this.source = this.sourceCanvas.getContext('2d');
+      this.colour = this.colourCanvas.getContext('2d');
+      this.blurACtx = this.blurA.getContext('2d');
+      this.blurBCtx = this.blurB.getContext('2d');
+      this.blurCtx = this.blurCanvas.getContext('2d');
+
       this.program = null;
       this.locations = null;
+      this.texture = null;
       this.mainElement = null;
       this.sideElement = null;
       this.controlElements = [];
-      this.pointer = { x: innerWidth * 0.5, y: innerHeight * 0.4 };
+      this.dpr = 1;
+      this.rootWidth = 1;
+      this.rootHeight = 1;
+      this.frame = 0;
       this.running = false;
-      this.motion = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
-      this.startTime = performance.now();
-      this.raf = 0;
-      this.lastFrame = 0;
+      this.backdropDirty = true;
       this.resizeObserver = null;
-      this.onPointerMove = this.onPointerMove.bind(this);
-      this.render = this.render.bind(this);
+      this.classObserver = null;
+      this.boundSchedule = () => this.schedule();
     }
 
     initialise() {
-      if (!this.gl) return false;
+      if (!this.gl || !this.output || !window.OpenGLV24Shaders) return false;
       const gl = this.gl;
-      const vertex = this.compile(gl.VERTEX_SHADER, VERTEX_SHADER);
-      const fragment = this.compile(gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
-      if (!vertex || !fragment) return false;
+      const { vs, fs } = window.OpenGLV24Shaders;
+      const vertexShader = this.compile(gl.VERTEX_SHADER, vs);
+      const fragmentShader = this.compile(gl.FRAGMENT_SHADER, fs);
+      if (!vertexShader || !fragmentShader) return false;
 
       const program = gl.createProgram();
-      gl.attachShader(program, vertex);
-      gl.attachShader(program, fragment);
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
       gl.linkProgram(program);
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.warn('Blog glass program link failed:', gl.getProgramInfoLog(program));
+        console.warn('Original glass program failed:', gl.getProgramInfoLog(program));
         return false;
       }
 
       this.program = program;
-      this.locations = {
-        position: gl.getAttribLocation(program, 'a_position'),
-        resolution: gl.getUniformLocation(program, 'u_resolution'),
-        time: gl.getUniformLocation(program, 'u_time'),
-        mainRect: gl.getUniformLocation(program, 'u_mainRect'),
-        mainRadius: gl.getUniformLocation(program, 'u_mainRadius'),
-        sideRect: gl.getUniformLocation(program, 'u_sideRect'),
-        sideRadius: gl.getUniformLocation(program, 'u_sideRadius'),
-        controls: gl.getUniformLocation(program, 'u_controls[0]'),
-        controlCount: gl.getUniformLocation(program, 'u_controlCount'),
-        pointer: gl.getUniformLocation(program, 'u_pointer'),
-        motion: gl.getUniformLocation(program, 'u_motion')
-      };
+      const names = [
+        'a', 'uRes', 'uOrigin', 'uRoot', 'uBlurTexture', 'uMat',
+        'uBodyLensA', 'uBodyLensB', 'uBody', 'uShoulder',
+        'uShoulderFlow', 'uShoulderCorrection', 'uShoulderEnabled',
+        'uRadius', 'uIntensity'
+      ];
+      this.locations = {};
+      names.forEach((name) => {
+        this.locations[name] = name === 'a'
+          ? gl.getAttribLocation(program, name)
+          : gl.getUniformLocation(program, name);
+      });
+
+      const missing = names.filter((name) => name === 'a'
+        ? this.locations[name] < 0
+        : this.locations[name] === null);
+      if (missing.length) {
+        console.warn('Original glass uniforms missing:', missing.join(', '));
+        return false;
+      }
 
       const buffer = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
       gl.bufferData(
         gl.ARRAY_BUFFER,
-        new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+        new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
         gl.STATIC_DRAW
       );
       gl.useProgram(program);
-      gl.enableVertexAttribArray(this.locations.position);
-      gl.vertexAttribPointer(this.locations.position, 2, gl.FLOAT, false, 0, 0);
+      gl.enableVertexAttribArray(this.locations.a);
+      gl.vertexAttribPointer(this.locations.a, 2, gl.FLOAT, false, 0, 0);
       gl.disable(gl.DEPTH_TEST);
-      gl.disable(gl.CULL_FACE);
       gl.disable(gl.BLEND);
+      gl.clearColor(0, 0, 0, 0);
+
+      this.texture = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.uniform1i(this.locations.uBlurTexture, 0);
       return true;
     }
 
@@ -440,7 +164,7 @@
       gl.shaderSource(shader, source);
       gl.compileShader(shader);
       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.warn('Blog glass shader compile failed:', gl.getShaderInfoLog(shader));
+        console.warn('Original glass shader failed:', gl.getShaderInfoLog(shader));
         gl.deleteShader(shader);
         return null;
       }
@@ -450,102 +174,310 @@
     bind(mainElement, controlElements) {
       this.mainElement = mainElement;
       this.sideElement = document.getElementById('articleToc');
-      this.controlElements = [...controlElements].slice(0, 8);
+      this.controlElements = [...controlElements];
+
       this.resizeObserver?.disconnect();
-      this.resizeObserver = new ResizeObserver(() => this.resize());
-      if (this.mainElement) this.resizeObserver.observe(this.mainElement);
-      if (this.sideElement) this.resizeObserver.observe(this.sideElement);
-      this.controlElements.forEach((element) => this.resizeObserver.observe(element));
-      this.resize();
+      this.resizeObserver = new ResizeObserver(this.boundSchedule);
+      [this.mainElement, this.sideElement, ...this.controlElements]
+        .filter(Boolean)
+        .forEach((element) => this.resizeObserver.observe(element));
+
+      this.classObserver?.disconnect();
+      const reader = document.getElementById('articleReader');
+      if (reader) {
+        this.classObserver = new MutationObserver(this.boundSchedule);
+        this.classObserver.observe(reader, { attributes: true, attributeFilter: ['class', 'hidden'] });
+      }
+      this.backdropDirty = true;
+      this.schedule();
     }
 
     start() {
-      if (!this.program || this.running) return;
       this.running = true;
-      addEventListener('pointermove', this.onPointerMove, { passive: true });
-      this.raf = requestAnimationFrame(this.render);
+      this.backdropDirty = true;
+      this.schedule();
     }
 
     stop() {
       this.running = false;
-      cancelAnimationFrame(this.raf);
-      removeEventListener('pointermove', this.onPointerMove);
+      cancelAnimationFrame(this.frame);
+      this.frame = 0;
       this.resizeObserver?.disconnect();
+      this.classObserver?.disconnect();
     }
 
-    onPointerMove(event) {
-      this.pointer.x += (event.clientX - this.pointer.x) * 0.30;
-      this.pointer.y += (event.clientY - this.pointer.y) * 0.30;
+    schedule() {
+      if (!this.running || this.frame) return;
+      this.frame = requestAnimationFrame(() => {
+        this.frame = 0;
+        this.renderAll();
+      });
     }
 
-    resize() {
-      const dprCap = innerWidth <= 560 ? 1.04 : innerWidth <= 1100 ? 1.18 : 1.38;
-      const dpr = Math.min(devicePixelRatio || 1, dprCap);
-      const width = Math.max(1, Math.round(innerWidth * dpr));
-      const height = Math.max(1, Math.round(innerHeight * dpr));
-      if (this.canvas.width !== width || this.canvas.height !== height) {
-        this.canvas.width = width;
-        this.canvas.height = height;
-        this.canvas.style.width = `${innerWidth}px`;
-        this.canvas.style.height = `${innerHeight}px`;
+    chooseDpr() {
+      const device = window.devicePixelRatio || 1;
+      if (innerWidth <= 560) return Math.min(device, 1);
+      if (innerWidth <= 1180) return Math.min(device, 1.15);
+      return Math.min(device, 1.45);
+    }
+
+    setCanvasSize(canvas, width, height) {
+      const safeWidth = Math.max(1, Math.round(width));
+      const safeHeight = Math.max(1, Math.round(height));
+      if (canvas.width !== safeWidth) canvas.width = safeWidth;
+      if (canvas.height !== safeHeight) canvas.height = safeHeight;
+    }
+
+    prepareContext(context) {
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.globalAlpha = 1;
+      context.globalCompositeOperation = 'source-over';
+      context.imageSmoothingEnabled = true;
+      try { context.imageSmoothingQuality = 'high'; } catch (_) {}
+    }
+
+    drawBackdrop(context, width, height) {
+      this.prepareContext(context);
+      context.clearRect(0, 0, width, height);
+
+      const vertical = context.createLinearGradient(0, 0, 0, height);
+      vertical.addColorStop(0, '#120721');
+      vertical.addColorStop(0.34, '#45204c');
+      vertical.addColorStop(0.64, '#25315c');
+      vertical.addColorStop(1, '#09142f');
+      context.fillStyle = vertical;
+      context.fillRect(0, 0, width, height);
+
+      const glow = (x, y, radius, colour) => {
+        const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
+        gradient.addColorStop(0, colour);
+        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+        context.fillStyle = gradient;
+        context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+      };
+      glow(width * 0.20, height * 0.22, width * 0.48, 'rgba(235,82,175,.30)');
+      glow(width * 0.80, height * 0.26, width * 0.46, 'rgba(65,190,238,.26)');
+      glow(width * 0.50, height * 0.52, width * 0.40, 'rgba(142,87,216,.18)');
+
+      const random = mulberry32(20260801);
+      for (let index = 0; index < 78; index += 1) {
+        const x = random() * width;
+        const y = random() * height;
+        const radius = (0.65 + random() * 1.25) * this.dpr;
+        const palette = ['#ff81c6', '#78eaff', '#b891ff', '#ffd36a', '#8ef1c8'];
+        const colour = palette[Math.floor(random() * palette.length)];
+        context.globalAlpha = 0.34 + random() * 0.56;
+        context.fillStyle = colour;
+        context.shadowColor = colour;
+        context.shadowBlur = 3.5 * this.dpr;
+        context.beginPath();
+        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fill();
       }
-    }
 
-    toGlRect(element, dpr) {
-      if (!element || element.hidden) return [0, 0, 0, 0];
-      const rect = element.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return [0, 0, 0, 0];
-      return [
-        rect.left * dpr,
-        (innerHeight - rect.bottom) * dpr,
-        rect.width * dpr,
-        rect.height * dpr
+      const crosses = [
+        [0.11, 0.23, '#ff9acb'], [0.51, 0.20, '#88ebff'],
+        [0.79, 0.80, '#98f2d0'], [0.34, 0.87, '#ffd477'],
+        [0.96, 0.58, '#ee8ec9']
       ];
+      crosses.forEach(([nx, ny, colour]) => {
+        const x = width * nx;
+        const y = height * ny;
+        const long = 17 * this.dpr;
+        const short = 6 * this.dpr;
+        context.globalAlpha = 0.74;
+        context.strokeStyle = colour;
+        context.shadowColor = colour;
+        context.shadowBlur = 9 * this.dpr;
+        context.lineWidth = Math.max(1, this.dpr * 0.8);
+        context.beginPath();
+        context.moveTo(x - long, y);
+        context.lineTo(x + long, y);
+        context.moveTo(x, y - long);
+        context.lineTo(x, y + long);
+        context.moveTo(x - short, y - short);
+        context.lineTo(x + short, y + short);
+        context.moveTo(x + short, y - short);
+        context.lineTo(x - short, y + short);
+        context.stroke();
+      });
+
+      context.shadowBlur = 0;
+      context.globalAlpha = 1;
     }
 
-    radiusFor(element, dpr, fallback) {
-      if (!element) return fallback * dpr;
-      return (parseFloat(getComputedStyle(element).borderTopLeftRadius) || fallback) * dpr;
-    }
-
-    render(now) {
-      if (!this.running || !this.program) return;
-
-      const frameInterval = innerWidth <= 1100 ? 1000 / 30 : 1000 / 42;
-      if (now - this.lastFrame < frameInterval) {
-        this.raf = requestAnimationFrame(this.render);
-        return;
+    shiftAverage(destination, source, width, height, step, horizontal) {
+      this.prepareContext(destination);
+      destination.clearRect(0, 0, width, height);
+      destination.save();
+      destination.globalCompositeOperation = 'lighter';
+      destination.globalAlpha = 0.2;
+      for (let index = -2; index <= 2; index += 1) {
+        destination.drawImage(
+          source,
+          horizontal ? index * step : 0,
+          horizontal ? 0 : index * step,
+          width,
+          height
+        );
       }
-      this.lastFrame = now;
-      this.resize();
+      destination.restore();
+      destination.save();
+      destination.globalCompositeOperation = 'destination-over';
+      destination.drawImage(source, 0, 0, width, height);
+      destination.restore();
+    }
+
+    rebuildBackdrop() {
+      this.dpr = this.chooseDpr();
+      this.rootWidth = Math.max(1, Math.round(innerWidth * this.dpr));
+      this.rootHeight = Math.max(1, Math.round(innerHeight * this.dpr));
+      [this.canvas, this.sourceCanvas, this.colourCanvas, this.blurA, this.blurB, this.blurCanvas]
+        .forEach((canvas) => this.setCanvasSize(canvas, this.rootWidth, this.rootHeight));
+      this.canvas.style.width = `${innerWidth}px`;
+      this.canvas.style.height = `${innerHeight}px`;
+
+      this.drawBackdrop(this.source, this.rootWidth, this.rootHeight);
+      this.prepareContext(this.colour);
+      this.colour.clearRect(0, 0, this.rootWidth, this.rootHeight);
+      this.colour.save();
+      this.colour.filter = `brightness(${APP_RAW.brightness}) contrast(${APP_RAW.contrast}) saturate(${APP_RAW.saturation})`;
+      this.colour.drawImage(this.sourceCanvas, 0, 0);
+      this.colour.restore();
+
+      const effectiveBlur = Math.max(
+        0,
+        APP_RAW.radius * this.dpr * Math.pow(Math.max(1, APP_RAW.iterations), 0.55)
+      );
+      const passes = Math.max(1, Math.min(3, Math.ceil(APP_RAW.iterations / 4)));
+      const step = Math.max(0.25, effectiveBlur / Math.sqrt(2 * passes));
+      let current = this.colourCanvas;
+      for (let pass = 0; pass < passes; pass += 1) {
+        this.shiftAverage(this.blurACtx, current, this.rootWidth, this.rootHeight, step, true);
+        this.shiftAverage(this.blurBCtx, this.blurA, this.rootWidth, this.rootHeight, step, false);
+        current = this.blurB;
+      }
+      this.prepareContext(this.blurCtx);
+      this.blurCtx.clearRect(0, 0, this.rootWidth, this.rootHeight);
+      this.blurCtx.drawImage(current, 0, 0);
 
       const gl = this.gl;
-      const dpr = this.canvas.width / Math.max(innerWidth, 1);
-      gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-      gl.clearColor(0.02, 0.01, 0.05, 1.0);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.blurCanvas);
+      gl.flush();
+      this.backdropDirty = false;
+    }
+
+    opticalScaleFor(rect) {
+      return clamp(
+        Math.min(rect.width, rect.height) / REFERENCE_SHORT_EDGE_PX,
+        MIN_OPTICAL_SCALE,
+        1
+      );
+    }
+
+    renderGlassElement(element) {
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2 || rect.bottom < 0 || rect.top > innerHeight) return;
+
+      const width = Math.max(1, Math.round(rect.width * this.dpr));
+      const height = Math.max(1, Math.round(rect.height * this.dpr));
+      this.setCanvasSize(this.glCanvas, width, height);
+      const gl = this.gl;
+      gl.viewport(0, 0, width, height);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.useProgram(this.program);
-      gl.uniform2f(this.locations.resolution, this.canvas.width, this.canvas.height);
-      gl.uniform1f(this.locations.time, (now - this.startTime) / 1000);
-      gl.uniform4fv(this.locations.mainRect, this.toGlRect(this.mainElement, dpr));
-      gl.uniform1f(this.locations.mainRadius, this.radiusFor(this.mainElement, dpr, 42));
-      gl.uniform4fv(this.locations.sideRect, this.toGlRect(this.sideElement, dpr));
-      gl.uniform1f(this.locations.sideRadius, this.radiusFor(this.sideElement, dpr, 26));
 
-      const controls = new Float32Array(8 * 4);
-      this.controlElements.forEach((element, index) => {
-        controls.set(this.toGlRect(element, dpr), index * 4);
-      });
-      gl.uniform4fv(this.locations.controls, controls);
-      gl.uniform1i(this.locations.controlCount, this.controlElements.length);
-      gl.uniform2f(
-        this.locations.pointer,
-        this.pointer.x * dpr,
-        (innerHeight - this.pointer.y) * dpr
+      const cssRadius = parseFloat(getComputedStyle(element).borderTopLeftRadius) || 22;
+      const radius = Math.min(cssRadius * this.dpr, Math.min(width, height) * 0.5);
+      const scale = this.opticalScaleFor(rect);
+      const distanceScale = this.dpr * scale;
+
+      gl.uniform2f(this.locations.uRes, width, height);
+      gl.uniform2f(this.locations.uOrigin, rect.left * this.dpr, rect.top * this.dpr);
+      gl.uniform2f(this.locations.uRoot, this.rootWidth, this.rootHeight);
+      gl.uniform1f(this.locations.uRadius, radius);
+      gl.uniform1f(this.locations.uIntensity, APP_RAW.glassIntensity);
+      gl.uniform4f(
+        this.locations.uMat,
+        APP_RAW.bodyVisibility,
+        APP_RAW.bodyMaxAlpha,
+        APP_RAW.bodyOutputBrightness,
+        0
       );
-      gl.uniform1f(this.locations.motion, this.motion);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-      this.raf = requestAnimationFrame(this.render);
+      gl.uniform4f(
+        this.locations.uBodyLensA,
+        APP_RAW.bodyLensBasePull * distanceScale,
+        APP_RAW.bodyLensPullDp * distanceScale,
+        APP_RAW.bodyLensConcentration,
+        APP_RAW.bodyLensCornerBoost
+      );
+      gl.uniform4f(
+        this.locations.uBodyLensB,
+        APP_RAW.bodyLensExtraDistance * distanceScale,
+        APP_RAW.bodyLensReachDp * distanceScale,
+        APP_RAW.bodyLensDark,
+        APP_RAW.bodyLensDebug
+      );
+      gl.uniform4f(
+        this.locations.uBody,
+        APP_RAW.bodyLowFrequencyWidth,
+        APP_RAW.bodyLowFrequencyCurve,
+        APP_RAW.bodyLowFrequencyGain,
+        APP_RAW.bodyBrightness
+      );
+      gl.uniform4f(
+        this.locations.uShoulder,
+        APP_RAW.shoulderWidthPx * distanceScale,
+        APP_RAW.shoulderMaxAngleDeg,
+        APP_RAW.shoulderFalloffRoundness,
+        APP_RAW.shoulderMaterialStrength
+      );
+      gl.uniform2f(
+        this.locations.uShoulderFlow,
+        APP_RAW.shoulderCaptureWidthPx * distanceScale,
+        APP_RAW.shoulderTangentialFlowStrength
+      );
+      gl.uniform1f(this.locations.uShoulderCorrection, APP_RAW.shoulderTangentialCorrection);
+      gl.uniform1f(this.locations.uShoulderEnabled, APP_RAW.edgeMode);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      this.output.drawImage(
+        this.glCanvas,
+        Math.round(rect.left * this.dpr),
+        Math.round(rect.top * this.dpr),
+        width,
+        height
+      );
+    }
+
+    renderAll() {
+      if (!this.running || !this.program) return;
+      const expectedDpr = this.chooseDpr();
+      const expectedWidth = Math.round(innerWidth * expectedDpr);
+      const expectedHeight = Math.round(innerHeight * expectedDpr);
+      if (
+        this.backdropDirty ||
+        this.rootWidth !== expectedWidth ||
+        this.rootHeight !== expectedHeight
+      ) {
+        this.rebuildBackdrop();
+      }
+
+      this.prepareContext(this.output);
+      this.output.clearRect(0, 0, this.rootWidth, this.rootHeight);
+      this.output.drawImage(this.sourceCanvas, 0, 0);
+
+      this.renderGlassElement(this.mainElement);
+      if (this.sideElement && getComputedStyle(this.sideElement).visibility !== 'hidden') {
+        this.renderGlassElement(this.sideElement);
+      }
+      this.controlElements.forEach((element) => this.renderGlassElement(element));
     }
   }
 

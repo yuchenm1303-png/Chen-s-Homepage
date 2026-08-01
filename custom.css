@@ -1,0 +1,158 @@
+@font-face {
+  font-family: "Tamzen8x15r";
+  src: url("https://raw.githubusercontent.com/meorionel/meorion.moe/master/src/fonts/Tamzen8x15r.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SGK001";
+  src: url("https://raw.githubusercontent.com/meorionel/meorion.moe/master/src/fonts/SGK001.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  --pixel: "Tamzen8x15r", "SGK001", "Noto Sans SC", monospace;
+  --terminal: "Tamzen8x15r", "SGK001", "Noto Sans SC", monospace;
+}
+
+html,
+body,
+button,
+a,
+input,
+textarea,
+select {
+  font-family: var(--terminal);
+  font-synthesis: none;
+  letter-spacing: 0;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+body {
+  font-size: 16px;
+}
+
+.titlebar-title,
+.window-button,
+.lang-switch,
+.retro-button,
+.menu-item,
+.mail-icon,
+.section-title,
+.profile-name,
+.project-title,
+.contact-label,
+.dialog-title,
+.start-button {
+  font-family: var(--pixel);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.titlebar-title {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.window-button,
+.lang-switch {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.menu-item {
+  font-size: 16px;
+  line-height: 1;
+  padding: 5px 10px;
+}
+
+.section-title {
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.profile-name {
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.profile-meta,
+.copy,
+.project-desc,
+.project-tags,
+.note,
+.pixel-link,
+.contact-item,
+.file-table,
+.status-cell,
+.desktop-shortcut,
+.terminal-box {
+  font-family: var(--terminal);
+}
+
+.profile-meta {
+  font-size: 17px;
+}
+
+.copy,
+.project-desc,
+.contact-item,
+.file-table {
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.project-title,
+.contact-label {
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.project-tags,
+.note,
+.status-cell,
+.terminal-box {
+  font-size: 15px;
+}
+
+.desktop-shortcut {
+  font-size: 16px;
+}
+
+.taskbar-item,
+.clock {
+  font-family: var(--terminal);
+  font-size: 15px;
+}
+
+@media (max-width: 700px) {
+  .titlebar-title {
+    font-size: 14px;
+  }
+
+  .menu-item {
+    font-size: 14px;
+    padding-inline: 7px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  .profile-name {
+    font-size: 20px;
+  }
+
+  .copy,
+  .project-desc,
+  .contact-item,
+  .file-table {
+    font-size: 16px;
+  }
+}

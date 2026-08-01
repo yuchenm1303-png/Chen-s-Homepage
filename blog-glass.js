@@ -62,7 +62,7 @@
         depth: false,
         stencil: false,
         premultipliedAlpha: false,
-        preserveDrawingBuffer: true,
+        preserveDrawingBuffer: false,
         powerPreference: 'high-performance'
       });
 
@@ -83,15 +83,35 @@
       this.mainElement = null;
       this.sideElement = null;
       this.controlElements = [];
+      this.scrollElement = null;
       this.dpr = 1;
       this.rootWidth = 1;
       this.rootHeight = 1;
       this.frame = 0;
       this.running = false;
+      this.needsRender = true;
       this.backdropDirty = true;
       this.resizeObserver = null;
       this.classObserver = null;
+
+      this.motionAllowed = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      this.motionStart = 0;
+      this.lastTick = 0;
+      this.lastOpticalRender = 0;
+      this.pointerTargetX = 0;
+      this.pointerTargetY = 0;
+      this.currentShiftX = 0;
+      this.currentShiftY = 6;
+      this.scrollKick = 0;
+      this.lastScrollTop = 0;
+      this.lastScrollTime = 0;
+
+      this.boundTick = (time) => this.tick(time);
       this.boundSchedule = () => this.schedule();
+      this.boundPointerMove = (event) => this.onPointerMove(event);
+      this.boundPointerLeave = () => this.onPointerLeave();
+      this.boundScroll = () => this.onScroll();
+      this.boundVisibility = () => this.onVisibilityChange();
     }
 
     initialise() {
@@ -172,9 +192,15 @@
     }
 
     bind(mainElement, controlElements) {
+      this.scrollElement?.removeEventListener('scroll', this.boundScroll);
+
       this.mainElement = mainElement;
       this.sideElement = document.getElementById('articleToc');
       this.controlElements = [...controlElements];
+      this.scrollElement = this.mainElement?.querySelector('.article-scroll') || null;
+      this.lastScrollTop = this.scrollElement?.scrollTop || 0;
+      this.lastScrollTime = performance.now();
+      this.scrollElement?.addEventListener('scroll', this.boundScroll, { passive: true });
 
       this.resizeObserver?.disconnect();
       this.resizeObserver = new ResizeObserver(this.boundSchedule);
@@ -189,12 +215,21 @@
         this.classObserver.observe(reader, { attributes: true, attributeFilter: ['class', 'hidden'] });
       }
       this.backdropDirty = true;
+      this.needsRender = true;
       this.schedule();
     }
 
     start() {
+      if (this.running) return;
       this.running = true;
+      this.motionStart = performance.now();
+      this.lastTick = this.motionStart;
+      this.lastOpticalRender = 0;
       this.backdropDirty = true;
+      this.needsRender = true;
+      window.addEventListener('pointermove', this.boundPointerMove, { passive: true });
+      document.addEventListener('pointerleave', this.boundPointerLeave, { passive: true });
+      document.addEventListener('visibilitychange', this.boundVisibility);
       this.schedule();
     }
 
@@ -204,21 +239,111 @@
       this.frame = 0;
       this.resizeObserver?.disconnect();
       this.classObserver?.disconnect();
+      this.scrollElement?.removeEventListener('scroll', this.boundScroll);
+      window.removeEventListener('pointermove', this.boundPointerMove);
+      document.removeEventListener('pointerleave', this.boundPointerLeave);
+      document.removeEventListener('visibilitychange', this.boundVisibility);
     }
 
     schedule() {
-      if (!this.running || this.frame) return;
-      this.frame = requestAnimationFrame(() => {
-        this.frame = 0;
+      this.needsRender = true;
+      if (!this.running || this.frame || document.hidden) return;
+      this.frame = requestAnimationFrame(this.boundTick);
+    }
+
+    tick(time) {
+      this.frame = 0;
+      if (!this.running || document.hidden) return;
+
+      const deltaSeconds = clamp((time - this.lastTick) / 1000, 0.001, 0.08);
+      this.lastTick = time;
+      const motionChanged = this.updateOpticalMotion(time, deltaSeconds);
+      const interval = this.motionFrameInterval();
+
+      if (this.needsRender || (motionChanged && time - this.lastOpticalRender >= interval)) {
+        this.needsRender = false;
+        this.lastOpticalRender = time;
         this.renderAll();
-      });
+      }
+
+      if (this.motionAllowed || this.needsRender || Math.abs(this.scrollKick) > 0.02) {
+        this.frame = requestAnimationFrame(this.boundTick);
+      }
+    }
+
+    motionFrameInterval() {
+      if (innerWidth <= 560) return 1000 / 12;
+      if (innerWidth <= 1180) return 1000 / 15;
+      return 1000 / 22;
+    }
+
+    updateOpticalMotion(time, deltaSeconds) {
+      if (!this.motionAllowed) {
+        const changed = Math.abs(this.currentShiftX) > 0.01 || Math.abs(this.currentShiftY) > 0.01;
+        this.currentShiftX *= 0.82;
+        this.currentShiftY *= 0.82;
+        this.scrollKick *= 0.72;
+        return changed;
+      }
+
+      const elapsed = (time - this.motionStart) / 1000;
+      const idleX = Math.sin(elapsed * 0.47) * 1.75 + Math.sin(elapsed * 0.19 + 1.2) * 0.85;
+      const idleY = Math.cos(elapsed * 0.39) * 1.45 + Math.sin(elapsed * 0.23 + 0.5) * 0.70;
+      this.scrollKick *= Math.exp(-deltaSeconds * 5.8);
+
+      const targetX = idleX + this.pointerTargetX;
+      const targetY = idleY + this.pointerTargetY + this.scrollKick;
+      const spring = 1 - Math.exp(-deltaSeconds * 4.8);
+      const previousX = this.currentShiftX;
+      const previousY = this.currentShiftY;
+      this.currentShiftX += (targetX - this.currentShiftX) * spring;
+      this.currentShiftY += (targetY - this.currentShiftY) * spring;
+
+      return Math.abs(this.currentShiftX - previousX) > 0.005
+        || Math.abs(this.currentShiftY - previousY) > 0.005;
+    }
+
+    onPointerMove(event) {
+      if (!this.motionAllowed || !innerWidth || !innerHeight) return;
+      const normalizedX = clamp(event.clientX / innerWidth - 0.5, -0.5, 0.5);
+      const normalizedY = clamp(event.clientY / innerHeight - 0.5, -0.5, 0.5);
+      this.pointerTargetX = normalizedX * 5.8;
+      this.pointerTargetY = normalizedY * 4.2;
+      this.schedule();
+    }
+
+    onPointerLeave() {
+      this.pointerTargetX = 0;
+      this.pointerTargetY = 0;
+      this.schedule();
+    }
+
+    onScroll() {
+      if (!this.scrollElement) return;
+      const now = performance.now();
+      const nextTop = this.scrollElement.scrollTop;
+      const delta = nextTop - this.lastScrollTop;
+      const elapsed = Math.max(8, now - this.lastScrollTime);
+      const velocity = delta / elapsed;
+      this.scrollKick = clamp(this.scrollKick - velocity * 5.6, -7.5, 7.5);
+      this.lastScrollTop = nextTop;
+      this.lastScrollTime = now;
+      this.schedule();
+    }
+
+    onVisibilityChange() {
+      if (!document.hidden) {
+        this.lastTick = performance.now();
+        this.needsRender = true;
+        this.schedule();
+      }
     }
 
     chooseDpr() {
       const device = window.devicePixelRatio || 1;
       if (innerWidth <= 560) return Math.min(device, 1);
-      if (innerWidth <= 1180) return Math.min(device, 1.15);
-      return Math.min(device, 1.45);
+      if (innerWidth <= 1180) return Math.min(device, 1.12);
+      return Math.min(device, 1.40);
     }
 
     setCanvasSize(canvas, width, height) {
@@ -378,7 +503,18 @@
       );
     }
 
-    renderGlassElement(element) {
+    opticalMotionFor(element, role) {
+      const rect = element.getBoundingClientRect();
+      const horizontalPosition = rect.left / Math.max(innerWidth, 1) - 0.5;
+      const verticalPosition = rect.top / Math.max(innerHeight, 1) - 0.5;
+      const multiplier = role === 'control' ? 1.52 : role === 'side' ? 1.22 : 1;
+      return {
+        x: (this.currentShiftX * multiplier) + horizontalPosition * this.currentShiftY * 0.22,
+        y: (this.currentShiftY * multiplier) - verticalPosition * this.currentShiftX * 0.18
+      };
+    }
+
+    renderGlassElement(element, role = 'main') {
       if (!element) return;
       const rect = element.getBoundingClientRect();
       if (rect.width < 2 || rect.height < 2 || rect.bottom < 0 || rect.top > innerHeight) return;
@@ -395,9 +531,14 @@
       const radius = Math.min(cssRadius * this.dpr, Math.min(width, height) * 0.5);
       const scale = this.opticalScaleFor(rect);
       const distanceScale = this.dpr * scale;
+      const opticalMotion = this.opticalMotionFor(element, role);
 
       gl.uniform2f(this.locations.uRes, width, height);
-      gl.uniform2f(this.locations.uOrigin, rect.left * this.dpr, rect.top * this.dpr);
+      gl.uniform2f(
+        this.locations.uOrigin,
+        (rect.left + opticalMotion.x) * this.dpr,
+        (rect.top + opticalMotion.y) * this.dpr
+      );
       gl.uniform2f(this.locations.uRoot, this.rootWidth, this.rootHeight);
       gl.uniform1f(this.locations.uRadius, radius);
       gl.uniform1f(this.locations.uIntensity, APP_RAW.glassIntensity);
@@ -473,11 +614,11 @@
       this.output.clearRect(0, 0, this.rootWidth, this.rootHeight);
       this.output.drawImage(this.sourceCanvas, 0, 0);
 
-      this.renderGlassElement(this.mainElement);
+      this.renderGlassElement(this.mainElement, 'main');
       if (this.sideElement && getComputedStyle(this.sideElement).visibility !== 'hidden') {
-        this.renderGlassElement(this.sideElement);
+        this.renderGlassElement(this.sideElement, 'side');
       }
-      this.controlElements.forEach((element) => this.renderGlassElement(element));
+      this.controlElements.forEach((element) => this.renderGlassElement(element, 'control'));
     }
   }
 

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#e7b6d2" />
+  <meta name="description" content="Jack 的个人主页：电气工程、AI 应用、工程仿真与科研数据分析。" />
+  <title>Chen's Homepage</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="desktop" aria-label="Retro desktop personal homepage">
+    <div class="cloud-layer cloud-layer-a" aria-hidden="true"></div>
+    <div class="cloud-layer cloud-layer-b" aria-hidden="true"></div>
+    <div class="stars" id="stars" aria-hidden="true"></div>
+
+    <aside class="desktop-icons" aria-label="Desktop shortcuts">
+      <button class="desktop-shortcut" data-open="projects" type="button">
+        <span class="shortcut-icon folder-icon" aria-hidden="true"></span>
+        <span data-i18n="shortcutProjects">My Projects</span>
+      </button>
+      <button class="desktop-shortcut" data-open="contact" type="button">
+        <span class="shortcut-icon mail-icon" aria-hidden="true">@</span>
+        <span data-i18n="shortcutContact">Contact</span>
+      </button>
+    </aside>
+
+    <main class="stage">
+      <section class="window" id="profileWindow" aria-labelledby="windowTitle">
+        <img class="window-cat" src="assets/cat.svg" alt="" aria-hidden="true" />
+
+        <header class="titlebar">
+          <div class="titlebar-title" id="windowTitle">
+            <img src="assets/icon.svg" alt="" class="app-icon" />
+            <span>Chen's Homepage</span>
+          </div>
+          <div class="window-controls" aria-label="Window controls">
+            <button class="lang-switch" id="langSwitch" type="button" aria-label="切换语言">EN</button>
+            <button class="window-button" id="minimizeButton" type="button" aria-label="Minimize">_</button>
+            <button class="window-button" id="maximizeButton" type="button" aria-label="Maximize">□</button>
+            <button class="window-button close-button" id="closeButton" type="button" aria-label="Close">×</button>
+          </div>
+        </header>
+
+        <div class="window-body" id="windowBody">
+          <nav class="menu-bar" aria-label="Main navigation">
+            <button class="menu-item active" type="button" data-section="about" data-i18n="navAbout">About</button>
+            <button class="menu-item" type="button" data-section="projects" data-i18n="navProjects">Projects</button>
+            <button class="menu-item" type="button" data-section="blog" data-i18n="navBlog">Blog</button>
+            <button class="menu-item" type="button" data-section="contact" data-i18n="navContact">Contact</button>
+          </nav>
+
+          <div class="content-frame">
+            <div class="content-scroll screen-refresh" id="content" tabindex="0" aria-live="polite"></div>
+          </div>
+
+          <footer class="status-bar">
+            <span class="status-cell"><i class="online-dot" aria-hidden="true"></i><span data-i18n="online">ONLINE</span></span>
+            <span class="status-cell" data-i18n="updated">Last updated: 2026.08</span>
+            <span class="status-cell status-right" data-i18n="made">Made with curiosity</span>
+          </footer>
+        </div>
+      </section>
+
+      <section class="closed-dialog" id="closedDialog" hidden>
+        <div class="dialog-title">SYSTEM MESSAGE</div>
+        <p data-i18n="closedMessage">The homepage window is closed.</p>
+        <button class="retro-button" id="reopenButton" type="button" data-i18n="reopen">Reopen</button>
+      </section>
+    </main>
+
+    <div class="taskbar" aria-hidden="true">
+      <div class="start-button"><img src="assets/icon.svg" alt="" /> START</div>
+      <div class="taskbar-item">Chen's Homepage</div>
+      <div class="clock" id="clock">--:--</div>
+    </div>
+
+    <div class="crt-overlay" aria-hidden="true"></div>
+    <div class="noise-overlay" aria-hidden="true"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

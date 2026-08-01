@@ -1,6 +1,6 @@
 /*
  * Pastel dream starfield theme
- * Brighter and more layered, while keeping the Win98 window as the focus.
+ * Pink-lilac nebula, multicolour stars and a clear Win98 foreground.
  */
 
 :root {
@@ -26,19 +26,9 @@ body {
     radial-gradient(ellipse at 24% 21%, rgba(177, 158, 255, 0.19) 0%, transparent 35%),
     radial-gradient(ellipse at 78% 24%, rgba(145, 224, 255, 0.17) 0%, transparent 35%),
     radial-gradient(ellipse at 53% 43%, rgba(185, 120, 202, 0.14) 0%, transparent 43%),
-    linear-gradient(
-      180deg,
-      #14091a 0%,
-      #24112f 17%,
-      #50275a 35%,
-      #6c3767 49%,
-      #593660 64%,
-      #30294f 81%,
-      #11172f 100%
-    );
+    linear-gradient(180deg, #14091a 0%, #24112f 17%, #50275a 35%, #6c3767 49%, #593660 64%, #30294f 81%, #11172f 100%);
 }
 
-/* Main atmospheric glow, intentionally concentrated above the window. */
 .desktop::before {
   background:
     radial-gradient(ellipse at 15% 24%, rgba(255, 191, 232, 0.23) 0 8%, transparent 26%),
@@ -51,7 +41,6 @@ body {
   animation: nebulaDrift 56s ease-in-out infinite alternate;
 }
 
-/* Soft luminous ribbons, vignette and a darker lower half. */
 .desktop::after {
   background:
     radial-gradient(ellipse at 50% 22%, rgba(255, 222, 241, 0.09) 0 14%, transparent 39%),
@@ -102,63 +91,95 @@ body {
   to { transform: translate3d(-1.6%, 1.3%, 0) scale(1.05); }
 }
 
-/* Ringed moon, softened into the pink-lilac palette. */
+/* Remove the former ring motif completely. */
 .stars::before {
-  content: "";
-  position: absolute;
-  top: clamp(76px, 12vh, 150px);
-  left: clamp(38px, 7vw, 104px);
-  width: clamp(44px, 5.8vw, 76px);
-  aspect-ratio: 1;
-  border: 2px solid rgba(255, 244, 251, 0.80);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at center, rgba(255, 250, 243, 0.98) 0 9%, rgba(255, 235, 244, 0.18) 11%, transparent 14%);
-  box-shadow:
-    0 0 12px rgba(255, 224, 242, 0.26),
-    inset 0 0 6px rgba(255, 255, 255, 0.11);
-  opacity: 0.87;
+  content: none !important;
+  display: none !important;
 }
 
-/* Sparse distant stars with pink, white and cool-blue temperatures. */
+/* Multicolour distant stars. */
 .stars::after {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.64;
+  opacity: 0.72;
   background-image:
-    radial-gradient(circle, rgba(250,248,255,.90) 0 1px, transparent 1.2px),
-    radial-gradient(circle, rgba(255,205,233,.80) 0 1px, transparent 1.2px),
-    radial-gradient(circle, rgba(176,239,255,.80) 0 1px, transparent 1.2px);
-  background-size: 193px 211px, 271px 247px, 337px 293px;
-  background-position: 31px 43px, 119px 13px, 67px 137px;
+    radial-gradient(circle, rgba(255, 214, 236, .92) 0 1px, transparent 1.25px),
+    radial-gradient(circle, rgba(169, 239, 255, .90) 0 1px, transparent 1.25px),
+    radial-gradient(circle, rgba(214, 190, 255, .88) 0 1px, transparent 1.25px),
+    radial-gradient(circle, rgba(255, 231, 165, .86) 0 1px, transparent 1.25px),
+    radial-gradient(circle, rgba(171, 255, 220, .82) 0 1px, transparent 1.25px);
+  background-size: 193px 211px, 271px 247px, 337px 293px, 419px 353px, 503px 421px;
+  background-position: 31px 43px, 119px 13px, 67px 137px, 211px 89px, 17px 181px;
   animation: distantStars 10s ease-in-out infinite alternate;
 }
 
 @keyframes distantStars {
-  from { opacity: 0.36; }
-  to { opacity: 0.68; }
+  from { opacity: 0.42; }
+  to { opacity: 0.76; }
 }
 
 .star {
+  --star-core: #ffd8ec;
+  --star-glow: rgba(255, 137, 199, .70);
+  --star-halo: rgba(255, 104, 179, .20);
+  --star-ray: rgba(255, 226, 244, .98);
   width: 2px;
   height: 2px;
   border-radius: 50%;
-  background: #fbfcff;
-  box-shadow:
-    0 0 6px 1px rgba(255,255,255,.57),
-    0 0 14px 3px rgba(255,181,227,.14);
+  background: var(--star-core);
+  box-shadow: 0 0 7px 1px var(--star-glow), 0 0 17px 4px var(--star-halo);
   transform-origin: center;
+}
+
+.star:nth-child(6n + 1) {
+  --star-core: #ffd4e9;
+  --star-glow: rgba(255, 134, 196, .74);
+  --star-halo: rgba(255, 92, 172, .22);
+  --star-ray: rgba(255, 224, 243, .98);
+}
+
+.star:nth-child(6n + 2) {
+  --star-core: #9ff7ff;
+  --star-glow: rgba(99, 235, 255, .76);
+  --star-halo: rgba(67, 196, 255, .22);
+  --star-ray: rgba(211, 252, 255, .98);
+}
+
+.star:nth-child(6n + 3) {
+  --star-core: #d9c3ff;
+  --star-glow: rgba(181, 142, 255, .75);
+  --star-halo: rgba(137, 99, 239, .21);
+  --star-ray: rgba(238, 226, 255, .98);
+}
+
+.star:nth-child(6n + 4) {
+  --star-core: #ffe6a8;
+  --star-glow: rgba(255, 207, 105, .73);
+  --star-halo: rgba(255, 174, 69, .19);
+  --star-ray: rgba(255, 244, 207, .98);
+}
+
+.star:nth-child(6n + 5) {
+  --star-core: #b8ffd9;
+  --star-glow: rgba(106, 245, 183, .70);
+  --star-halo: rgba(67, 206, 160, .18);
+  --star-ray: rgba(224, 255, 242, .98);
+}
+
+.star:nth-child(6n) {
+  --star-core: #c8dcff;
+  --star-glow: rgba(139, 184, 255, .72);
+  --star-halo: rgba(92, 132, 238, .18);
+  --star-ray: rgba(230, 239, 255, .98);
 }
 
 .star.large {
   width: 4px;
   height: 4px;
   z-index: 1;
-  background: #ffffff;
-  box-shadow:
-    0 0 7px 2px rgba(255,255,255,.90),
-    0 0 20px 6px rgba(255,185,232,.25);
+  background: var(--star-core);
+  box-shadow: 0 0 8px 2px var(--star-glow), 0 0 22px 6px var(--star-halo);
 }
 
 .star.large::before,
@@ -169,41 +190,25 @@ body {
   top: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
+  filter: drop-shadow(0 0 5px var(--star-glow));
 }
 
 .star.large::before {
   width: clamp(34px, 5vw, 70px);
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,252,255,.98), transparent);
-  filter: drop-shadow(0 0 5px rgba(255,188,233,.74));
+  background: linear-gradient(90deg, transparent, var(--star-ray), transparent);
 }
 
 .star.large::after {
   width: 1px;
   height: clamp(38px, 6vw, 86px);
-  background: linear-gradient(180deg, transparent, rgba(255,252,255,.98), transparent);
-  filter: drop-shadow(0 0 5px rgba(183,232,255,.52));
-}
-
-.star:nth-child(7n + 2) {
-  background: #ffdce9;
-  box-shadow: 0 0 8px 1px rgba(255,157,209,.67), 0 0 17px 4px rgba(255,135,186,.20);
-}
-
-.star:nth-child(9n + 4) {
-  background: #ffffff;
-  box-shadow: 0 0 8px 2px rgba(255,255,255,.87), 0 0 17px 4px rgba(218,223,255,.18);
-}
-
-.star:nth-child(11n + 5) {
-  background: #a5f6ff;
-  box-shadow: 0 0 9px 2px rgba(124,245,255,.79), 0 0 20px 5px rgba(90,216,255,.18);
+  background: linear-gradient(180deg, transparent, var(--star-ray), transparent);
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: .36; transform: scale(.84); }
-  45% { opacity: 1; transform: scale(1.11); }
-  58% { opacity: .80; transform: scale(.97); }
+  0%, 100% { opacity: .38; transform: scale(.84); }
+  45% { opacity: 1; transform: scale(1.12); }
+  58% { opacity: .82; transform: scale(.97); }
 }
 
 .window {
@@ -219,16 +224,12 @@ body {
 }
 
 .window-cat {
-  filter:
-    drop-shadow(3px 4px 0 rgba(18, 5, 30, 0.40))
-    drop-shadow(0 0 11px rgba(255, 191, 232, 0.20));
+  filter: drop-shadow(3px 4px 0 rgba(18, 5, 30, 0.40)) drop-shadow(0 0 11px rgba(255, 191, 232, 0.20));
 }
 
 .desktop-shortcut {
   color: #fff4fb;
-  text-shadow:
-    1px 1px 0 #1d1027,
-    0 0 7px rgba(255, 179, 225, 0.20);
+  text-shadow: 1px 1px 0 #1d1027, 0 0 7px rgba(255, 179, 225, 0.20);
 }
 
 .desktop-shortcut:focus-visible,
@@ -239,9 +240,7 @@ body {
 
 .taskbar {
   background: #e8d6e4;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.92),
-    0 -5px 18px rgba(18, 5, 30, 0.20);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.92), 0 -5px 18px rgba(18, 5, 30, 0.20);
 }
 
 .closed-dialog {
@@ -259,12 +258,6 @@ body {
       radial-gradient(ellipse at 23% 24%, rgba(174, 157, 255, 0.18) 0%, transparent 34%),
       radial-gradient(ellipse at 80% 26%, rgba(148, 222, 255, 0.16) 0%, transparent 34%),
       linear-gradient(180deg, #14091a 0%, #281332 19%, #562c5d 40%, #6b3866 53%, #423352 72%, #151b35 100%);
-  }
-
-  .stars::before {
-    top: 52px;
-    left: 22px;
-    width: 42px;
   }
 
   .star.large::before {

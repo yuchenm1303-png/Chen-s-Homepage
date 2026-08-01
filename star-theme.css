@@ -1,0 +1,269 @@
+/*
+ * Nocturnal starfield theme
+ * Keeps the Win98-style personal window as the visual focus while replacing
+ * the pink cloud desktop with a quiet black/teal/mauve night sky.
+ */
+
+:root {
+  --window-face: #ead9e3;
+  --window-content: #fff8fb;
+  --window-mid: #ad91a6;
+  --window-dark: #55445f;
+  --ink: #332440;
+  --muted: #705e78;
+  --accent: #c95d93;
+  --title-a: #244b62;
+  --title-b: #804d78;
+  --shadow: rgba(1, 8, 18, 0.62);
+}
+
+body {
+  background: #02070c;
+}
+
+.desktop {
+  background:
+    radial-gradient(ellipse at 52% 68%, rgba(121, 70, 121, 0.76) 0%, rgba(80, 55, 101, 0.48) 18%, transparent 47%),
+    radial-gradient(ellipse at 48% 53%, rgba(18, 86, 91, 0.54) 0%, rgba(5, 48, 57, 0.32) 30%, transparent 63%),
+    linear-gradient(
+      180deg,
+      #000205 0%,
+      #01070b 24%,
+      #06252b 49%,
+      #17434a 64%,
+      #74516f 78%,
+      #292846 91%,
+      #10192b 100%
+    );
+}
+
+/* Soft horizon and colored nebula haze. */
+.desktop::before {
+  inset: -18%;
+  background:
+    radial-gradient(ellipse at 12% 72%, rgba(35, 153, 161, 0.25) 0 8%, transparent 27%),
+    radial-gradient(ellipse at 42% 73%, rgba(239, 128, 186, 0.20) 0 9%, transparent 30%),
+    radial-gradient(ellipse at 82% 70%, rgba(75, 223, 220, 0.18) 0 9%, transparent 29%),
+    radial-gradient(ellipse at 59% 61%, rgba(122, 88, 151, 0.30) 0 12%, transparent 34%);
+  filter: blur(54px) saturate(115%);
+  opacity: 0.88;
+  animation: nebulaDrift 52s ease-in-out infinite alternate;
+}
+
+/* Vignette, horizon sheen and very subtle vertical atmosphere. */
+.desktop::after {
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 35%, rgba(0, 3, 9, 0.15) 67%, rgba(0, 1, 5, 0.58) 100%),
+    linear-gradient(180deg, transparent 0 48%, rgba(106, 232, 223, 0.035) 56%, rgba(255, 156, 206, 0.055) 77%, transparent 94%),
+    repeating-linear-gradient(90deg, transparent 0 90px, rgba(121, 235, 230, 0.012) 91px, transparent 92px);
+  mix-blend-mode: normal;
+  opacity: 1;
+}
+
+.cloud-layer {
+  inset: -22%;
+  filter: blur(64px);
+  mix-blend-mode: screen;
+}
+
+.cloud-layer-a {
+  opacity: 0.52;
+  background:
+    radial-gradient(ellipse at 16% 65%, rgba(37, 197, 199, 0.30) 0 6%, transparent 24%),
+    radial-gradient(ellipse at 48% 76%, rgba(230, 113, 174, 0.27) 0 8%, transparent 27%),
+    radial-gradient(ellipse at 89% 61%, rgba(56, 212, 214, 0.24) 0 7%, transparent 25%);
+  animation: nebulaFloatA 44s ease-in-out infinite alternate;
+}
+
+.cloud-layer-b {
+  opacity: 0.42;
+  background:
+    radial-gradient(ellipse at 31% 54%, rgba(27, 112, 125, 0.25) 0 9%, transparent 28%),
+    radial-gradient(ellipse at 72% 70%, rgba(160, 94, 155, 0.24) 0 10%, transparent 30%),
+    radial-gradient(ellipse at 58% 47%, rgba(75, 166, 170, 0.17) 0 9%, transparent 26%);
+  animation: nebulaFloatB 59s ease-in-out infinite alternate;
+}
+
+@keyframes nebulaDrift {
+  from { transform: translate3d(-1.5%, 1%, 0) scale(1.02); }
+  to { transform: translate3d(1.8%, -1.3%, 0) scale(1.08); }
+}
+
+@keyframes nebulaFloatA {
+  from { transform: translate3d(-2%, 0, 0) rotate(-0.6deg); }
+  to { transform: translate3d(2%, -1.4%, 0) rotate(0.7deg); }
+}
+
+@keyframes nebulaFloatB {
+  from { transform: translate3d(1%, -1%, 0) scale(1); }
+  to { transform: translate3d(-1.8%, 1.4%, 0) scale(1.06); }
+}
+
+/* A quiet ringed moon in the upper-left, echoing the reference image. */
+.stars::before {
+  content: "";
+  position: absolute;
+  top: clamp(76px, 12vh, 150px);
+  left: clamp(38px, 7vw, 104px);
+  width: clamp(44px, 5.8vw, 76px);
+  aspect-ratio: 1;
+  border: 2px solid rgba(244, 246, 237, 0.78);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(248, 246, 232, 0.98) 0 9%, rgba(248, 246, 232, 0.17) 11%, transparent 14%);
+  box-shadow:
+    0 0 8px rgba(240, 248, 241, 0.18),
+    inset 0 0 5px rgba(255, 255, 255, 0.10);
+  opacity: 0.84;
+}
+
+/* A sparse field of very small distant stars behind the generated stars. */
+.stars::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.52;
+  background-image:
+    radial-gradient(circle, rgba(209,255,251,.86) 0 1px, transparent 1.2px),
+    radial-gradient(circle, rgba(255,207,225,.72) 0 1px, transparent 1.2px),
+    radial-gradient(circle, rgba(241,245,255,.75) 0 1px, transparent 1.2px);
+  background-size: 193px 211px, 271px 247px, 337px 293px;
+  background-position: 31px 43px, 119px 13px, 67px 137px;
+  animation: distantStars 10s ease-in-out infinite alternate;
+}
+
+@keyframes distantStars {
+  from { opacity: 0.28; }
+  to { opacity: 0.58; }
+}
+
+.star {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #eafcff;
+  box-shadow:
+    0 0 5px 1px rgba(102, 246, 255, 0.58),
+    0 0 12px 3px rgba(44, 205, 220, 0.16);
+  transform-origin: center;
+}
+
+/* Cross-shaped luminous stars: thin long rays, bright core, restrained halo. */
+.star.large {
+  width: 4px;
+  height: 4px;
+  z-index: 1;
+  background: #f8ffff;
+  box-shadow:
+    0 0 5px 2px rgba(255,255,255,.85),
+    0 0 16px 5px rgba(80,238,244,.28);
+}
+
+.star.large::before,
+.star.large::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(238,255,255,.96), transparent);
+  filter: drop-shadow(0 0 4px rgba(109,245,251,.75));
+}
+
+.star.large::before {
+  width: clamp(30px, 4.4vw, 62px);
+  height: 1px;
+}
+
+.star.large::after {
+  width: 1px;
+  height: clamp(34px, 5.5vw, 78px);
+  background: linear-gradient(180deg, transparent, rgba(238,255,255,.96), transparent);
+}
+
+/* Give selected stars different temperatures, like the supplied artwork. */
+.star:nth-child(7n + 2) {
+  background: #ffd7e2;
+  box-shadow: 0 0 6px 1px rgba(255,143,177,.68), 0 0 14px 3px rgba(255,111,155,.15);
+}
+
+.star:nth-child(9n + 4) {
+  background: #ffffff;
+  box-shadow: 0 0 6px 2px rgba(255,255,255,.80), 0 0 15px 4px rgba(198,221,255,.16);
+}
+
+.star:nth-child(11n + 5) {
+  background: #77ffff;
+  box-shadow: 0 0 7px 2px rgba(41,249,245,.78), 0 0 18px 5px rgba(33,220,228,.19);
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: .30; transform: scale(.82); }
+  45% { opacity: 1; transform: scale(1.08); }
+  58% { opacity: .72; transform: scale(.96); }
+}
+
+/* Keep the window warm and readable against the colder sky. */
+.window {
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,.72),
+    inset -1px -1px 0 var(--window-mid),
+    8px 9px 0 rgba(1, 5, 13, 0.58),
+    0 0 28px rgba(123, 218, 215, 0.08);
+}
+
+.titlebar {
+  background: linear-gradient(90deg, #234b60 0%, #45546d 44%, #79506f 72%, #9b577c 100%);
+}
+
+.window-cat {
+  filter:
+    drop-shadow(3px 4px 0 rgba(1, 5, 12, 0.42))
+    drop-shadow(0 0 9px rgba(123, 235, 229, 0.15));
+}
+
+.desktop-shortcut {
+  color: #e5f4ef;
+  text-shadow:
+    1px 1px 0 #07151c,
+    0 0 5px rgba(99, 237, 229, 0.20);
+}
+
+.desktop-shortcut:focus-visible,
+.desktop-shortcut:hover {
+  outline-color: rgba(225, 255, 250, 0.86);
+  background: rgba(49, 126, 132, 0.12);
+}
+
+.taskbar {
+  background: #dfd1dc;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    0 -5px 18px rgba(0, 6, 13, 0.24);
+}
+
+.closed-dialog {
+  box-shadow: 7px 8px 0 rgba(0, 4, 12, 0.58);
+}
+
+.crt-overlay {
+  opacity: .035;
+}
+
+@media (max-width: 620px) {
+  .stars::before {
+    top: 52px;
+    left: 22px;
+    width: 42px;
+  }
+
+  .star.large::before {
+    width: 30px;
+  }
+
+  .star.large::after {
+    height: 38px;
+  }
+}

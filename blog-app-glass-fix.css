@@ -1,6 +1,6 @@
 /*
- * Original App glass host.
- * Optical material is rendered by the migrated V29.8 shader; DOM layers remain neutral.
+ * Browser host for the App OpenGL glass code.
+ * DOM layers stay neutral; optical material is supplied only by the migrated renderers.
  */
 
 body.article-reader-open .desktop {
@@ -41,8 +41,7 @@ body.article-reader-open .taskbar {
 }
 
 .article-glass-shell,
-.article-toc,
-.legacy-glass-control {
+.article-toc {
   background: transparent;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -52,6 +51,8 @@ body.article-reader-open .taskbar {
 
 .article-glass-shell {
   border: 0;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .article-glass-shell::before,
@@ -63,8 +64,17 @@ body.article-reader-open .taskbar {
   border: 0;
 }
 
+/*
+ * Controls intentionally remain neutral until the separate App Legacy Renderer is attached.
+ * They must not imitate glass with CSS or the new Shell shader.
+ */
 .legacy-glass-control {
-  border: 0;
+  border: 1px solid rgba(255, 255, 255, .075);
+  background: rgba(6, 5, 20, .18);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  filter: none;
   transition: color 120ms ease;
   text-shadow: 0 1px 5px rgba(4, 3, 15, .70);
 }
@@ -144,7 +154,18 @@ body.article-reader-open .taskbar {
 
 @media (max-width: 820px) {
   .article-toc {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
     background: transparent;
+    transform: translateY(calc(100% + 30px));
+  }
+
+  .article-reader.toc-open .article-toc {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
   }
 }
 

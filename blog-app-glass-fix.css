@@ -1,0 +1,161 @@
+/* App-aligned liquid-glass corrections: neutral material, visible backdrop, optical edges. */
+
+body.article-reader-open .desktop {
+  transform: none;
+  filter: saturate(.88) brightness(.77);
+  transition: filter 360ms ease;
+}
+
+body.article-reader-open .stage,
+body.article-reader-open .desktop-icons,
+body.article-reader-open .taskbar {
+  opacity: 0;
+  transform: scale(.975);
+  filter: blur(5px);
+  pointer-events: none;
+  transition: opacity 250ms ease, transform 380ms cubic-bezier(.2,.82,.2,1), filter 300ms ease;
+}
+
+.article-reader {
+  background:
+    radial-gradient(ellipse at 50% 12%, rgba(255,255,255,.025), transparent 34%),
+    radial-gradient(ellipse at 50% 48%, transparent 46%, rgba(5,2,15,.16) 100%);
+}
+
+.article-reader::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(10,4,20,.08), transparent 24%, transparent 78%, rgba(3,5,18,.16));
+}
+
+.article-glass-canvas {
+  z-index: 2;
+}
+
+.article-reader-stage {
+  z-index: 3;
+}
+
+.article-glass-shell {
+  background: transparent;
+  box-shadow:
+    0 30px 78px rgba(3, 3, 18, .24),
+    0 2px 10px rgba(255,255,255,.015);
+}
+
+.article-glass-shell::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 4;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.045),
+    inset 0 -1px rgba(12,8,28,.16);
+  pointer-events: none;
+}
+
+.article-progress-track {
+  background: rgba(255,255,255,.045);
+}
+
+.legacy-glass-control {
+  background: transparent;
+  box-shadow: none;
+}
+
+.legacy-glass-control::after {
+  inset: 1px;
+  border-color: rgba(255,255,255,.055);
+  background: transparent;
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.050),
+    inset 0 -1px rgba(10,5,24,.12),
+    0 8px 22px rgba(4,3,17,.08);
+}
+
+.legacy-glass-control:hover::after {
+  border-color: rgba(255,255,255,.10);
+}
+
+.article-toc {
+  border-color: rgba(255,255,255,.055);
+  background: transparent;
+  box-shadow:
+    0 22px 58px rgba(2,3,16,.16),
+    inset 0 1px rgba(255,255,255,.035);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.toc-links a:hover,
+.toc-links a.is-active {
+  background: rgba(255,255,255,.055);
+}
+
+.article-header {
+  border-bottom-color: rgba(255,255,255,.095);
+}
+
+.article-header h1 {
+  text-shadow: 0 3px 18px rgba(6,2,18,.34);
+}
+
+.article-summary,
+.article-body p,
+.article-body ul {
+  text-shadow: 0 1px 8px rgba(5,2,17,.20);
+}
+
+.article-body blockquote {
+  border-left-color: rgba(255,132,195,.78);
+  background: rgba(255,255,255,.035);
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+
+.article-callout {
+  border-color: rgba(255,255,255,.075);
+  background: rgba(255,255,255,.026);
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.025),
+    inset 0 -1px rgba(8,4,20,.08);
+}
+
+.article-callout strong {
+  color: rgba(255,235,248,.94);
+}
+
+.article-code {
+  border-color: rgba(193,178,224,.14);
+  background: rgba(5,8,25,.66);
+}
+
+.article-ending {
+  border-top-color: rgba(255,255,255,.085);
+}
+
+.glass-fallback .article-glass-shell,
+.glass-fallback .article-toc,
+.glass-fallback .legacy-glass-control {
+  background: rgba(24,18,45,.28);
+  -webkit-backdrop-filter: blur(18px) saturate(112%);
+  backdrop-filter: blur(18px) saturate(112%);
+}
+
+@media (max-width: 820px) {
+  body.article-reader-open .desktop {
+    filter: saturate(.86) brightness(.72);
+  }
+
+  .article-glass-shell {
+    box-shadow: 0 22px 56px rgba(3,3,18,.22);
+  }
+
+  .article-toc {
+    background: transparent;
+  }
+}

@@ -1,85 +1,131 @@
 @font-face {
-  font-family: "Tamzen8x15r";
-  src: url("https://raw.githubusercontent.com/meorionel/meorion.moe/master/src/fonts/Tamzen8x15r.ttf") format("truetype");
+  font-family: "Pixelated MS Sans Serif";
+  src:
+    url("https://cdn.jsdelivr.net/gh/meorionel/98-pink.css/dist/ms_sans_serif.woff2") format("woff2"),
+    url("https://cdn.jsdelivr.net/gh/meorionel/98-pink.css/dist/ms_sans_serif.woff") format("woff");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "SGK001";
-  src: url("https://raw.githubusercontent.com/meorionel/meorion.moe/master/src/fonts/SGK001.ttf") format("truetype");
+  font-family: "Pixelated MS Sans Serif";
+  src:
+    url("https://cdn.jsdelivr.net/gh/meorionel/98-pink.css/dist/ms_sans_serif_bold.woff2") format("woff2"),
+    url("https://cdn.jsdelivr.net/gh/meorionel/98-pink.css/dist/ms_sans_serif_bold.woff") format("woff");
   font-style: normal;
-  font-weight: 400;
+  font-weight: 700;
   font-display: swap;
 }
 
 :root {
-  --pixel: "Tamzen8x15r", "SGK001", "Noto Sans SC", monospace;
-  --terminal: "Tamzen8x15r", "SGK001", "Noto Sans SC", monospace;
+  --pixel: "Pixelated MS Sans Serif", Arial, sans-serif;
+  --terminal: "Pixelated MS Sans Serif", Arial, sans-serif;
 }
 
-html,
-body,
+body {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+}
+
+.window,
+.menu-bar,
+.titlebar,
 button,
-a,
 input,
+label,
+select,
+table,
 textarea,
-select {
-  font-family: var(--terminal);
+.status-bar,
+.taskbar {
+  font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+  font-size: 11px;
   font-synthesis: none;
   letter-spacing: 0;
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: geometricPrecision;
+  text-rendering: optimizeSpeed;
 }
 
-body {
-  font-size: 16px;
+.window a,
+.window p,
+.window li,
+.window span,
+.window h1,
+.window h2,
+.window h3 {
+  font-family: inherit;
 }
 
-.titlebar-title,
+.titlebar {
+  min-height: 24px;
+  padding: 3px 3px;
+}
+
+.titlebar-title {
+  font-family: var(--pixel);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
 .window-button,
-.lang-switch,
-.retro-button,
-.menu-item,
-.mail-icon,
+.lang-switch {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  font-family: var(--pixel);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.menu-item {
+  padding: 3px 8px;
+  font-family: var(--pixel);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.content-scroll {
+  padding: 12px 14px;
+}
+
 .section-title,
 .profile-name,
 .project-title,
 .contact-label,
 .dialog-title,
-.start-button {
+.start-button,
+.mail-icon {
   font-family: var(--pixel);
+  font-size: 11px;
   font-weight: 400;
+  line-height: 1.25;
   letter-spacing: 0;
 }
 
-.titlebar-title {
-  font-size: 16px;
-  line-height: 1;
+.profile-name,
+.titlebar-title,
+.contact-label {
+  font-weight: 700;
 }
 
-.window-button,
-.lang-switch {
-  font-size: 15px;
-  line-height: 1;
+.profile-grid {
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
 }
 
-.menu-item {
-  font-size: 16px;
-  line-height: 1;
-  padding: 5px 10px;
+.avatar-frame {
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
-.section-title {
-  font-size: 18px;
-  line-height: 1.25;
-}
-
-.profile-name {
-  font-size: 22px;
-  line-height: 1.25;
+.avatar-frame img {
+  width: 72px;
+  height: 72px;
 }
 
 .profile-meta,
@@ -92,67 +138,55 @@ body {
 .file-table,
 .status-cell,
 .desktop-shortcut,
-.terminal-box {
-  font-family: var(--terminal);
-}
-
-.profile-meta {
-  font-size: 17px;
-}
-
-.copy,
-.project-desc,
-.contact-item,
-.file-table {
-  font-size: 17px;
-  line-height: 1.45;
-}
-
-.project-title,
-.contact-label {
-  font-size: 17px;
-  line-height: 1.25;
-}
-
-.project-tags,
-.note,
-.status-cell,
-.terminal-box {
-  font-size: 15px;
-}
-
-.desktop-shortcut {
-  font-size: 16px;
-}
-
+.terminal-box,
 .taskbar-item,
 .clock {
   font-family: var(--terminal);
-  font-size: 15px;
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.copy p {
+  margin: 0 0 5px;
+}
+
+.role-list {
+  margin-top: 5px;
+}
+
+.project-status {
+  font-size: 10px;
+}
+
+.status-cell {
+  padding: 2px 4px;
+  line-height: 1.1;
+}
+
+.terminal-box {
+  padding: 5px 7px;
 }
 
 @media (max-width: 700px) {
-  .titlebar-title {
-    font-size: 14px;
+  .window {
+    font-size: 11px;
   }
 
-  .menu-item {
-    font-size: 14px;
-    padding-inline: 7px;
-  }
-
-  .section-title {
-    font-size: 16px;
-  }
-
-  .profile-name {
-    font-size: 20px;
-  }
-
+  .titlebar-title,
+  .menu-item,
+  .section-title,
+  .profile-name,
+  .project-title,
+  .contact-label,
   .copy,
   .project-desc,
   .contact-item,
   .file-table {
-    font-size: 16px;
+    font-size: 11px;
+  }
+
+  .content-scroll {
+    padding: 10px;
   }
 }

@@ -41,7 +41,8 @@ body.article-reader-open .taskbar {
 }
 
 .article-glass-shell,
-.article-toc {
+.article-toc,
+.legacy-glass-control {
   background: transparent;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -60,21 +61,13 @@ body.article-reader-open .taskbar {
   display: none;
 }
 
-.article-toc {
+.article-toc,
+.legacy-glass-control {
   border: 0;
 }
 
-/*
- * Controls intentionally remain neutral until the separate App Legacy Renderer is attached.
- * They must not imitate glass with CSS or the new Shell shader.
- */
 .legacy-glass-control {
-  border: 1px solid rgba(255, 255, 255, .075);
-  background: rgba(6, 5, 20, .18);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  box-shadow: none;
-  filter: none;
+  will-change: transform;
   transition: color 120ms ease;
   text-shadow: 0 1px 5px rgba(4, 3, 15, .70);
 }

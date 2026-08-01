@@ -40,7 +40,7 @@
     float value = 0.0;
     float amp = 0.52;
     mat2 rot = mat2(0.82, -0.57, 0.57, 0.82);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 3; i++) {
       value += amp * noise2(p);
       p = rot * p * 2.03 + 13.7;
       amp *= 0.48;
@@ -115,15 +115,11 @@
   vec3 blurredScene(vec2 frag, vec2 offset, float radiusPx) {
     vec2 uv = (frag + offset) / u_resolution;
     vec2 stepUv = vec2(radiusPx) / u_resolution;
-    vec3 color = scene(uv) * 0.28;
-    color += scene(uv + vec2(stepUv.x, 0.0)) * 0.12;
-    color += scene(uv - vec2(stepUv.x, 0.0)) * 0.12;
-    color += scene(uv + vec2(0.0, stepUv.y)) * 0.12;
-    color += scene(uv - vec2(0.0, stepUv.y)) * 0.12;
-    color += scene(uv + stepUv) * 0.06;
-    color += scene(uv - stepUv) * 0.06;
-    color += scene(uv + vec2(stepUv.x, -stepUv.y)) * 0.06;
-    color += scene(uv + vec2(-stepUv.x, stepUv.y)) * 0.06;
+    vec3 color = scene(uv) * 0.40;
+    color += scene(uv + vec2(stepUv.x, 0.0)) * 0.15;
+    color += scene(uv - vec2(stepUv.x, 0.0)) * 0.15;
+    color += scene(uv + vec2(0.0, stepUv.y)) * 0.15;
+    color += scene(uv - vec2(0.0, stepUv.y)) * 0.15;
     return color;
   }
 
@@ -148,9 +144,9 @@
 
     float dispersion = shoulder * 0.64;
     vec3 refracted;
-    refracted.r = blurredScene(frag, offset + normal * 3.2 * dispersion, 2.5).r;
+    refracted.r = scene((frag + offset + normal * 3.2 * dispersion) / u_resolution).r;
     refracted.g = blur.g;
-    refracted.b = blurredScene(frag, offset - normal * 3.6 * dispersion, 2.5).b;
+    refracted.b = scene((frag + offset - normal * 3.6 * dispersion) / u_resolution).b;
 
     float topLight = smoothstep(-0.25, 0.85, normal.y) * shoulder;
     float lowerShade = smoothstep(-0.15, 0.85, -normal.y) * shoulder;
@@ -230,6 +226,7 @@
       this.motion = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
       this.startTime = performance.now();
       this.raf = 0;
+      this.lastFrame = 0;
       this.resizeObserver = null;
       this.onPointerMove = this.onPointerMove.bind(this);
       this.render = this.render.bind(this);
@@ -317,7 +314,8 @@
     }
 
     resize() {
-      const dpr = Math.min(devicePixelRatio || 1, 1.75);
+      const dprCap = innerWidth <= 560 ? 1.08 : innerWidth <= 1100 ? 1.20 : 1.45;
+      const dpr = Math.min(devicePixelRatio || 1, dprCap);
       const width = Math.max(1, Math.round(innerWidth * dpr));
       const height = Math.max(1, Math.round(innerHeight * dpr));
       if (this.canvas.width !== width || this.canvas.height !== height) {
@@ -341,6 +339,12 @@
 
     render(now) {
       if (!this.running || !this.program) return;
+      const frameInterval = innerWidth <= 1100 ? 1000 / 30 : 1000 / 45;
+      if (now - this.lastFrame < frameInterval) {
+        this.raf = requestAnimationFrame(this.render);
+        return;
+      }
+      this.lastFrame = now;
       this.resize();
       const gl = this.gl;
       const dpr = this.canvas.width / Math.max(innerWidth, 1);

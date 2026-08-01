@@ -1,0 +1,95 @@
+/* Expanded project detail panels */
+
+.project-colour-mint { color: #168b6d; }
+.project-colour-blue { color: #386db8; }
+
+.project-browser,
+.project-inspector {
+  max-height: 338px;
+  overflow: auto;
+  scrollbar-color: var(--window-dark) var(--window-face);
+}
+
+.project-browser::-webkit-scrollbar,
+.project-inspector::-webkit-scrollbar {
+  width: 13px;
+}
+
+.project-browser::-webkit-scrollbar-track,
+.project-inspector::-webkit-scrollbar-track {
+  background: var(--window-face);
+  border-left: 1px solid var(--window-dark);
+}
+
+.project-browser::-webkit-scrollbar-thumb,
+.project-inspector::-webkit-scrollbar-thumb {
+  border: 2px solid;
+  border-color: var(--window-light) var(--window-dark) var(--window-dark) var(--window-light);
+  background: var(--window-face);
+}
+
+.project-detail-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 6px 8px 7px 24px;
+  font-size: 10px;
+  line-height: 1.42;
+}
+
+.project-detail-list li {
+  padding-left: 1px;
+}
+
+.project-detail-list li::marker {
+  color: var(--accent);
+}
+
+.architecture-list li::marker {
+  color: #7253b3;
+}
+
+.challenge-list {
+  background: rgba(255, 236, 241, .52);
+}
+
+.challenge-list li::marker {
+  color: #c75c78;
+}
+
+.output-list {
+  background: rgba(235, 251, 246, .56);
+}
+
+.output-list li::marker {
+  color: #3d9a75;
+}
+
+.project-row {
+  min-height: 53px;
+}
+
+.project-row-copy strong {
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.project-row-copy small {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.project-fact strong {
+  white-space: normal;
+  line-height: 1.35;
+}
+
+@media (max-width: 760px) {
+  .project-browser,
+  .project-inspector {
+    max-height: none;
+    overflow: visible;
+  }
+}

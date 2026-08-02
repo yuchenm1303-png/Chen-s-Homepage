@@ -58,6 +58,27 @@
       }
     }
 
+    optimiseVisibleHosts() {
+      this.hosts?.forEach((host) => {
+        if (host.__scrollVisibilityPatched) return;
+        host.__scrollVisibilityPatched = true;
+        const originalRender = host.render.bind(host);
+
+        host.render = (state) => {
+          const rect = host.element.getBoundingClientRect();
+          const margin = 120;
+          const outsideViewport = (
+            rect.bottom < state.readerRect.top - margin
+            || rect.top > state.readerRect.bottom + margin
+            || rect.right < state.readerRect.left - margin
+            || rect.left > state.readerRect.right + margin
+          );
+          if (outsideViewport) return false;
+          return originalRender(state);
+        };
+      });
+    }
+
     bind(mainElement, controlElements) {
       this.lastMainElement = mainElement;
       this.lastControlElements = [...controlElements];
@@ -72,6 +93,7 @@
 
       this.releaseInactiveHosts(activeElements);
       super.bind(targets.mainElement, targets.controlElements);
+      this.optimiseVisibleHosts();
       this.attachScrollElement();
     }
 

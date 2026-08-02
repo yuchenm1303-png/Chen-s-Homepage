@@ -26,6 +26,7 @@
       this.lastControlElements = [];
       this.activeElements = null;
       this.scrollElement = null;
+      this.listeningScrollElement = null;
       this.hostRefreshFrame = 0;
 
       this.boundSceneScroll = () => this.scheduleHostRefresh();
@@ -237,13 +238,22 @@
 
     attachScrollElement() {
       const next = this.reader?.querySelector('#articleScroll') || null;
-      if (next === this.scrollElement) return;
 
-      this.scrollElement?.removeEventListener('scroll', this.boundSceneScroll);
-      this.scrollElement = next;
+      if (next !== this.scrollElement) {
+        this.listeningScrollElement?.removeEventListener('scroll', this.boundSceneScroll);
+        this.listeningScrollElement = null;
+        this.scrollElement = next;
+      }
 
-      if (this.running) {
-        this.scrollElement?.addEventListener('scroll', this.boundSceneScroll, { passive: true });
+      /*
+       * bind() runs before start(). In that first pass the scroll element is
+       * already cached, but the renderer is not running yet. When start() calls
+       * this method again we must still attach the listener instead of returning
+       * only because the DOM element is unchanged.
+       */
+      if (this.running && next && this.listeningScrollElement !== next) {
+        next.addEventListener('scroll', this.boundSceneScroll, { passive: true });
+        this.listeningScrollElement = next;
       }
     }
 
@@ -263,7 +273,9 @@
       cancelAnimationFrame(this.hostRefreshFrame);
       this.hostRefreshFrame = 0;
       this.activeElements = null;
-      this.scrollElement?.removeEventListener('scroll', this.boundSceneScroll);
+      this.listeningScrollElement?.removeEventListener('scroll', this.boundSceneScroll);
+      this.listeningScrollElement = null;
+      this.scrollElement = null;
       this.reader?.removeEventListener('blog:glass-hosts-changed', this.boundHostsChanged);
       if (typeof mobileViewport.removeEventListener === 'function') {
         mobileViewport.removeEventListener('change', this.boundViewportModeChanged);

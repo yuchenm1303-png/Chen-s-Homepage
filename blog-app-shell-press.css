@@ -10,6 +10,10 @@
   transform-origin: var(--app-shell-origin-x) var(--app-shell-origin-y);
   scale: var(--app-shell-scale-x) var(--app-shell-scale-y);
   translate: 0 var(--app-shell-translate-y);
+  will-change: auto;
+}
+
+.app-shell-press-host.app-shell-runtime-active {
   will-change: scale, translate;
 }
 
@@ -28,7 +32,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-shell-press-host {
+  .app-shell-press-host,
+  .app-shell-press-host.app-shell-runtime-active {
     scale: 1 1;
     translate: 0 0;
     will-change: auto;

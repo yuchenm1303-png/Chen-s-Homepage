@@ -149,8 +149,6 @@
       this.canvas.style.width = `${innerWidth}px`;
       this.canvas.style.height = `${innerHeight}px`;
 
-      // The reference page draws the visible background once, then applies the
-      // V29.5 color transform exactly once to the optical source texture.
       this.drawBackdrop(this.clearContext, this.rootWidth, this.rootHeight);
 
       this.prepareContext(this.v295ColorCtx);
@@ -215,43 +213,6 @@
       context.restore();
     }
 
-    roundedRectPath(context, x, y, width, height, radius) {
-      const r = Math.max(0, Math.min(radius, width / 2, height / 2));
-      context.beginPath();
-      context.moveTo(x + r, y);
-      context.arcTo(x + width, y, x + width, y + height, r);
-      context.arcTo(x + width, y + height, x, y + height, r);
-      context.arcTo(x, y + height, x, y, r);
-      context.arcTo(x, y, x + width, y, r);
-      context.closePath();
-    }
-
-    drawReferenceBackdropUnderlay(element, rect, radiusCss) {
-      const x = Math.round(rect.left * this.dpr);
-      const y = Math.round(rect.top * this.dpr);
-      const width = Math.max(1, Math.round(rect.width * this.dpr));
-      const height = Math.max(1, Math.round(rect.height * this.dpr));
-      const radius = Math.min(radiusCss * this.dpr, width / 2, height / 2);
-
-      this.output.save();
-      this.roundedRectPath(this.output, x, y, width, height, radius);
-      this.output.clip();
-      this.output.fillStyle = '#12375a';
-      this.output.fillRect(x, y, width, height);
-      this.output.drawImage(
-        this.v295Blur,
-        x,
-        y,
-        width,
-        height,
-        x,
-        y,
-        width,
-        height,
-      );
-      this.output.restore();
-    }
-
     renderAll() {
       if (!this.program) return;
       const expectedDpr = this.chooseDpr();
@@ -285,13 +246,6 @@
       const height = Math.max(1, Math.round(rect.height * this.dpr));
       this.setCanvasSize(this.glCanvas, width, height);
 
-      const radiusCss = parseFloat(getComputedStyle(element).borderTopLeftRadius)
-        || Math.min(rect.height / 2, 46);
-
-      // The original experiment has a cropped blurred backdrop canvas (#gb)
-      // beneath the WebGL optical canvas (#gl). This underlay is essential.
-      this.drawReferenceBackdropUnderlay(element, rect, radiusCss);
-
       const gl = this.gl;
       gl.viewport(0, 0, width, height);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -300,6 +254,8 @@
       gl.enableVertexAttribArray(this.locations.a);
       gl.vertexAttribPointer(this.locations.a, 2, gl.FLOAT, false, 0, 0);
 
+      const radiusCss = parseFloat(getComputedStyle(element).borderTopLeftRadius)
+        || Math.min(rect.height / 2, 46);
       gl.uniform2f(this.locations.uRes, width, height);
       gl.uniform2f(this.locations.uOrigin, rect.left * this.dpr, rect.top * this.dpr);
       gl.uniform2f(this.locations.uRoot, this.rootWidth, this.rootHeight);

@@ -7,7 +7,9 @@
 .projects-counters,
 .project-row-status,
 .inspector-status,
-.projects-footer {
+.projects-footer,
+.blog-index-hint,
+.contact-index-hint {
   display: none;
 }
 

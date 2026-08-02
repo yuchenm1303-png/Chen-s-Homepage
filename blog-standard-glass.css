@@ -91,7 +91,10 @@ body.article-reader-open .taskbar {
   z-index: 1;
 }
 
-.article-glass-shell > :not(.v295-standard-gb):not(.v295-standard-gl),
+.article-glass-shell > :not(.v295-standard-gb):not(.v295-standard-gl) {
+  z-index: 2;
+}
+
 .article-toc > :not(.v295-standard-gb):not(.v295-standard-gl) {
   position: relative;
   z-index: 2;
@@ -103,6 +106,7 @@ body.article-reader-open .taskbar {
 }
 
 .article-progress-track {
+  position: absolute !important;
   z-index: 5 !important;
 }
 

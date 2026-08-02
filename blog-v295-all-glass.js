@@ -1,65 +1,300 @@
 (() => {
   'use strict';
+
   const BaseRenderer = window.BlogGlassRenderer;
   const V295 = window.OpenGLV24Shaders;
   if (!BaseRenderer || !V295) return;
 
+  // Exact V29.5 glass-body parameters from the reference web experiment.
   const G = Object.freeze({
-    radius:.230414746543779, iterations:12, brightness:1.14239631336406, contrast:1.0241935483871, saturation:1.112,
-    bodyVisibility:20, bodyMaxAlpha:1, bodyOutputBrightness:1.81152073732719,
-    bodyLensBasePull:300, bodyLensPullDp:600, bodyLensConcentration:10, bodyLensCornerBoost:0,
-    bodyLensExtraDistance:200, bodyLensReachDp:180, bodyLensDark:.23041474654378, bodyLensDebug:0,
-    bodyLowFrequencyWidth:1.25059907834101, bodyLowFrequencyCurve:.2, bodyLowFrequencyGain:12.4423963133641,
-    bodyBrightness:.545161290322581, glassIntensity:1.35, edgeMode:2,
-    shoulderWidthPx:21.7162162162162, shoulderCaptureWidthPx:96, shoulderMaxAngleDeg:89.5,
-    shoulderFalloffRoundness:0, shoulderMaterialStrength:4, shoulderTangentialFlowStrength:0,
+    radius: 0.230414746543779,
+    iterations: 12,
+    brightness: 1.14239631336406,
+    contrast: 1.0241935483871,
+    saturation: 1.112,
+    bodyVisibility: 20,
+    bodyMaxAlpha: 1,
+    bodyOutputBrightness: 1.81152073732719,
+    bodyLensBasePull: 300,
+    bodyLensPullDp: 600,
+    bodyLensConcentration: 10,
+    bodyLensCornerBoost: 0,
+    bodyLensExtraDistance: 200,
+    bodyLensReachDp: 180,
+    bodyLensDark: 0.23041474654378,
+    bodyLensDebug: 0,
+    bodyLowFrequencyWidth: 1.25059907834101,
+    bodyLowFrequencyCurve: 0.2,
+    bodyLowFrequencyGain: 12.4423963133641,
+    bodyBrightness: 0.545161290322581,
+    glassIntensity: 1.35,
+    edgeMode: 2,
+    shoulderWidthPx: 21.7162162162162,
+    shoulderCaptureWidthPx: 96,
+    shoulderMaxAngleDeg: 89.5,
+    shoulderFalloffRoundness: 0,
+    shoulderMaterialStrength: 4,
+    shoulderTangentialFlowStrength: 0,
   });
-  const RAW = Object.freeze({master:6.629,deformation:.351,touchLight:24,prism:24,sweep:24,rebound:7.571,afterglow:.815,speed:.171,tapImpulse:12,releaseCohesion:12,fieldContinuity:2.285,sweepMomentum:4.466});
-  const CAPSULE = Object.freeze({compactBoost:.46,elongatedX:0,elongatedY:.13,basePx:.038,tapPx:.112,tapPop:1.16,tapCarry:.42,sticky:.032,sink:.12,settle:.30});
-  const OPTICS = Object.freeze({fieldIntensity:6.8,fieldSpread:5.8,fieldSoftness:6.1,edgeIntensity:6.2,edgeWidth:3.15});
-  const T = Object.freeze({pressBodyGain:10.631,pressOpticsGain:11.174,pressLensGain:6.859,pressRimGain:14.413,pressSmallBoost:16,pressRowBoost:13.427,pressMinOptics:3.181,smallHeightStartPx:48,smallHeightRangePx:150,smallShortSideStartPx:52,smallShortSideRangePx:170,smallAreaStartPx:104,smallAreaRangePx:310,smallHeightWeight:.56,smallShortSideWeight:.24,smallAreaWeight:.20,rowAspectStart:2.10,rowAspectRange:4.30,compactHeightStartPx:76,compactHeightRangePx:132,rowBodyDamp:.958,bodyHeightPivotPx:270,bodyHeightRangePx:220,bodyHeightMin:.0457,bodyAreaPivotPx:520,bodyAreaRangePx:460,bodyAreaMin:.0437,bodyMin:.10,bodyMax:.11,opticsMin:.32,opticsMax:2.80,rimMin:.24,rimMax:2.60});
 
-  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-  const smooth=v=>{const x=clamp(v,0,1);return x*x*(3-2*x)};
-  const inv=v=>1-smooth(v);
-  function norm(v,rawMax,internalMax){const x=clamp(v,0,rawMax);if(x<=1)return x;return 1+((x-1)/Math.max(rawMax-1,.001))*(internalMax-1)}
-  function power(v,uiMax,effectiveMax){const x=Math.max(v,0);if(x<=1)return x;return 1+((x-1)/Math.max(uiMax-1,.001))*(effectiveMax-1)}
-  const MN={master:norm(RAW.master,12,1.5),deformation:norm(RAW.deformation,12,1.5),touchLight:norm(RAW.touchLight,24,1.06),prism:norm(RAW.prism,24,1.42),sweep:norm(RAW.sweep,24,1.32),rebound:norm(RAW.rebound,12,1.5),afterglow:norm(RAW.afterglow,24,1.36),speed:clamp(RAW.speed,.02,40),tapImpulse:norm(RAW.tapImpulse,12,1.2),releaseCohesion:norm(RAW.releaseCohesion,12,1.2),fieldContinuity:norm(RAW.fieldContinuity,24,1.2),sweepMomentum:norm(RAW.sweepMomentum,24,1.2)};
-  const MASTER=power(MN.master,1.5,18);
-  const M={master:MASTER,deformation:power(MN.deformation,1.5,28)*MASTER,touchLight:power(MN.touchLight,1.8,56)*MASTER,prism:power(MN.prism,1.8,36)*MASTER,sweep:power(MN.sweep,1.5,56)*MASTER,rebound:power(MN.rebound,1.5,24)*MASTER,afterglow:power(MN.afterglow,1.5,48)*MASTER,speed:MN.speed,tapImpulse:power(MN.tapImpulse,1.6,24)*MASTER,releaseCohesion:power(MN.releaseCohesion,1.6,24)*MASTER,fieldContinuity:power(MN.fieldContinuity,1.6,24)*MASTER,sweepMomentum:power(MN.sweepMomentum,1.6,24)*MASTER};
-  function rgba(hex,a){const h=hex.replace('#','');const n=parseInt(h.length===3?h.split('').map(c=>c+c).join(''):h,16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${clamp(a,0,1)})`}
-  function rounded(ctx,x,y,w,h,r){r=clamp(r,0,Math.min(w,h)/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
-  function stops(g,list){list.forEach(([p,c])=>g.addColorStop(p,c));return g}
-
-  function profile(w,h){w=Math.max(w,1);h=Math.max(h,1);const ss=Math.min(w,h),ls=Math.max(w,h),area=Math.sqrt(w*h),aspect=ls/ss;const sh=inv(clamp((h-T.smallHeightStartPx)/T.smallHeightRangePx,0,1)),sss=inv(clamp((ss-T.smallShortSideStartPx)/T.smallShortSideRangePx,0,1)),sa=inv(clamp((area-T.smallAreaStartPx)/T.smallAreaRangePx,0,1));const wt=Math.max(T.smallHeightWeight+T.smallShortSideWeight+T.smallAreaWeight,.001);const small=clamp((sh*T.smallHeightWeight+sss*T.smallShortSideWeight+sa*T.smallAreaWeight)/wt,0,1);const compact=inv(clamp((h-T.compactHeightStartPx)/T.compactHeightRangePx,0,1));const row=clamp(smooth(clamp((aspect-T.rowAspectStart)/T.rowAspectRange,0,1))*compact,0,1);const hd=clamp((T.bodyHeightPivotPx-h)/T.bodyHeightRangePx,T.bodyHeightMin,1.5),ad=clamp((T.bodyAreaPivotPx-area)/T.bodyAreaRangePx,T.bodyAreaMin,1.5);const body=clamp(1.10*hd*ad*(1+small*T.pressSmallBoost)*(1-row*T.rowBodyDamp)*T.pressBodyGain,T.bodyMin,T.bodyMax);const optics=clamp(Math.max(T.pressMinOptics,1.18*(.70+small*T.pressSmallBoost*.42+row*T.pressRowBoost*.58)*(.90+body*.20)*T.pressOpticsGain),T.opticsMin,T.opticsMax);const rim=clamp(1.18*(.70+small*T.pressSmallBoost*.22+row*T.pressRowBoost*.74)*T.pressRimGain,T.rimMin,T.rimMax);const lens=clamp((1+small*.20-row*.12)*T.pressLensGain,.05,12);return{body,optics,rim,lens,smallness:small,rowness:row}}
-  function ordinaryState(el){return{element:el,pointerId:null,material:0,lens:0,sweep:0,tail:0,centerX:.5,centerY:.5,animations:new Map()}}
-
-  class UnifiedV295Renderer extends BaseRenderer {
-    constructor(canvas){super(canvas);this.controlStates=[];this.v295Texture=null;this.v295Color=document.createElement('canvas');this.v295BlurA=document.createElement('canvas');this.v295BlurB=document.createElement('canvas');this.v295Blur=document.createElement('canvas');this.v295ColorCtx=this.v295Color.getContext('2d');this.v295BlurACtx=this.v295BlurA.getContext('2d');this.v295BlurBCtx=this.v295BlurB.getContext('2d');this.v295BlurCtx=this.v295Blur.getContext('2d')}
-    initialise(){
-      const gl=this.gl;if(!gl)return false;
-      const vs=this.compile(gl.VERTEX_SHADER,V295.vs),fs=this.compile(gl.FRAGMENT_SHADER,V295.fs);if(!vs||!fs)return false;
-      this.program=gl.createProgram();gl.attachShader(this.program,vs);gl.attachShader(this.program,fs);gl.linkProgram(this.program);gl.deleteShader(vs);gl.deleteShader(fs);if(!gl.getProgramParameter(this.program,gl.LINK_STATUS)){console.warn('V29.5 link failed',gl.getProgramInfoLog(this.program));return false}
-      const names=['a','uRes','uOrigin','uRoot','uBlurTexture','uMat','uBodyLensA','uBodyLensB','uBody','uShoulder','uShoulderFlow','uShoulderEnabled','uRadius','uIntensity'];this.locations={};names.forEach(n=>this.locations[n]=n==='a'?gl.getAttribLocation(this.program,n):gl.getUniformLocation(this.program,n));if(this.locations.a<0||names.slice(1).some(n=>this.locations[n]===null))return false;
-      this.quadBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.quadBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
-      this.v295Texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.v295Texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.clearColor(0,0,0,0);return true;
+  class StaticV295Renderer extends BaseRenderer {
+    constructor(canvas) {
+      super(canvas);
+      this.staticControls = [];
+      this.v295Texture = null;
+      this.v295Color = document.createElement('canvas');
+      this.v295BlurA = document.createElement('canvas');
+      this.v295BlurB = document.createElement('canvas');
+      this.v295Blur = document.createElement('canvas');
+      this.v295ColorCtx = this.v295Color.getContext('2d');
+      this.v295BlurACtx = this.v295BlurA.getContext('2d');
+      this.v295BlurBCtx = this.v295BlurB.getContext('2d');
+      this.v295BlurCtx = this.v295Blur.getContext('2d');
     }
-    bind(main,controls){super.bind(main,controls);this.controlStates=[...controls].map(ordinaryState);this.controlStates.forEach(s=>this.attachOrdinary(s));}
-    tick(time){this.frame=0;if(!this.running||document.hidden)return;const delta=clamp((time-this.lastFrameTime)/1000,.001,.05);this.lastFrameTime=time;let active=this.updateStateAnimations(this.shellState,time,delta);this.controlStates.forEach(s=>active=this.updateStateAnimations(s,time,delta)||active);this.applyShellTransform();this.applyControlTransforms();if(this.dirty||active){this.dirty=false;this.renderAll()}if(active||this.dirty)this.frame=requestAnimationFrame(this.boundTick)}
-    ordinaryDuration(base,min,max){const s=M.speed<=1?clamp(1.12/Math.max(M.speed,.02),1.12,8.8):clamp(1.12/M.speed,.12,1.12);return clamp(Math.round(base*s),min,max)}
-    gains(state){const r=state.element.getBoundingClientRect(),p=profile(r.width*this.dpr,r.height*this.dpr),aspect=Math.max(r.width,1)/Math.max(r.height,1),compact=clamp((190-Math.min(r.width,r.height))/150,0,1),elong=clamp((aspect-1.55)/3.2,0,1),compactGain=clamp(1+compact*(CAPSULE.compactBoost-1)*.92,.78,2.4),xGain=clamp(compactGain*(1-elong*CAPSULE.elongatedX*.22),.64,2.65),yGain=clamp(1+elong*(.18+CAPSULE.elongatedY)*.98+compact*.16,.86,2.25),bodyGain=clamp(1+CAPSULE.basePx*14+CAPSULE.tapPx*8.8+CAPSULE.tapPop*.07+CAPSULE.tapCarry*.018,.78,3.8),sinkGain=clamp(.70+CAPSULE.sink*.64+CAPSULE.tapCarry*.018,.60,6.2),settle=clamp(1-CAPSULE.settle*.035,.68,1),profileBody=clamp(.78+p.body*.44+p.smallness*.12,.72,1.9),rowStability=clamp(1-p.rowness*.20,.72,1);return{p,xGain,yGain,bodyGain,sinkGain,settle,profileBody,rowStability}}
-    attachOrdinary(state){const el=state.element;const center=e=>{const r=el.getBoundingClientRect();state.centerX=clamp((e.clientX-r.left)/Math.max(r.width,1),0,1);state.centerY=clamp((e.clientY-r.top)/Math.max(r.height,1),0,1)};const down=e=>{if(e.button!==undefined&&e.button!==0)return;state.pointerId=e.pointerId;center(e);this.beginOrdinary(state)};const move=e=>{if(state.pointerId!==e.pointerId)return;center(e);this.requestRender()};const up=e=>{if(state.pointerId!==e.pointerId)return;center(e);state.pointerId=null;this.endOrdinary(state)};const cancel=e=>{if(state.pointerId!==e.pointerId)return;state.pointerId=null;this.endOrdinary(state)};el.addEventListener('pointerdown',down,{passive:true});window.addEventListener('pointermove',move,{passive:true});window.addEventListener('pointerup',up,{passive:true});window.addEventListener('pointercancel',cancel,{passive:true});this.cleanup.push(()=>el.removeEventListener('pointerdown',down),()=>window.removeEventListener('pointermove',move),()=>window.removeEventListener('pointerup',up),()=>window.removeEventListener('pointercancel',cancel))}
-    beginOrdinary(s){s.animations.clear();const g=this.gains(s),instant=clamp(.24+clamp(M.deformation,0,32)*.03,.20,.58),burst=clamp((.54+clamp(M.deformation,0,32)*.15+clamp(M.tapImpulse,0,24)*.03)*(.92+(g.bodyGain-1)*.34),.24,1.72),hold=clamp((.42+clamp(M.deformation,0,32)*.085+clamp(M.touchLight,0,56)*.006)*(.92+(g.bodyGain-1)*.26),.18,1.18);s.material=Math.max(0,s.material,instant);this.setSequence(s,'material',[{type:'tween',target:burst,duration:this.ordinaryDuration(46,32,90),easing:this.fastEase()},{type:'spring',target:hold,dampingRatio:.62,stiffness:400}]);const instantLens=clamp(.34+clamp(M.touchLight,0,56)*.035,.24,.92),lensTarget=clamp(.58+clamp(M.touchLight,0,56)*.13,.24,2.15);s.lens=Math.max(s.lens,instantLens);this.setSequence(s,'lens',[{type:'tween',target:lensTarget,duration:this.ordinaryDuration(58,36,110),easing:this.fastEase()}]);const instantSweep=clamp(.10+clamp(M.sweep,0,56)*.01,.05,.42),sweepTarget=clamp(.72+clamp(M.sweep,0,56)*.06+clamp(M.sweepMomentum,0,24)*.03,.20,2.8);s.sweep=Math.max(s.sweep,instantSweep);this.setSequence(s,'sweep',[{type:'tween',target:sweepTarget,duration:this.ordinaryDuration(230,140,520),easing:this.fastEase()}]);s.tail=Math.max(s.tail,.10);this.setSequence(s,'tail',[{type:'tween',target:clamp(.22+clamp(M.fieldContinuity,0,24)*.01,.10,.70),duration:this.ordinaryDuration(120,70,260),easing:this.fastEase()}]);this.requestRender()}
-    endOrdinary(s){s.animations.clear();const g=this.gains(s),rebound=clamp(-.12-clamp(M.rebound,0,24)*.028,-1.4,-.025);this.setSequence(s,'material',[{type:'tween',target:rebound,duration:this.ordinaryDuration(88,56,160),easing:this.fastEase()},{type:'spring',target:.04,dampingRatio:.48,stiffness:280},{type:'spring',target:0,dampingRatio:clamp((.70+clamp(M.releaseCohesion,0,24)*.026)*g.settle,.64,.90),stiffness:200}]);const la=clamp(.16+clamp(M.afterglow,0,48)*.06,.01,1.45);this.setSequence(s,'lens',[{type:'tween',target:la,duration:this.ordinaryDuration(Math.round(170+clamp(M.afterglow,0,48)*22),170,700),easing:this.fastEase()},{type:'tween',target:0,duration:this.ordinaryDuration(Math.round(240+clamp(M.afterglow,0,48)*30),240,900),easing:this.fastEase()}]);const sa=clamp(.18+clamp(M.afterglow,0,48)*.018+clamp(M.sweepMomentum,0,24)*.018,0,1.35);this.setSequence(s,'sweep',[{type:'tween',target:sa,duration:this.ordinaryDuration(Math.round(240+clamp(M.afterglow,0,48)*10),220,980),easing:this.fastEase()},{type:'tween',target:0,duration:this.ordinaryDuration(Math.round(560+clamp(M.afterglow,0,48)*18+clamp(M.sweepMomentum,0,24)*16),520,1800),easing:this.fastEase()}]);const tail=clamp(.48+clamp(M.afterglow,0,48)*.024+clamp(M.fieldContinuity,0,24)*.03+clamp(M.sweepMomentum,0,24)*.014,.34,2.4);s.tail=Math.max(s.tail,tail*.72);this.setSequence(s,'tail',[{type:'tween',target:tail,duration:this.ordinaryDuration(150,90,340),easing:this.fastEase()},{type:'tween',target:0,duration:this.ordinaryDuration(Math.round(760+clamp(M.afterglow,0,48)*22+clamp(M.fieldContinuity,0,24)*24),720,2400),easing:this.fastEase()}]);this.requestRender()}
-    fastEase(){return t=>{const x=clamp(t,0,1);return x*x*(3-2*x)}}
-    snap(s){const g=this.gains(s),pos=Math.max(s.material,0),rebound=smooth(clamp(-s.material/1.4,0,1)),pressCompression=smooth(clamp(pos/1.72,0,1)),lens=smooth(clamp(s.lens/2.15,0,1)),sweep=smooth(clamp(s.sweep/2.8,0,1)),tail=smooth(clamp(s.tail/2.4,0,1)),pressShape=smooth(clamp((pos+s.lens*.66+s.tail*.22)/3.05,0,1));const intensity=1+pressShape*(.036+.078*g.p.body+.012*g.p.optics)*g.bodyGain+lens*.018*(.86+g.p.optics*.26)+tail*.012*(.84+g.p.optics*.18)+sweep*.010*(.82+g.p.rim*.18);return{...g,pos,rebound,pressCompression,lens,sweep,tail,pressShape,intensity}}
-    applyControlTransforms(){this.controlStates.forEach(s=>{const d=this.snap(s),grow=clamp(M.deformation,0,32),bounce=clamp(M.rebound,0,24),sx=1+d.pressCompression*(.034+.0085*grow)*d.xGain*d.profileBody*d.rowStability-d.rebound*(.010+.003*bounce)*(.82+d.p.body*.28),sy=1+d.pressCompression*(.026+.0065*grow)*d.yGain*d.profileBody-d.rebound*(.008+.0022*bounce)*(.82+d.p.body*.28),ty=d.pressCompression*(.24+.10*grow)*d.sinkGain*(.82+d.p.body*.38)-d.rebound*(.18+.055*bounce)*(.86+d.p.body*.26);s.element.style.transformOrigin=`${s.centerX*100}% ${s.centerY*100}%`;s.element.style.transform=`translateY(${ty}px) scale(${sx},${sy})`})}
-    rebuildBackdrop(){super.rebuildBackdrop();this.setCanvasSize(this.v295Color,this.rootWidth,this.rootHeight);this.setCanvasSize(this.v295BlurA,this.rootWidth,this.rootHeight);this.setCanvasSize(this.v295BlurB,this.rootWidth,this.rootHeight);this.setCanvasSize(this.v295Blur,this.rootWidth,this.rootHeight);this.prepareContext(this.v295ColorCtx);this.v295ColorCtx.clearRect(0,0,this.rootWidth,this.rootHeight);this.v295ColorCtx.save();this.v295ColorCtx.filter=`brightness(${G.brightness}) contrast(${G.contrast}) saturate(${G.saturation})`;this.v295ColorCtx.drawImage(this.clearCanvas,0,0);this.v295ColorCtx.restore();const radius=Math.max(0,G.radius*this.dpr*Math.pow(Math.max(1,G.iterations),.55)),passes=Math.max(1,Math.min(3,Math.ceil(G.iterations/4))),step=Math.max(.25,radius/Math.sqrt(2*passes));let current=this.v295Color;for(let i=0;i<passes;i++){this.shiftBlur(this.v295BlurACtx,current,step,true);this.shiftBlur(this.v295BlurBCtx,this.v295BlurA,step,false);current=this.v295BlurB}this.prepareContext(this.v295BlurCtx);this.v295BlurCtx.clearRect(0,0,this.rootWidth,this.rootHeight);this.v295BlurCtx.drawImage(current,0,0);const gl=this.gl;gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.v295Texture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,this.v295Blur);gl.flush()}
-    shiftBlur(ctx,src,step,horizontal){this.prepareContext(ctx);ctx.clearRect(0,0,this.rootWidth,this.rootHeight);ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.2;for(let i=-2;i<=2;i++)ctx.drawImage(src,horizontal?i*step:0,horizontal?0:i*step,this.rootWidth,this.rootHeight);ctx.restore();ctx.save();ctx.globalCompositeOperation='destination-over';ctx.drawImage(src,0,0,this.rootWidth,this.rootHeight);ctx.restore()}
-    renderAll(){if(this.backdropDirty)this.rebuildBackdrop();this.prepareContext(this.output);this.output.clearRect(0,0,this.rootWidth,this.rootHeight);this.output.drawImage(this.clearCanvas,0,0);this.renderV295(this.mainElement,G.glassIntensity*this.dynamicSnapshot().intensityScale);if(this.isSideVisible())this.renderV295(this.sideElement,G.glassIntensity);this.controlStates.forEach(s=>this.renderV295(s.element,G.glassIntensity*this.snap(s).intensity));this.drawShellFx();this.controlStates.forEach(s=>this.drawOrdinaryFx(s))}
-    renderV295(el,intensity){if(!el)return;const r=el.getBoundingClientRect();if(r.width<2||r.height<2||r.bottom<0||r.top>innerHeight)return;const w=Math.max(1,Math.round(r.width*this.dpr)),h=Math.max(1,Math.round(r.height*this.dpr));this.setCanvasSize(this.glCanvas,w,h);const gl=this.gl;gl.viewport(0,0,w,h);gl.clear(gl.COLOR_BUFFER_BIT);gl.useProgram(this.program);gl.bindBuffer(gl.ARRAY_BUFFER,this.quadBuffer);gl.enableVertexAttribArray(this.locations.a);gl.vertexAttribPointer(this.locations.a,2,gl.FLOAT,false,0,0);const radius=parseFloat(getComputedStyle(el).borderTopLeftRadius)||Math.min(r.height/2,46);gl.uniform2f(this.locations.uRes,w,h);gl.uniform2f(this.locations.uOrigin,r.left*this.dpr,r.top*this.dpr);gl.uniform2f(this.locations.uRoot,this.rootWidth,this.rootHeight);gl.uniform1f(this.locations.uRadius,Math.min(radius*this.dpr,Math.min(w,h)/2));gl.uniform1f(this.locations.uIntensity,intensity);gl.uniform4f(this.locations.uMat,G.bodyVisibility,G.bodyMaxAlpha,G.bodyOutputBrightness,0);gl.uniform4f(this.locations.uBodyLensA,G.bodyLensBasePull*this.dpr,G.bodyLensPullDp*this.dpr,G.bodyLensConcentration,G.bodyLensCornerBoost);gl.uniform4f(this.locations.uBodyLensB,G.bodyLensExtraDistance*this.dpr,G.bodyLensReachDp*this.dpr,G.bodyLensDark,G.bodyLensDebug);gl.uniform4f(this.locations.uBody,G.bodyLowFrequencyWidth,G.bodyLowFrequencyCurve,G.bodyLowFrequencyGain,G.bodyBrightness);gl.uniform4f(this.locations.uShoulder,G.shoulderWidthPx*this.dpr,G.shoulderMaxAngleDeg,G.shoulderFalloffRoundness,G.shoulderMaterialStrength);gl.uniform2f(this.locations.uShoulderFlow,G.shoulderCaptureWidthPx*this.dpr,G.shoulderTangentialFlowStrength);gl.uniform1f(this.locations.uShoulderEnabled,G.edgeMode);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.v295Texture);gl.uniform1i(this.locations.uBlurTexture,0);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);this.output.drawImage(this.glCanvas,Math.round(r.left*this.dpr),Math.round(r.top*this.dpr),w,h)}
-    drawShellFx(){const s=this.shellState;if(!s?.element)return;const d=this.dynamicSnapshot(),safe=clamp(Math.max(Math.max(s.pressValue,0),clamp(s.openGlPress,0,1)*.62,d.pressRebound*.24),0,1.08);if(safe<.001)return;const r=s.element.getBoundingClientRect(),x=r.left*this.dpr,y=r.top*this.dpr,w=r.width*this.dpr,h=r.height*this.dpr,p=smooth(clamp(safe/.72,0,1)),breath=smooth(clamp(safe/.50,0,1))*(1-.11*smooth(clamp((safe-.58)/.28,0,1))),compression=p*p,cx=x+s.centerX*w,cy=y+s.centerY*h,max=Math.max(w,h),near=v=>clamp(1-v/.42,0,1)*p,flow=smooth(clamp(safe/.62,0,1)),seed=(s.rimFlowSeed??.5)-.5,sweepX=(s.rimFlowDirection??1)>=0?-.24+seed*.36+flow*1.42:1.24+seed*.36-flow*1.42,starts=[.02,.74,.10,.18],ends=[.26,.98,.92,.58],band=breath*clamp(s.rimFlowStrength??1,.70,1.45),ctx=this.output,radius=(parseFloat(getComputedStyle(s.element).borderTopLeftRadius)||44)*this.dpr,inset=.56*this.dpr;ctx.save();rounded(ctx,x,y,w,h,radius);ctx.clip();ctx.globalCompositeOperation='screen';let g=stops(ctx.createRadialGradient(x+w*.5,y+h*.4,0,x+w*.5,y+h*.4,max*1.18),[[0,rgba('#fff',.021*breath)],[.48,rgba('#d8ffff',.014*breath)],[1,'transparent']]);ctx.fillStyle=g;ctx.fillRect(x,y,w,h);g=stops(ctx.createRadialGradient(cx,cy,0,cx,cy,max*(.86+.06*p)),[[0,rgba('#efffff',.066*breath)],[.42,rgba('#b8f7ff',.032*breath)],[.72,rgba('#82e8ff',.010*breath)],[1,'transparent']]);ctx.fillStyle=g;ctx.fillRect(x,y,w,h);ctx.globalCompositeOperation='multiply';g=stops(ctx.createRadialGradient(cx,cy,0,cx,cy,max*(1+.035*p)),[[0,'transparent'],[.58,rgba('#102c66',.006*p)],[1,rgba('#030b1a',.034*compression)]]);ctx.fillStyle=g;ctx.fillRect(x,y,w,h);ctx.globalCompositeOperation='screen';const path=()=>rounded(ctx,x+inset,y+inset,w-2*inset,h-2*inset,Math.max(0,radius-inset));g=stops(ctx.createLinearGradient(x+w*(sweepX-.26),y+h*starts[(s.rimFlowBand??0)%4],x+w*(sweepX+.22),y+h*ends[(s.rimFlowBand??0)%4]),[[0,'transparent'],[.2,rgba('#ff6adb',.20*band)],[.38,rgba('#fff',.34*band)],[.54,rgba('#ffe08a',.18*band)],[.72,rgba('#62fff0',.30*band)],[.86,rgba('#92a6ff',.12*band)],[1,'transparent']]);ctx.globalCompositeOperation='lighter';path();ctx.strokeStyle=g;ctx.lineWidth=1.02*this.dpr;ctx.stroke();const halo=(px,py,power,white,cyan)=>{if(power<=.001)return;const hg=stops(ctx.createRadialGradient(px,py,0,px,py,max*.38),[[0,rgba('#fff',white*power)],[.34,rgba('#ff7de2',.05*power)],[.55,rgba('#ffe28a',.036*power)],[.74,rgba('#80fff2',cyan*power)],[1,'transparent']]);ctx.globalCompositeOperation='screen';path();ctx.strokeStyle=hg;ctx.lineWidth=(1.18+.48*p)*this.dpr;ctx.stroke()};halo(cx,y+inset,near(s.centerY),.23,.072);halo(cx,y+h-inset,near(1-s.centerY),.16,.054);halo(x+inset,cy,near(s.centerX),.18,.060);halo(x+w-inset,cy,near(1-s.centerX),.18,.060);ctx.restore()}
-    drawOrdinaryFx(s){if(!s?.element)return;const d=this.snap(s),active=Math.max(s.material,s.lens,s.sweep,s.tail);if(active<=.00001)return;const r=s.element.getBoundingClientRect(),x=r.left*this.dpr,y=r.top*this.dpr,w=r.width*this.dpr,h=r.height*this.dpr,max=Math.max(w,h),min=Math.max(Math.min(w,h),1),cx=x+s.centerX*w,cy=y+s.centerY*h,release=clamp(Math.max(d.pressShape,d.lens,d.sweep*.72,d.tail),0,1);if(release<=.00001)return;const fade=release*release,continuity=Math.max(d.tail,d.lens*.42,d.sweep*.36),lightCarrier=Math.max(d.pressShape*.58,d.lens,d.tail*.86),sweepCarrier=Math.max(d.sweep,d.tail*(.42+clamp(M.sweepMomentum,0,24)*.01)),tailCarrier=d.tail*clamp(.68+clamp(M.afterglow,0,48)*.006,.68,.96),prismNorm=clamp(M.prism/36,0,1),prism=clamp(prismNorm*Math.max(d.lens*.74,d.sweep,d.tail*.82,d.pressShape*.38)*(.62+release*.38),0,1),caustic=clamp(prism*Math.max(d.tail,d.sweep*.62,d.lens*.38),0,1),sizeLight=clamp(.74+d.p.optics*.42+d.p.smallness*.20+d.p.rowness*.32,.72,2.6),sizeSweep=clamp(.78+d.p.rim*.34+d.p.rowness*.44,.72,2.4),light=clamp(M.touchLight*lightCarrier*fade*(.36+d.lens*.56+d.pressShape*.20+tailCarrier*.30)*(.82+OPTICS.fieldIntensity*.05)*sizeLight,0,128),sweepPower=clamp(M.sweep*sweepCarrier*fade*(.72+OPTICS.edgeIntensity*.035)*sizeSweep,0,112),after=clamp(M.afterglow*tailCarrier*fade*(.18+continuity*.40)*(.86+d.p.optics*.18)+M.fieldContinuity*d.tail*d.tail*fade*.36,0,88),capsuleLight=clamp(1+CAPSULE.tapPx*4.8+CAPSULE.sticky*7.2+CAPSULE.basePx*3.6,.92,1.74),elastic=clamp(Math.max(d.p.body,.14+d.p.smallness*.24+d.p.rowness*.34),.08,1.65),energy=clamp(Math.max(d.pressShape,d.lens*.92,d.sweep*.50,d.tail*.78)*capsuleLight*elastic*fade,0,2.3),phase=clamp((s.sweep+d.tail*.46)/2.8,0,1.2),sweepX=-.42+phase*1.84,carrier=Math.max(d.pressShape*.72,d.lens*.60,d.sweep*.32,d.tail*.38),minBloom=Math.max(min*(.92+carrier*1.18),42*this.dpr*(.56+carrier*.46)),local=min*(1.10+OPTICS.fieldSpread*.018+OPTICS.fieldSoftness*.010+light*.010+d.pressShape*.72+d.tail*.32+after*.0038)*d.p.lens+max*(.026+d.p.rowness*.052),maxBloom=Math.max(minBloom,max*(.56+d.p.rowness*.32+d.p.smallness*.16)),bloom=Math.min(Math.max(local,minBloom),maxBloom),prismBloom=bloom*(.86+prism*.36),ctx=this.output,radius=(parseFloat(getComputedStyle(s.element).borderTopLeftRadius)||r.height/2)*this.dpr;ctx.save();rounded(ctx,x,y,w,h,radius);ctx.clip();ctx.globalCompositeOperation='screen';let g=stops(ctx.createRadialGradient(cx,cy,0,cx,cy,bloom),[[0,rgba('#fff9ff',clamp((.040*light+.034*energy+.008*after)*fade,0,.92))],[.20,rgba('#fff',clamp((.030*light+.024*after)*fade,0,.66))],[.42,rgba('#f0ffff',clamp((.020*light+.014*sweepPower+.014*after)*fade,0,.50))],[.68,rgba('#fff0e0',clamp((.008*light+.008*sweepPower)*fade,0,.22))],[1,'transparent']]);ctx.fillStyle=g;ctx.fillRect(x,y,w,h);if(prism>.001){g=stops(ctx.createRadialGradient(cx,cy,0,cx,cy,prismBloom),[[0,'transparent'],[.18,rgba('#fff7ff',clamp(.020*prism*light,0,.22))],[.34,rgba('#ff6adb',clamp(.018*prism*light+.010*prism*sweepPower,0,.38))],[.50,rgba('#ffe08a',clamp(.014*prism*light+.012*prism*sweepPower,0,.34))],[.66,rgba('#7cfff2',clamp(.017*prism*light+.016*prism*sweepPower+.008*after*prism,0,.38))],[.82,rgba('#8ea6ff',clamp(.012*prism*sweepPower+.010*after*prism,0,.28))],[1,'transparent']]);ctx.fillStyle=g;ctx.fillRect(x,y,w,h)}if(caustic>.001){const ccx=clamp(cx+(s.centerX-.5)*w*.20+w*(sweepX-.5)*.075,x,x+w),ccy=clamp(cy+(s.centerY-.5)*h*.16-h*.035,y,y+h);g=stops(ctx.createRadialGradient(ccx,ccy,0,ccx,ccy,prismBloom*.66),[[0,'transparent'],[.22,rgba('#bffff8',clamp(.034*caustic*after+.012*caustic*sweepPower,0,.26))],[.46,rgba('#ff9bea',clamp(.022*caustic*after+.010*caustic*light,0,.22))],[.70,rgba('#ffe6a8',clamp(.012*caustic*sweepPower,0,.17))],[1,'transparent']]);ctx.fillStyle=g;ctx.fillRect(x,y,w,h)}const edge=clamp(Math.max(sweepPower/96,d.lens*.50,d.pressShape*.32,d.tail*.58,prism*.44)*release,0,1);if(edge>.001){const stroke=clamp((.56+.10*clamp(sweepPower,0,18)+OPTICS.edgeWidth*.018+d.p.rowness*.34+d.p.smallness*.14)*this.dpr,.56*this.dpr,5.4*this.dpr);g=stops(ctx.createLinearGradient(x+w*(sweepX-.38),y-h*.08,x+w*(sweepX+.44),y+h*1.08),[[0,'transparent'],[.18,rgba('#ff68d8',clamp((.016*light+.024*sweepPower)*prism*edge,0,.50))],[.32,rgba('#fff8ff',clamp((.020*light+.030*edge)*edge,0,.50))],[.48,rgba('#ffe08a',clamp((.014*light+.026*sweepPower)*Math.max(edge,prism),0,.54))],[.64,rgba('#7cfff2',clamp((.018*light+.030*sweepPower)*Math.max(edge,prism),0,.56))],[.80,rgba('#8ea6ff',clamp(.020*sweepPower*prism*edge,0,.34))],[1,'transparent']]);rounded(ctx,x+.5*this.dpr,y+.5*this.dpr,w-this.dpr,h-this.dpr,Math.max(0,radius-.5*this.dpr));ctx.strokeStyle=g;ctx.lineWidth=stroke;ctx.stroke()}ctx.restore()}
+
+    initialise() {
+      const gl = this.gl;
+      if (!gl) return false;
+
+      const vertex = this.compile(gl.VERTEX_SHADER, V295.vs);
+      const fragment = this.compile(gl.FRAGMENT_SHADER, V295.fs);
+      if (!vertex || !fragment) return false;
+
+      this.program = gl.createProgram();
+      gl.attachShader(this.program, vertex);
+      gl.attachShader(this.program, fragment);
+      gl.linkProgram(this.program);
+      gl.deleteShader(vertex);
+      gl.deleteShader(fragment);
+
+      if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
+        console.warn('V29.5 link failed', gl.getProgramInfoLog(this.program));
+        return false;
+      }
+
+      const names = [
+        'a', 'uRes', 'uOrigin', 'uRoot', 'uBlurTexture', 'uMat',
+        'uBodyLensA', 'uBodyLensB', 'uBody', 'uShoulder',
+        'uShoulderFlow', 'uShoulderEnabled', 'uRadius', 'uIntensity',
+      ];
+      this.locations = {};
+      names.forEach((name) => {
+        this.locations[name] = name === 'a'
+          ? gl.getAttribLocation(this.program, name)
+          : gl.getUniformLocation(this.program, name);
+      });
+      if (this.locations.a < 0 || names.slice(1).some((name) => this.locations[name] === null)) {
+        return false;
+      }
+
+      this.quadBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+        gl.STATIC_DRAW,
+      );
+
+      this.v295Texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, this.v295Texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.clearColor(0, 0, 0, 0);
+      return true;
+    }
+
+    bind(mainElement, controlElements) {
+      super.bind(mainElement, controlElements);
+
+      // Remove every press, rebound, rim-flow and light-effect interaction.
+      // The page now displays only the static V29.5 optical body.
+      this.detachInteractions();
+      this.staticControls = [...controlElements];
+      this.resetShellTransform();
+      this.staticControls.forEach((element) => {
+        element.style.transform = '';
+        element.style.transformOrigin = '';
+      });
+      if (this.shellState) {
+        this.shellState.pressValue = 0;
+        this.shellState.openGlPress = 0;
+        this.shellState.animations?.clear();
+      }
+      this.requestRender();
+    }
+
+    tick() {
+      this.frame = 0;
+      if (!this.running || document.hidden) return;
+      if (!this.dirty) return;
+      this.dirty = false;
+      this.renderAll();
+    }
+
+    rebuildBackdrop() {
+      super.rebuildBackdrop();
+      this.setCanvasSize(this.v295Color, this.rootWidth, this.rootHeight);
+      this.setCanvasSize(this.v295BlurA, this.rootWidth, this.rootHeight);
+      this.setCanvasSize(this.v295BlurB, this.rootWidth, this.rootHeight);
+      this.setCanvasSize(this.v295Blur, this.rootWidth, this.rootHeight);
+
+      this.prepareContext(this.v295ColorCtx);
+      this.v295ColorCtx.clearRect(0, 0, this.rootWidth, this.rootHeight);
+      this.v295ColorCtx.save();
+      this.v295ColorCtx.filter = `brightness(${G.brightness}) contrast(${G.contrast}) saturate(${G.saturation})`;
+      this.v295ColorCtx.drawImage(this.clearCanvas, 0, 0);
+      this.v295ColorCtx.restore();
+
+      const radius = Math.max(0, G.radius * this.dpr * Math.pow(Math.max(1, G.iterations), 0.55));
+      const passes = Math.max(1, Math.min(3, Math.ceil(G.iterations / 4)));
+      const step = Math.max(0.25, radius / Math.sqrt(2 * passes));
+      let current = this.v295Color;
+      for (let index = 0; index < passes; index += 1) {
+        this.shiftBlur(this.v295BlurACtx, current, step, true);
+        this.shiftBlur(this.v295BlurBCtx, this.v295BlurA, step, false);
+        current = this.v295BlurB;
+      }
+
+      this.prepareContext(this.v295BlurCtx);
+      this.v295BlurCtx.clearRect(0, 0, this.rootWidth, this.rootHeight);
+      this.v295BlurCtx.drawImage(current, 0, 0);
+
+      const gl = this.gl;
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.v295Texture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        this.v295Blur,
+      );
+      gl.flush();
+    }
+
+    shiftBlur(context, source, step, horizontal) {
+      this.prepareContext(context);
+      context.clearRect(0, 0, this.rootWidth, this.rootHeight);
+      context.save();
+      context.globalCompositeOperation = 'lighter';
+      context.globalAlpha = 0.2;
+      for (let index = -2; index <= 2; index += 1) {
+        context.drawImage(
+          source,
+          horizontal ? index * step : 0,
+          horizontal ? 0 : index * step,
+          this.rootWidth,
+          this.rootHeight,
+        );
+      }
+      context.restore();
+      context.save();
+      context.globalCompositeOperation = 'destination-over';
+      context.drawImage(source, 0, 0, this.rootWidth, this.rootHeight);
+      context.restore();
+    }
+
+    renderAll() {
+      if (this.backdropDirty) this.rebuildBackdrop();
+      this.prepareContext(this.output);
+      this.output.clearRect(0, 0, this.rootWidth, this.rootHeight);
+      this.output.drawImage(this.clearCanvas, 0, 0);
+
+      this.renderV295(this.mainElement, G.glassIntensity);
+      if (this.isSideVisible()) this.renderV295(this.sideElement, G.glassIntensity);
+      this.staticControls.forEach((element) => this.renderV295(element, G.glassIntensity));
+    }
+
+    renderV295(element, intensity) {
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      if (
+        rect.width < 2 || rect.height < 2 ||
+        rect.bottom < 0 || rect.top > innerHeight
+      ) return;
+
+      const width = Math.max(1, Math.round(rect.width * this.dpr));
+      const height = Math.max(1, Math.round(rect.height * this.dpr));
+      this.setCanvasSize(this.glCanvas, width, height);
+
+      const gl = this.gl;
+      gl.viewport(0, 0, width, height);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.useProgram(this.program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
+      gl.enableVertexAttribArray(this.locations.a);
+      gl.vertexAttribPointer(this.locations.a, 2, gl.FLOAT, false, 0, 0);
+
+      const radiusCss = parseFloat(getComputedStyle(element).borderTopLeftRadius)
+        || Math.min(rect.height / 2, 46);
+      gl.uniform2f(this.locations.uRes, width, height);
+      gl.uniform2f(this.locations.uOrigin, rect.left * this.dpr, rect.top * this.dpr);
+      gl.uniform2f(this.locations.uRoot, this.rootWidth, this.rootHeight);
+      gl.uniform1f(
+        this.locations.uRadius,
+        Math.min(radiusCss * this.dpr, Math.min(width, height) / 2),
+      );
+      gl.uniform1f(this.locations.uIntensity, intensity);
+      gl.uniform4f(
+        this.locations.uMat,
+        G.bodyVisibility,
+        G.bodyMaxAlpha,
+        G.bodyOutputBrightness,
+        0,
+      );
+      gl.uniform4f(
+        this.locations.uBodyLensA,
+        G.bodyLensBasePull * this.dpr,
+        G.bodyLensPullDp * this.dpr,
+        G.bodyLensConcentration,
+        G.bodyLensCornerBoost,
+      );
+      gl.uniform4f(
+        this.locations.uBodyLensB,
+        G.bodyLensExtraDistance * this.dpr,
+        G.bodyLensReachDp * this.dpr,
+        G.bodyLensDark,
+        G.bodyLensDebug,
+      );
+      gl.uniform4f(
+        this.locations.uBody,
+        G.bodyLowFrequencyWidth,
+        G.bodyLowFrequencyCurve,
+        G.bodyLowFrequencyGain,
+        G.bodyBrightness,
+      );
+      gl.uniform4f(
+        this.locations.uShoulder,
+        G.shoulderWidthPx * this.dpr,
+        G.shoulderMaxAngleDeg,
+        G.shoulderFalloffRoundness,
+        G.shoulderMaterialStrength,
+      );
+      gl.uniform2f(
+        this.locations.uShoulderFlow,
+        G.shoulderCaptureWidthPx * this.dpr,
+        G.shoulderTangentialFlowStrength,
+      );
+      gl.uniform1f(this.locations.uShoulderEnabled, G.edgeMode);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.v295Texture);
+      gl.uniform1i(this.locations.uBlurTexture, 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      this.output.drawImage(
+        this.glCanvas,
+        Math.round(rect.left * this.dpr),
+        Math.round(rect.top * this.dpr),
+        width,
+        height,
+      );
+    }
   }
-  window.BlogGlassRenderer=UnifiedV295Renderer;
+
+  window.BlogGlassRenderer = StaticV295Renderer;
 })();

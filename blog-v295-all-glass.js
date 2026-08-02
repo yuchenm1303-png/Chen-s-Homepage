@@ -5,7 +5,6 @@
   const V295 = window.OpenGLV24Shaders;
   if (!BaseRenderer || !V295) return;
 
-  // Exact V29.5 glass-body parameters from the reference web experiment.
   const G = Object.freeze({
     radius: 0.230414746543779,
     iterations: 12,
@@ -50,6 +49,10 @@
       this.v295BlurACtx = this.v295BlurA.getContext('2d');
       this.v295BlurBCtx = this.v295BlurB.getContext('2d');
       this.v295BlurCtx = this.v295Blur.getContext('2d');
+    }
+
+    chooseDpr() {
+      return Math.min(window.devicePixelRatio || 1, 2);
     }
 
     initialise() {
@@ -107,9 +110,6 @@
 
     bind(mainElement, controlElements) {
       super.bind(mainElement, controlElements);
-
-      // Remove every press, rebound, rim-flow and light-effect interaction.
-      // The page now displays only the static V29.5 optical body.
       this.detachInteractions();
       this.staticControls = [...controlElements];
       this.resetShellTransform();
@@ -127,18 +127,31 @@
 
     tick() {
       this.frame = 0;
-      if (!this.running || document.hidden) return;
-      if (!this.dirty) return;
+      if (!this.running || document.hidden || !this.dirty) return;
       this.dirty = false;
       this.renderAll();
     }
 
     rebuildBackdrop() {
-      super.rebuildBackdrop();
-      this.setCanvasSize(this.v295Color, this.rootWidth, this.rootHeight);
-      this.setCanvasSize(this.v295BlurA, this.rootWidth, this.rootHeight);
-      this.setCanvasSize(this.v295BlurB, this.rootWidth, this.rootHeight);
-      this.setCanvasSize(this.v295Blur, this.rootWidth, this.rootHeight);
+      this.dpr = this.chooseDpr();
+      this.rootWidth = Math.max(1, Math.round(innerWidth * this.dpr));
+      this.rootHeight = Math.max(1, Math.round(innerHeight * this.dpr));
+
+      [
+        this.canvas,
+        this.clearCanvas,
+        this.v295Color,
+        this.v295BlurA,
+        this.v295BlurB,
+        this.v295Blur,
+      ].forEach((canvas) => this.setCanvasSize(canvas, this.rootWidth, this.rootHeight));
+
+      this.canvas.style.width = `${innerWidth}px`;
+      this.canvas.style.height = `${innerHeight}px`;
+
+      // The reference page draws the visible background once, then applies the
+      // V29.5 color transform exactly once to the optical source texture.
+      this.drawBackdrop(this.clearContext, this.rootWidth, this.rootHeight);
 
       this.prepareContext(this.v295ColorCtx);
       this.v295ColorCtx.clearRect(0, 0, this.rootWidth, this.rootHeight);
@@ -147,7 +160,10 @@
       this.v295ColorCtx.drawImage(this.clearCanvas, 0, 0);
       this.v295ColorCtx.restore();
 
-      const radius = Math.max(0, G.radius * this.dpr * Math.pow(Math.max(1, G.iterations), 0.55));
+      const radius = Math.max(
+        0,
+        G.radius * this.dpr * Math.pow(Math.max(1, G.iterations), 0.55),
+      );
       const passes = Math.max(1, Math.min(3, Math.ceil(G.iterations / 4)));
       const step = Math.max(0.25, radius / Math.sqrt(2 * passes));
       let current = this.v295Color;
@@ -174,6 +190,7 @@
         this.v295Blur,
       );
       gl.flush();
+      this.backdropDirty = false;
     }
 
     shiftBlur(context, source, step, horizontal) {
@@ -198,8 +215,55 @@
       context.restore();
     }
 
+    roundedRectPath(context, x, y, width, height, radius) {
+      const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+      context.beginPath();
+      context.moveTo(x + r, y);
+      context.arcTo(x + width, y, x + width, y + height, r);
+      context.arcTo(x + width, y + height, x, y + height, r);
+      context.arcTo(x, y + height, x, y, r);
+      context.arcTo(x, y, x + width, y, r);
+      context.closePath();
+    }
+
+    drawReferenceBackdropUnderlay(element, rect, radiusCss) {
+      const x = Math.round(rect.left * this.dpr);
+      const y = Math.round(rect.top * this.dpr);
+      const width = Math.max(1, Math.round(rect.width * this.dpr));
+      const height = Math.max(1, Math.round(rect.height * this.dpr));
+      const radius = Math.min(radiusCss * this.dpr, width / 2, height / 2);
+
+      this.output.save();
+      this.roundedRectPath(this.output, x, y, width, height, radius);
+      this.output.clip();
+      this.output.fillStyle = '#12375a';
+      this.output.fillRect(x, y, width, height);
+      this.output.drawImage(
+        this.v295Blur,
+        x,
+        y,
+        width,
+        height,
+        x,
+        y,
+        width,
+        height,
+      );
+      this.output.restore();
+    }
+
     renderAll() {
-      if (this.backdropDirty) this.rebuildBackdrop();
+      if (!this.program) return;
+      const expectedDpr = this.chooseDpr();
+      if (
+        this.backdropDirty ||
+        this.dpr !== expectedDpr ||
+        this.rootWidth !== Math.round(innerWidth * expectedDpr) ||
+        this.rootHeight !== Math.round(innerHeight * expectedDpr)
+      ) {
+        this.rebuildBackdrop();
+      }
+
       this.prepareContext(this.output);
       this.output.clearRect(0, 0, this.rootWidth, this.rootHeight);
       this.output.drawImage(this.clearCanvas, 0, 0);
@@ -221,6 +285,13 @@
       const height = Math.max(1, Math.round(rect.height * this.dpr));
       this.setCanvasSize(this.glCanvas, width, height);
 
+      const radiusCss = parseFloat(getComputedStyle(element).borderTopLeftRadius)
+        || Math.min(rect.height / 2, 46);
+
+      // The original experiment has a cropped blurred backdrop canvas (#gb)
+      // beneath the WebGL optical canvas (#gl). This underlay is essential.
+      this.drawReferenceBackdropUnderlay(element, rect, radiusCss);
+
       const gl = this.gl;
       gl.viewport(0, 0, width, height);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -229,8 +300,6 @@
       gl.enableVertexAttribArray(this.locations.a);
       gl.vertexAttribPointer(this.locations.a, 2, gl.FLOAT, false, 0, 0);
 
-      const radiusCss = parseFloat(getComputedStyle(element).borderTopLeftRadius)
-        || Math.min(rect.height / 2, 46);
       gl.uniform2f(this.locations.uRes, width, height);
       gl.uniform2f(this.locations.uOrigin, rect.left * this.dpr, rect.top * this.dpr);
       gl.uniform2f(this.locations.uRoot, this.rootWidth, this.rootHeight);

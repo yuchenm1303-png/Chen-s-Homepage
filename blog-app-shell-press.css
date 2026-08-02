@@ -1,0 +1,40 @@
+/* Direct visual port of AI Ledger Glass.kt Shell press mechanics. */
+
+.app-shell-press-host {
+  --app-shell-origin-x: 50%;
+  --app-shell-origin-y: 42%;
+  --app-shell-scale-x: 1;
+  --app-shell-scale-y: 1;
+  --app-shell-translate-y: 0px;
+  --app-shell-glass-intensity-scale: 1;
+  transform-origin: var(--app-shell-origin-x) var(--app-shell-origin-y);
+  scale: var(--app-shell-scale-x) var(--app-shell-scale-y);
+  translate: 0 var(--app-shell-translate-y);
+  will-change: scale, translate;
+}
+
+.app-shell-press-optics {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 8 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: inherit;
+  pointer-events: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell-press-host {
+    scale: 1 1;
+    translate: 0 0;
+    will-change: auto;
+  }
+
+  .app-shell-press-optics {
+    display: none !important;
+  }
+}

@@ -5,26 +5,36 @@
   if (!shaders?.fs || shaders.fs.includes('BLOG_V295_ANTIBANDING')) return;
 
   let fragment = shaders.fs;
+  const replacements = [
+    [
+      'float opticalBoost=1.0+bodyWeight*.24;',
+      'float opticalBoost=1.0+bodyWeight*.16;',
+      'body optical boost',
+    ],
+    [
+      'color-=vec3(.055,.065,.085)*uBodyLensB.z*bodyWeight;',
+      'color-=vec3(.040,.047,.060)*uBodyLensB.z*bodyWeight;',
+      'body depth darkening',
+    ],
+  ];
+
+  for (const [source, replacement, label] of replacements) {
+    if (!fragment.includes(source)) {
+      console.error(`[Blog V29.5] Anti-banding patch target missing: ${label}.`);
+      return;
+    }
+    fragment = fragment.replace(source, replacement);
+  }
 
   /*
    * The original material brightness followed bodyLensWeight too strongly on
-   * very smooth, dark gradients. That turns tiny 8-bit colour steps into
-   * visible equal-depth contours. Keep the refraction geometry unchanged, but
-   * reduce only the secondary brightness modulation that makes those contours
-   * readable as rings.
+   * very smooth, dark gradients. The replacements above leave all refraction
+   * coordinates unchanged and reduce only the secondary depth-based tonal
+   * modulation that made quantisation readable as concentric contours.
    */
-  fragment = fragment.replace(
-    'float opticalBoost=1.0+bodyWeight*.24;',
-    'float opticalBoost=1.0+bodyWeight*.16;',
-  );
-  fragment = fragment.replace(
-    'color-=vec3(.055,.065,.085)*uBodyLensB.z*bodyWeight;',
-    'color-=vec3(.040,.047,.060)*uBodyLensB.z*bodyWeight;',
-  );
-
   const outputMarker = 'gl_FragColor=vec4(clamp(color,0.0,1.0),sat(alpha));';
   if (!fragment.includes(outputMarker)) {
-    console.error('[Blog V29.5] Anti-banding patch could not find shader output marker.');
+    console.error('[Blog V29.5] Anti-banding patch target missing: final shader output.');
     return;
   }
 

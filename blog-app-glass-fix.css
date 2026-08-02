@@ -52,22 +52,27 @@ body.article-reader-open .taskbar {
 
 .article-glass-shell {
   border: 0;
-  will-change: transform;
-  transform: translateZ(0);
+  outline: 0;
+  will-change: auto;
+  transform: none;
 }
 
 .article-glass-shell::before,
+.article-glass-shell::after,
+.legacy-glass-control::before,
 .legacy-glass-control::after {
-  display: none;
+  display: none !important;
+  content: none !important;
 }
 
 .article-toc,
 .legacy-glass-control {
   border: 0;
+  outline: 0;
 }
 
 .legacy-glass-control {
-  will-change: transform;
+  will-change: auto;
   transition: color 120ms ease;
   text-shadow: 0 1px 5px rgba(4, 3, 15, .70);
 }
@@ -81,8 +86,9 @@ body.article-reader-open .taskbar {
   transform: none;
 }
 
+/* Temporarily hidden while checking the pure V29.5 glass boundary. */
 .article-progress-track {
-  background: rgba(255,255,255,.035);
+  display: none !important;
 }
 
 .toc-links a:hover,

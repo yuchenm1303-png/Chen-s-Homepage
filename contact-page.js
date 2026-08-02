@@ -68,9 +68,6 @@
   function renderContactPage(lang) {
     const isZh = lang === 'zh';
     const count = isZh ? '4 个条目 · 0 个目录' : '4 entries · 0 directories';
-    const hint = isZh
-      ? '点击名称可以直接打开对应联系方式，也可以在 Action 列一键复制。'
-      : 'Open a contact method by clicking its name, or copy it from the Action column.';
 
     return `
       <section class="contact-index-app">
@@ -85,7 +82,6 @@
           </tbody>
         </table>
         <p class="note">${count}</p>
-        <p class="contact-index-hint">${hint}</p>
       </section>`;
   }
 

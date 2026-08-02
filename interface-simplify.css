@@ -1,0 +1,66 @@
+/* Interface cleanup: keep real content, remove repetitive status chrome. */
+
+.projects-header {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.projects-counters,
+.project-row-status,
+.inspector-status,
+.projects-footer,
+.blog-index-hint,
+.contact-index-hint {
+  display: none;
+}
+
+.project-browser-head {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.project-browser-head > span:last-child {
+  display: none;
+}
+
+.project-row {
+  grid-template-columns: 35px minmax(0, 1fr);
+  min-height: 48px;
+  padding-block: 7px;
+}
+
+.project-row-copy small {
+  -webkit-line-clamp: 1;
+}
+
+.inspector-titlebar {
+  grid-template-columns: 47px minmax(0, 1fr);
+}
+
+.project-facts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.project-fact:last-child {
+  display: none;
+}
+
+.inspector-panel:has(.project-roadmap) {
+  display: none;
+}
+
+.article-meta-code {
+  display: none;
+}
+
+.article-meta {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.article-ending p {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .project-facts {
+    grid-template-columns: 1fr;
+  }
+}

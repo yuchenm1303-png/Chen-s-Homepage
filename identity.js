@@ -1,5 +1,5 @@
 (() => {
-  const chineseName = "邹羽宸";
+  const chineseName = "Chen";
 
   content.zh.sections.about = content.zh.sections.about
     .replace('alt="Jack 的像素头像"', `alt="${chineseName}的像素头像"`)

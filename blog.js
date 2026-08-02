@@ -10,20 +10,27 @@
   const uiText = {
     zh: {
       indexTitle: 'Index of /blog',
-      name: 'Name', date: 'Date', size: 'Size', count: '4 个文件 · 0 个目录',
+      name: 'Name', date: 'Date', size: 'Size',
       back: '← 返回博客', toc: '目录', smaller: 'A−', larger: 'A+', previous: '上一篇', next: '下一篇', close: '×',
-      author: '邹羽宸', reading: '阅读进度', tocTitle: 'CONTENTS / 目录'
+      author: '邹羽宸', reading: '阅读进度', tocTitle: 'CONTENTS / 目录',
+      ending: '这篇文章仍会随着项目进展继续修订。',
+      hint: '选择文章即可进入独立阅读界面。'
     },
     en: {
       indexTitle: 'Index of /blog',
-      name: 'Name', date: 'Date', size: 'Size', count: '4 files · 0 directories',
+      name: 'Name', date: 'Date', size: 'Size',
       back: '← BACK', toc: 'CONTENTS', smaller: 'A−', larger: 'A+', previous: 'PREV', next: 'NEXT', close: '×',
-      author: 'Yuchen Zou', reading: 'READING', tocTitle: 'CONTENTS'
+      author: 'Yuchen Zou', reading: 'READING', tocTitle: 'CONTENTS',
+      ending: 'This article will continue to be revised as the project develops.',
+      hint: 'Select an article to open the reading view.'
     }
   };
 
   function blogIndexTemplate(lang) {
     const text = uiText[lang];
+    const count = articles[lang].length;
+    const countLabel = lang === 'zh' ? `${count} 个文件 · 0 个目录` : `${count} files · 0 directories`;
+
     return `
       <section class="blog-index-app">
         <h2 class="section-title">${text.indexTitle}</h2>
@@ -38,8 +45,8 @@
               </tr>`).join('')}
           </tbody>
         </table>
-        <p class="note">${text.count}</p>
-        <p class="blog-index-hint">双击文件的感觉，打开的是一块独立的 OpenGL 液态玻璃阅读空间。</p>
+        <p class="note">${countLabel}</p>
+        <p class="blog-index-hint">${text.hint}</p>
       </section>`;
   }
 
@@ -69,6 +76,7 @@
 
   function ensureReader() {
     if (readerRoot) return readerRoot;
+
     readerRoot = document.createElement('div');
     readerRoot.id = 'articleReader';
     readerRoot.className = 'article-reader';
@@ -112,7 +120,10 @@
       if (!anchor) return;
       event.preventDefault();
       const target = readerRoot.querySelector(anchor.getAttribute('href'));
-      target?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+      target?.scrollIntoView({
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start'
+      });
       if (innerWidth <= 760) readerRoot.classList.remove('toc-open');
     });
     addEventListener('resize', refreshGlassGeometry, { passive: true });
@@ -125,8 +136,10 @@
 
   function openArticle(id, pushHash = false) {
     const lang = state.lang;
-    const article = articles[lang].find((item) => item.id === id) || articles[lang][0];
+    const requestedArticle = articles[lang].find((item) => item.id === id);
+    const article = requestedArticle || articles[lang][0];
     const root = ensureReader();
+
     currentArticleId = article.id;
     populateArticle(article, lang);
     if (root.hidden) previousBodyOverflow = document.body.style.overflow;
@@ -134,12 +147,18 @@
     document.body.classList.add('article-reader-open');
     root.hidden = false;
     root.setAttribute('aria-hidden', 'false');
+
     requestAnimationFrame(() => {
       root.classList.add('is-open');
       initialiseGlassRenderer();
       root.querySelector('#articleScroll').focus({ preventScroll: true });
     });
-    if (pushHash && location.hash !== `#/blog/${article.id}`) history.pushState({ article: article.id }, '', `#/blog/${article.id}`);
+
+    if (!requestedArticle && !pushHash) {
+      history.replaceState({ article: article.id }, '', `#/blog/${article.id}`);
+    } else if (pushHash && location.hash !== `#/blog/${article.id}`) {
+      history.pushState({ article: article.id }, '', `#/blog/${article.id}`);
+    }
   }
 
   function populateArticle(article, lang) {
@@ -156,7 +175,7 @@
         </div>
       </header>
       <div class="article-body">${article.body}</div>
-      <footer class="article-ending"><span>EOF</span><p>这篇文章仍会随着项目进展继续修订。</p></footer>`;
+      <footer class="article-ending"><span>EOF</span><p>${text.ending}</p></footer>`;
 
     documentElement.querySelectorAll('h2, h3').forEach((heading, index) => {
       heading.id = `section-${index + 1}`;
@@ -179,9 +198,15 @@
 
   function setControlLabels(text) {
     const labels = {
-      back: text.back, toc: text.toc, smaller: text.smaller, larger: text.larger,
-      previous: text.previous, next: text.next, close: text.close
+      back: text.back,
+      toc: text.toc,
+      smaller: text.smaller,
+      larger: text.larger,
+      previous: text.previous,
+      next: text.next,
+      close: text.close
     };
+
     Object.entries(labels).forEach(([action, label]) => {
       const button = readerRoot.querySelector(`[data-reader-action="${action}"]`);
       button.textContent = label;
@@ -196,6 +221,7 @@
       const ok = renderer.initialise();
       if (!ok) readerRoot.classList.add('glass-fallback');
     }
+
     const controls = readerRoot.querySelectorAll('.legacy-glass-control');
     renderer?.bind(readerRoot.querySelector('#articleGlassShell'), controls);
     renderer?.start();
@@ -210,23 +236,27 @@
     if (!readerRoot || readerRoot.hidden) return;
     readerRoot.classList.remove('is-open', 'toc-open');
     renderer?.stop();
+
     setTimeout(() => {
       readerRoot.hidden = true;
       readerRoot.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = previousBodyOverflow;
       document.body.classList.remove('article-reader-open');
     }, 260);
+
     if (updateHash) history.pushState({}, '', '#/blog');
   }
 
   function handleAction(action) {
     if (action === 'back' || action === 'close') return closeArticle(true);
     if (action === 'toc') return readerRoot.classList.toggle('toc-open');
+
     if (action === 'smaller' || action === 'larger') {
       currentFontScale = Math.min(1.20, Math.max(0.88, currentFontScale + (action === 'larger' ? 0.06 : -0.06)));
       readerRoot.style.setProperty('--article-font-scale', currentFontScale.toFixed(2));
       return;
     }
+
     const langArticles = articles[state.lang];
     const index = langArticles.findIndex((item) => item.id === currentArticleId);
     const step = action === 'next' ? 1 : -1;
@@ -248,7 +278,10 @@
       if (heading.getBoundingClientRect().top <= 150) activeId = heading.id;
       else break;
     }
-    readerRoot.querySelectorAll('.toc-links a').forEach((link) => link.classList.toggle('is-active', link.dataset.target === activeId));
+
+    readerRoot.querySelectorAll('.toc-links a').forEach((link) => {
+      link.classList.toggle('is-active', link.dataset.target === activeId);
+    });
   }
 
   function syncHashRoute() {
@@ -270,6 +303,9 @@
 
   addEventListener('hashchange', syncHashRoute);
   addEventListener('popstate', syncHashRoute);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncHashRoute, { once: true });
-  else syncHashRoute();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', syncHashRoute, { once: true });
+  } else {
+    syncHashRoute();
+  }
 })();

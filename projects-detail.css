@@ -28,6 +28,10 @@
   background: var(--window-face);
 }
 
+.project-facts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .project-detail-list {
   display: grid;
   gap: 4px;
@@ -91,5 +95,9 @@
   .project-inspector {
     max-height: none;
     overflow: visible;
+  }
+
+  .project-facts {
+    grid-template-columns: 1fr;
   }
 }

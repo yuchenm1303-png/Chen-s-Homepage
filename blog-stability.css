@@ -1,0 +1,250 @@
+/* Stable presentation layer for the V29.5 blog reader.
+ * Loaded after blog-app-glass-fix.css so failure states never expose the
+ * renderer host's temporary solid fill.
+ */
+
+.article-reader {
+  background: #07122b;
+}
+
+.article-reader-stage {
+  isolation: isolate;
+}
+
+.article-glass-shell,
+.article-toc,
+.legacy-glass-control {
+  background: transparent;
+}
+
+.article-glass-shell {
+  filter: drop-shadow(0 22px 38px rgba(0, 0, 0, .24));
+}
+
+.article-toc {
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .20));
+}
+
+.legacy-glass-control {
+  filter: drop-shadow(0 9px 18px rgba(0, 0, 0, .18));
+}
+
+/* A neutral translucent shell is visible while the first WebGL frame is
+ * prepared. It disappears immediately after the stable renderer reports a
+ * successful frame, avoiding the former white/solid-blue flash.
+ */
+.article-reader:not(.v295-ready) .article-glass-shell,
+.article-reader:not(.v295-ready) .article-toc,
+.article-reader:not(.v295-ready) .legacy-glass-control,
+.article-reader.glass-fallback .article-glass-shell,
+.article-reader.glass-fallback .article-toc,
+.article-reader.glass-fallback .legacy-glass-control {
+  border: 1px solid rgba(255, 255, 255, .15);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .105), rgba(255, 255, 255, .035) 42%, rgba(225, 236, 255, .055));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .18),
+    inset 0 -1px 0 rgba(8, 16, 38, .22);
+  -webkit-backdrop-filter: blur(24px) saturate(112%);
+  backdrop-filter: blur(24px) saturate(112%);
+}
+
+.article-reader:not(.v295-ready) .legacy-glass-control,
+.article-reader.glass-fallback .legacy-glass-control {
+  -webkit-backdrop-filter: blur(14px) saturate(108%);
+  backdrop-filter: blur(14px) saturate(108%);
+}
+
+.article-reader.v295-ready .article-glass-shell,
+.article-reader.v295-ready .article-toc,
+.article-reader.v295-ready .legacy-glass-control {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Restore the reading progress indicator that was temporarily disabled while
+ * the V29.5 edge was being verified.
+ */
+.article-progress-track {
+  display: block !important;
+  top: 18px;
+  left: var(--article-safe-x);
+  right: var(--article-safe-x);
+  height: 2px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .09);
+}
+
+.article-progress-track span {
+  border-radius: inherit;
+  opacity: .88;
+}
+
+.article-document {
+  max-width: 760px;
+}
+
+.article-header {
+  border-bottom-color: rgba(255, 255, 255, .12);
+}
+
+.article-header h1 {
+  text-shadow: 0 4px 24px rgba(5, 8, 28, .42);
+}
+
+.article-summary {
+  color: rgba(246, 238, 248, .76);
+}
+
+.article-body p {
+  color: rgba(252, 248, 252, .89);
+}
+
+.article-body blockquote {
+  border-left-width: 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .025));
+}
+
+.article-code {
+  border-color: rgba(255, 255, 255, .12);
+  background: rgba(5, 10, 28, .58);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .04), 0 16px 36px rgba(0, 0, 0, .14);
+}
+
+.article-callout {
+  border-color: rgba(255, 255, 255, .11);
+  background: rgba(255, 255, 255, .045);
+}
+
+.article-control-bar {
+  gap: 7px;
+}
+
+.legacy-glass-control {
+  transition: color 150ms ease, text-shadow 150ms ease, opacity 150ms ease;
+}
+
+.legacy-glass-control:hover {
+  color: #fff;
+  text-shadow: 0 0 11px rgba(255, 216, 243, .42), 0 1px 7px rgba(2, 7, 24, .85);
+}
+
+.legacy-glass-control:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, .72);
+  outline-offset: 3px;
+}
+
+.article-toc {
+  padding: 20px 16px;
+}
+
+.toc-links a {
+  border: 1px solid transparent;
+}
+
+.toc-links a:hover,
+.toc-links a.is-active {
+  border-color: rgba(255, 255, 255, .06);
+  background: rgba(255, 255, 255, .055);
+}
+
+/* Keep the directory appearance, but make individual articles easier to scan
+ * without replacing the retro file-manager language with generic cards.
+ */
+.blog-index-app {
+  position: relative;
+}
+
+.blog-file-table tbody tr {
+  transition: background-color 120ms ease;
+}
+
+.blog-file-table tbody tr:focus-within td,
+.blog-file-table tbody tr:hover td {
+  background: #f4deeb;
+}
+
+.blog-file-link {
+  max-width: min(420px, 52vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.blog-file-link:focus-visible {
+  outline: 1px dotted var(--ink);
+  outline-offset: 2px;
+}
+
+.blog-index-hint {
+  border-left-width: 2px;
+  background: rgba(244, 230, 239, .72);
+}
+
+@media (max-width: 1020px) {
+  .article-document {
+    max-width: 700px;
+  }
+}
+
+@media (max-width: 820px) {
+  .article-progress-track {
+    top: 58px;
+  }
+
+  .article-scroll {
+    padding-top: 54px;
+  }
+
+  .article-glass-shell {
+    filter: drop-shadow(0 16px 28px rgba(0, 0, 0, .22));
+  }
+}
+
+@media (max-width: 560px) {
+  .article-glass-shell {
+    --article-safe-x: 22px;
+  }
+
+  .article-control-bar {
+    top: 7px;
+    left: 8px;
+    right: 8px;
+    gap: 3px;
+  }
+
+  .legacy-glass-control {
+    height: 35px;
+  }
+
+  .control-back {
+    min-width: 82px;
+  }
+
+  .article-document {
+    padding-bottom: 58px;
+  }
+
+  .article-header {
+    padding-bottom: 30px;
+  }
+
+  .article-meta {
+    margin-top: 22px;
+  }
+
+  .blog-file-link {
+    max-width: 54vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legacy-glass-control,
+  .blog-file-table tbody tr {
+    transition: none;
+  }
+}

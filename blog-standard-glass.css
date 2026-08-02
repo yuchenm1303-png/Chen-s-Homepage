@@ -12,6 +12,17 @@ body.article-reader-open .taskbar {
   transition: none;
 }
 
+body.article-reader-open .desktop {
+  content-visibility: hidden;
+  contain: strict;
+}
+
+body.article-reader-open .desktop *,
+body.article-reader-open .desktop *::before,
+body.article-reader-open .desktop *::after {
+  animation-play-state: paused !important;
+}
+
 .article-reader {
   background: #07122b;
   transform: none;

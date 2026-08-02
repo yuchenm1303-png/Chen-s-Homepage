@@ -5,9 +5,9 @@
   if (typeof Renderer !== 'function' || Renderer.prototype.__gaussianBackdropInstalled) return;
   Renderer.prototype.__gaussianBackdropInstalled = true;
 
-  const DOWNSAMPLE = 4;
-  const BLUR_RADIUS_CSS_PX = 16;
-  const NOISE_ALPHA = 0.010;
+  const DOWNSAMPLE = 2;
+  const BLUR_RADIUS_CSS_PX = 3.2;
+  const NOISE_ALPHA = 0.006;
 
   const sizeCanvas = (canvas, width, height) => {
     const w = Math.max(1, Math.round(width));
@@ -157,7 +157,7 @@
       smallHeight,
     );
 
-    /* Browser Gaussian blur at reduced resolution: smooth and inexpensive. */
+    /* A light Gaussian pass retains the original scene clarity. */
     resetContext(this.blurBContext);
     this.blurBContext.clearRect(0, 0, smallWidth, smallHeight);
     this.blurBContext.drawImage(this.blurA, 0, 0, smallWidth, smallHeight);

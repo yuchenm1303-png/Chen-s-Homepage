@@ -6,6 +6,7 @@
   const RELEASE_DELAY_MS = 2600;
   const pointerHosts = new Map();
   const touchHosts = new Map();
+  const touchCounts = new WeakMap();
   const releaseTimers = new WeakMap();
   let sweepHandle = 0;
 
@@ -72,26 +73,24 @@
     activateHost(host);
   }, true);
 
-  addEventListener('pointerup', (event) => {
+  const finishPointer = (event) => {
     const host = pointerHosts.get(event.pointerId);
     if (!host) return;
     pointerHosts.delete(event.pointerId);
     releaseHost(host);
-  }, true);
+  };
 
-  addEventListener('pointercancel', (event) => {
-    const host = pointerHosts.get(event.pointerId);
-    if (!host) return;
-    pointerHosts.delete(event.pointerId);
-    releaseHost(host);
-  }, true);
+  addEventListener('pointerup', finishPointer, true);
+  addEventListener('pointercancel', finishPointer, true);
 
   addEventListener('touchstart', (event) => {
     const host = findHost(event.target);
     if (!host) return;
     for (let index = 0; index < event.changedTouches.length; index += 1) {
       const touch = event.changedTouches.item(index);
-      if (touch) touchHosts.set(touch.identifier, host);
+      if (!touch) continue;
+      touchHosts.set(touch.identifier, host);
+      touchCounts.set(host, (touchCounts.get(host) || 0) + 1);
     }
     activateHost(host);
   }, { capture: true, passive: true });
@@ -102,8 +101,11 @@
       const touch = event.changedTouches.item(index);
       if (!touch) continue;
       const host = touchHosts.get(touch.identifier);
-      if (host) affectedHosts.add(host);
       touchHosts.delete(touch.identifier);
+      if (!host) continue;
+      const remaining = Math.max(0, (touchCounts.get(host) || 1) - 1);
+      touchCounts.set(host, remaining);
+      if (remaining === 0) affectedHosts.add(host);
     }
     affectedHosts.forEach(releaseHost);
   };

@@ -1,5 +1,6 @@
 /* Exact V29.5 host structure from opengl-glass-edge-mini.html.
  * Each glass is only: #gb blurred crop -> #gl WebGL -> UI content.
+ * This file must not override the layout geometry defined in blog.css.
  */
 
 body.article-reader-open .desktop,
@@ -38,17 +39,30 @@ body.article-reader-open .taskbar {
 .article-glass-shell,
 .article-toc,
 .legacy-glass-control {
-  position: relative;
   overflow: hidden;
   border: 0;
   outline: 0;
-  border-radius: 46px;
   background: #12375a;
   box-shadow: none;
-  filter: drop-shadow(0 22px 34px #00000052);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   transform: none;
+}
+
+.article-glass-shell {
+  border-radius: 46px;
+  filter: drop-shadow(0 22px 34px #00000052);
+}
+
+.article-toc {
+  border-radius: 46px;
+  filter: drop-shadow(0 22px 34px #00000052);
+}
+
+.legacy-glass-control {
+  position: relative;
+  border-radius: 46px;
+  filter: drop-shadow(0 22px 34px #00000052);
 }
 
 .article-glass-shell::before,
@@ -118,6 +132,12 @@ body.article-reader-open .taskbar {
 }
 
 @media (max-width: 820px) {
+  .article-glass-shell {
+    position: absolute;
+    inset: 0;
+    border-radius: 30px;
+  }
+
   .article-toc {
     visibility: hidden;
     opacity: 0;

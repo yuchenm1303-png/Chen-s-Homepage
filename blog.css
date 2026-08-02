@@ -140,6 +140,7 @@ body.article-reader-open .desktop {
 .control-close { min-width: 42px; padding: 0; font-size: 13px; }
 
 .article-glass-shell {
+  --article-safe-x: 44px;
   position: relative;
   grid-column: 1;
   grid-row: 2;
@@ -179,7 +180,11 @@ body.article-reader-open .desktop {
 .article-scroll {
   position: absolute;
   inset: 0;
-  overflow: auto;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-inline: var(--article-safe-x);
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(229,183,232,.45) transparent;
@@ -195,12 +200,31 @@ body.article-reader-open .desktop {
 }
 
 .article-document {
-  width: min(780px, calc(100% - 72px));
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 780px;
+  min-width: 0;
   margin: 0 auto;
   padding: 62px 0 88px;
   font-size: calc(17px * var(--article-font-scale));
   line-height: 1.82;
   text-rendering: optimizeLegibility;
+}
+
+.article-document,
+.article-document * {
+  max-width: 100%;
+}
+
+.article-document p,
+.article-document li,
+.article-document blockquote,
+.article-document h1,
+.article-document h2,
+.article-document h3,
+.article-document code {
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .article-header {
@@ -462,7 +486,8 @@ body.article-reader-open .desktop {
 
 @media (max-width: 1020px) {
   .article-reader-stage { grid-template-columns: minmax(0, 1fr) 190px; width: min(980px, calc(100vw - 24px)); }
-  .article-document { width: min(720px, calc(100% - 56px)); }
+  .article-glass-shell { --article-safe-x: 36px; }
+  .article-document { max-width: 720px; }
   .legacy-glass-control { min-width: 61px; padding-inline: 11px; }
   .control-back { min-width: 105px; }
   .control-font, .control-close { min-width: 42px; }
@@ -473,10 +498,15 @@ body.article-reader-open .desktop {
   .article-control-bar { position: absolute; z-index: 7; top: 8px; left: 10px; right: 10px; gap: 5px; }
   .article-control-bar [data-reader-action="previous"],
   .article-control-bar [data-reader-action="next"] { display: none; }
-  .article-glass-shell { position: absolute; inset: 0; border-radius: 30px; }
+  .article-glass-shell {
+    --article-safe-x: 30px;
+    position: absolute;
+    inset: 0;
+    border-radius: 30px;
+  }
   .article-progress-track { left: 30px; right: 30px; }
   .article-scroll { padding-top: 48px; }
-  .article-document { width: min(680px, calc(100% - 34px)); padding: 46px 0 70px; }
+  .article-document { max-width: 680px; padding: 46px 0 70px; }
   .article-toc {
     position: absolute;
     z-index: 9;
@@ -498,7 +528,7 @@ body.article-reader-open .desktop {
   .legacy-glass-control { min-width: 44px; height: 36px; padding-inline: 9px; font-size: 8px; }
   .control-back { min-width: 88px; }
   .article-control-bar { gap: 3px; }
-  .article-document { width: calc(100% - 28px); font-size: calc(16px * var(--article-font-scale)); }
+  .article-document { font-size: calc(16px * var(--article-font-scale)); }
   .article-header h1 { font-size: clamp(30px, 9.5vw, 43px); }
   .article-summary { font-size: calc(16px * var(--article-font-scale)); }
   .article-lead { font-size: calc(18px * var(--article-font-scale)); }

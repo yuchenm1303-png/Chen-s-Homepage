@@ -16,7 +16,7 @@
   if (description) {
     description.setAttribute(
       "content",
-      `${chineseName}的个人主页：电气工程、AI 应用、工程仿真与科研数据分析。`
+      `${chineseName}的个人主页：电气工程、图形界面、工程仿真与科研数据分析。`
     );
   }
 

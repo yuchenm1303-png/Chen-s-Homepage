@@ -8,7 +8,7 @@ const content = {
     navContact: "联系",
     online: "在线",
     updated: "最后更新：2026.08",
-    made: "由好奇心驱动",
+    made: "恭喜你找到我",
     closedMessage: "个人主页窗口已关闭。",
     reopen: "重新打开",
     sections: {
@@ -29,9 +29,10 @@ const content = {
           </div>
           <hr class="divider" />
           <div class="copy">
-            <p>欢迎来到我的个人主页。</p>
-            <p>我正在学习电气工程及其自动化，也持续做 AI 应用、工程仿真和科研数据分析。</p>
-            <p>这里会保存我真正做过的项目、学习记录和长期思考，而不是只放一份线上简历。</p>
+            <p>欢迎来到我的空间。</p>
+            <p>我来自成都，正在学习电气工程及其自动化。</p>
+            <p>这里会保存我的经历。</p>
+            <p>晚安。</p>
           </div>
           <div class="terminal-box">C:\\CHEN&gt; SYSTEM READY · POWER &amp; CODE<span class="cursor-block"></span></div>
         </section>

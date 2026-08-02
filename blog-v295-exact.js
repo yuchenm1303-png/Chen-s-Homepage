@@ -25,7 +25,7 @@
     bodyBrightness: 0.545161290322581,
     glassIntensity: 1.35,
     edgeMode: 2,
-    shoulderWidthPx: 21.7162162162162,
+    shoulderWidthPx: 38.189,
     shoulderMaxAngleDeg: 89.5,
     shoulderFalloffRoundness: 0,
     shoulderMaterialStrength: 1.119,

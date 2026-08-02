@@ -1,6 +1,5 @@
-/* Exact host structure from opengl-glass-edge-mini.html:
- * blurred crop canvas -> WebGL canvas -> UI content.
- * No extra border, shell overlay, pseudo-element, backdrop-filter or CSS glass.
+/* Exact V29.5 host structure from opengl-glass-edge-mini.html.
+ * Each glass is only: #gb blurred crop -> #gl WebGL -> UI content.
  */
 
 body.article-reader-open .desktop,
@@ -49,7 +48,6 @@ body.article-reader-open .taskbar {
   filter: drop-shadow(0 22px 34px #00000052);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  isolation: auto;
   transform: none;
 }
 
@@ -106,52 +104,17 @@ body.article-reader-open .taskbar {
 
 .legacy-glass-control {
   padding: 0;
-  color: rgba(255, 250, 255, .96);
-  text-shadow: 0 1px 18px #00000038;
   transition: none;
 }
 
 .legacy-glass-control:hover,
 .legacy-glass-control:active {
-  color: rgba(255, 250, 255, .96);
-  text-shadow: 0 1px 18px #00000038;
   transform: none;
 }
 
-/* Keep the progress UI out while validating the untouched V29.5 body. */
+/* Hidden only while verifying the unmodified V29.5 boundary. */
 .article-progress-track {
   display: none !important;
-}
-
-.article-header {
-  border-bottom-color: rgba(255,255,255,.085);
-}
-
-.article-header h1 {
-  text-shadow: 0 1px 18px #00000038;
-}
-
-.article-summary,
-.article-body p,
-.article-body ul {
-  text-shadow: 0 1px 5px rgba(5, 2, 17, .24);
-}
-
-.article-body blockquote {
-  border-left-color: rgba(255,132,195,.78);
-  background: rgba(8,7,24,.20);
-  box-shadow: none;
-}
-
-.article-callout {
-  border-color: rgba(255,255,255,.055);
-  background: rgba(8,7,24,.14);
-  box-shadow: none;
-}
-
-.article-code {
-  border-color: rgba(193,178,224,.14);
-  background: rgba(5,8,25,.70);
 }
 
 @media (max-width: 820px) {

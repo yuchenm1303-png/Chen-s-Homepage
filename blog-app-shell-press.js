@@ -3,7 +3,8 @@
 
   /*
    * AI Ledger GlassRole.Shell 按压系统的网页移植版。
-   * 按住阶段进入稳定压缩态；只有 pointerup / pointercancel 才释放。
+   * 鼠标和触控笔使用 Pointer Events；触摸使用 Touch Events，
+   * 允许页面滚动时持续保持按压，只有真实抬手或系统取消才释放。
    */
   const HOSTS = '.article-glass-card, .article-control-bar, #articleToc';
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -201,6 +202,7 @@
       this.band = 0;
       this.strength = 1;
       this.pointerId = null;
+      this.touchId = null;
       this.frame = 0;
       this.disposed = false;
 
@@ -217,42 +219,82 @@
       this.onMove = this.onMove.bind(this);
       this.onUp = this.onUp.bind(this);
       this.onCancel = this.onCancel.bind(this);
+      this.onTouchStart = this.onTouchStart.bind(this);
+      this.onTouchMove = this.onTouchMove.bind(this);
+      this.onTouchEnd = this.onTouchEnd.bind(this);
+      this.onTouchCancel = this.onTouchCancel.bind(this);
+
       this.element.addEventListener('pointerdown', this.onDown);
+      this.element.addEventListener('touchstart', this.onTouchStart, { passive: true });
       this.invalidate();
     }
 
-    attachGlobalListeners() {
+    isPressed() {
+      return this.pointerId !== null || this.touchId !== null;
+    }
+
+    preparePress(clientX, clientY) {
+      this.updateCenterPoint(clientX, clientY);
+      this.seed = Math.random();
+      this.direction = Math.random() >= 0.5 ? 1 : -1;
+      this.band = Math.floor(Math.random() * 4);
+      this.strength = 0.98 + Math.random() * 0.47;
+      this.beginPress();
+    }
+
+    attachPointerListeners() {
       addEventListener('pointermove', this.onMove, true);
       addEventListener('pointerup', this.onUp, true);
       addEventListener('pointercancel', this.onCancel, true);
     }
 
-    detachGlobalListeners() {
+    detachPointerListeners() {
       removeEventListener('pointermove', this.onMove, true);
       removeEventListener('pointerup', this.onUp, true);
       removeEventListener('pointercancel', this.onCancel, true);
     }
 
-    updateCenter(event) {
+    attachTouchListeners() {
+      addEventListener('touchmove', this.onTouchMove, { capture: true, passive: true });
+      addEventListener('touchend', this.onTouchEnd, { capture: true, passive: true });
+      addEventListener('touchcancel', this.onTouchCancel, { capture: true, passive: true });
+    }
+
+    detachTouchListeners() {
+      removeEventListener('touchmove', this.onTouchMove, true);
+      removeEventListener('touchend', this.onTouchEnd, true);
+      removeEventListener('touchcancel', this.onTouchCancel, true);
+    }
+
+    findTouch(touchList, identifier = this.touchId) {
+      if (identifier === null || !touchList) return null;
+      for (let index = 0; index < touchList.length; index += 1) {
+        const touch = touchList.item(index);
+        if (touch?.identifier === identifier) return touch;
+      }
+      return null;
+    }
+
+    updateCenterPoint(clientX, clientY) {
       const rect = this.element.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
-      this.center.x = clamp((event.clientX - rect.left) / rect.width, 0, 1);
-      this.center.y = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+      this.center.x = clamp((clientX - rect.left) / rect.width, 0, 1);
+      this.center.y = clamp((clientY - rect.top) / rect.height, 0, 1);
       this.invalidate();
     }
 
+    updateCenter(event) {
+      this.updateCenterPoint(event.clientX, event.clientY);
+    }
+
     onDown(event) {
-      if (reducedMotion.matches || this.pointerId !== null) return;
+      if (event.pointerType === 'touch') return;
+      if (reducedMotion.matches || this.isPressed()) return;
       if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
 
       this.pointerId = event.pointerId;
-      this.updateCenter(event);
-      this.seed = Math.random();
-      this.direction = Math.random() >= 0.5 ? 1 : -1;
-      this.band = Math.floor(Math.random() * 4);
-      this.strength = 0.98 + Math.random() * 0.47;
-      this.attachGlobalListeners();
-      this.beginPress();
+      this.attachPointerListeners();
+      this.preparePress(event.clientX, event.clientY);
     }
 
     onMove(event) {
@@ -263,14 +305,47 @@
       if (event.pointerId !== this.pointerId) return;
       this.updateCenter(event);
       this.pointerId = null;
-      this.detachGlobalListeners();
+      this.detachPointerListeners();
       this.releasePress(true);
     }
 
     onCancel(event) {
       if (event.pointerId !== this.pointerId) return;
       this.pointerId = null;
-      this.detachGlobalListeners();
+      this.detachPointerListeners();
+      this.releasePress(false);
+    }
+
+    onTouchStart(event) {
+      if (reducedMotion.matches || this.isPressed()) return;
+      const touch = event.changedTouches?.item(0);
+      if (!touch) return;
+
+      this.touchId = touch.identifier;
+      this.attachTouchListeners();
+      this.preparePress(touch.clientX, touch.clientY);
+    }
+
+    onTouchMove(event) {
+      const touch = this.findTouch(event.touches);
+      if (!touch) return;
+      this.updateCenterPoint(touch.clientX, touch.clientY);
+    }
+
+    onTouchEnd(event) {
+      const touch = this.findTouch(event.changedTouches);
+      if (!touch) return;
+      this.updateCenterPoint(touch.clientX, touch.clientY);
+      this.touchId = null;
+      this.detachTouchListeners();
+      this.releasePress(true);
+    }
+
+    onTouchCancel(event) {
+      const touch = this.findTouch(event.changedTouches);
+      if (!touch && this.touchId === null) return;
+      this.touchId = null;
+      this.detachTouchListeners();
       this.releasePress(false);
     }
 
@@ -281,7 +356,7 @@
         if (!await this.pressTrack.tween(0.52, 125, easing.pulse, pressVersion)) return;
         if (!await this.pressTrack.tween(0.78, 260, easing.sink, pressVersion)) return;
         if (!await this.pressTrack.tween(HOLD_PRESS, 310, easing.fast, pressVersion)) return;
-        if (this.pointerId !== null) this.pressTrack.set(HOLD_PRESS, pressVersion);
+        if (this.isPressed()) this.pressTrack.set(HOLD_PRESS, pressVersion);
       })();
 
       const openVersion = this.openTrack.begin();
@@ -289,7 +364,7 @@
         if (!await this.openTrack.tween(0.34, 150, easing.preload, openVersion)) return;
         if (!await this.openTrack.tween(0.78, 285, easing.sink, openVersion)) return;
         if (!await this.openTrack.tween(HOLD_OPEN_GL, 340, easing.fast, openVersion)) return;
-        if (this.pointerId !== null) this.openTrack.set(HOLD_OPEN_GL, openVersion);
+        if (this.isPressed()) this.openTrack.set(HOLD_OPEN_GL, openVersion);
       })();
     }
 
@@ -613,8 +688,10 @@
       this.pressTrack.begin();
       this.openTrack.begin();
       cancelAnimationFrame(this.frame);
-      this.detachGlobalListeners();
+      this.detachPointerListeners();
+      this.detachTouchListeners();
       this.element.removeEventListener('pointerdown', this.onDown);
+      this.element.removeEventListener('touchstart', this.onTouchStart);
       this.element.classList.remove('app-shell-press-host');
       this.canvas.remove();
     }

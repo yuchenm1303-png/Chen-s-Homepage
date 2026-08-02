@@ -28,7 +28,7 @@
     shoulderWidthPx: 21.7162162162162,
     shoulderMaxAngleDeg: 89.5,
     shoulderFalloffRoundness: 0,
-    shoulderMaterialStrength: 4,
+    shoulderMaterialStrength: 1.119,
     shoulderTangentialFlowStrength: 0,
   });
 

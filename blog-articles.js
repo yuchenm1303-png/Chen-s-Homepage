@@ -3,14 +3,14 @@
     zh: [
       {
         id: 'building-homepage',
-        title: '从零搭建个人主页：复古窗口、星空与长期数字空间',
-        shortTitle: '从零搭建个人主页',
+        title: '从零搭建个人主页：星空与长期数字空间',
+        shortTitle: '是个人主页',
         date: '2026-08-01',
         size: '35 KB',
         category: '网站开发',
         readTime: '15 分钟阅读',
         words: '约 5600 字',
-        summary: '这不是一份放在网页里的简历，而是一个能持续容纳项目、文章和个人审美的数字房间。',
+        summary: '数字房间。',
         body: `
           <p class="article-lead">我最初想做的并不是一张常见的开发者名片，而是一个打开后就能看出“这是我的空间”的个人主页。它既要能够介绍我正在做的项目，也要能保存文章、阶段性思考和不断变化的审美；既要有早期个人网站的私人感，又不能停留在静态贴图或怀旧滤镜。最终，整个站点逐渐形成了三种互相配合的视觉语言：Windows 98 风格的主窗口、粉紫与青蓝交错的星空桌面，以及用于长文阅读的 OpenGL 液态玻璃场景。</p>
 
@@ -117,7 +117,7 @@
       {
         id: 'opengl-liquid-glass',
         title: '两套 OpenGL 液态玻璃：边缘折射与主体折射为什么不能混为一谈',
-        shortTitle: '两套 OpenGL 液态玻璃',
+        shortTitle: 'OpenGL液态玻璃，或者应该叫OpenGL果冻？',
         date: '2026-07-28',
         size: '43 KB',
         category: '图形渲染',
@@ -233,7 +233,7 @@ shared backdrop texture
       {
         id: 'computer-use-design',
         title: 'Computer Use 界面自动化：从截图到可验证操作闭环',
-        shortTitle: 'Computer Use 界面自动化设计',
+        shortTitle: '自动屏幕程序GUI，帮你操作手机的一切',
         date: '2026-07-20',
         size: '39 KB',
         category: 'AI 应用',

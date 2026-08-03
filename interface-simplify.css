@@ -59,8 +59,78 @@
   display: none;
 }
 
+/* Stable window sizing and restore behaviour. */
+.titlebar {
+  user-select: none;
+}
+
+.window.maximized {
+  inset: 10px 10px 42px;
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  max-height: none;
+}
+
+.window.maximized .window-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.window.maximized .menu-bar,
+.window.maximized .status-bar {
+  flex: 0 0 auto;
+}
+
+.window.maximized .content-frame {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.window.maximized .content-scroll {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+}
+
+button.taskbar-item {
+  width: 100%;
+  background: var(--window-face);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.taskbar-item.is-active {
+  border-color: var(--window-dark) white white var(--window-dark);
+  box-shadow: inset 1px 1px 0 var(--window-mid);
+}
+
+.taskbar-item:not(.is-active) {
+  border-color: white var(--window-dark) var(--window-dark) white;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.8), inset -1px -1px 0 var(--window-mid);
+}
+
+.taskbar-item:focus-visible {
+  outline: 1px dotted var(--window-dark);
+  outline-offset: -5px;
+}
+
 @media (max-width: 760px) {
   .project-facts {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .window.maximized {
+    inset: 4px 4px 40px;
   }
 }

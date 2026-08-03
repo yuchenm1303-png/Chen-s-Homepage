@@ -11,6 +11,11 @@
     .replace('<h1 class="profile-name">Jack</h1>', `<h1 class="profile-name">${chineseName}</h1>`)
     .replaceAll("CHEN", "YUCHEN");
 
+  const titlebarIcon = document.querySelector(".titlebar-title .app-icon");
+  if (titlebarIcon) {
+    titlebarIcon.src = "assets/titlebar-floppy.svg";
+  }
+
   document.title = `${chineseName}的个人主页`;
   const description = document.querySelector('meta[name="description"]');
   if (description) {

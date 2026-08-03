@@ -195,7 +195,8 @@ const state = {
   lang: "zh",
   section: "about",
   maximized: false,
-  minimized: false
+  minimized: false,
+  closed: false
 };
 
 const windowElement = document.getElementById("profileWindow");
@@ -204,6 +205,12 @@ const contentElement = document.getElementById("content");
 const closedDialog = document.getElementById("closedDialog");
 const langSwitch = document.getElementById("langSwitch");
 const menuItems = [...document.querySelectorAll(".menu-item")];
+const minimizeButton = document.getElementById("minimizeButton");
+const maximizeButton = document.getElementById("maximizeButton");
+const closeButton = document.getElementById("closeButton");
+const reopenButton = document.getElementById("reopenButton");
+const taskbarWindowButton = document.getElementById("taskbarWindowButton");
+const titlebar = windowElement.querySelector(".titlebar");
 
 function render() {
   const dictionary = content[state.lang];
@@ -226,6 +233,42 @@ function render() {
   });
 }
 
+function applyWindowState() {
+  const isVisible = !state.closed && !state.minimized;
+
+  windowElement.hidden = !isVisible;
+  closedDialog.hidden = !state.closed;
+  windowElement.classList.toggle("maximized", isVisible && state.maximized);
+  windowElement.classList.toggle("minimized", state.minimized);
+
+  maximizeButton.textContent = state.maximized ? "❐" : "□";
+  maximizeButton.setAttribute("aria-label", state.maximized ? "Restore" : "Maximize");
+  maximizeButton.setAttribute("title", state.maximized ? "Restore" : "Maximize");
+  minimizeButton.setAttribute("aria-label", "Minimize");
+
+  taskbarWindowButton.classList.toggle("is-active", isVisible);
+  taskbarWindowButton.classList.toggle("is-minimized", state.minimized);
+  taskbarWindowButton.classList.toggle("is-closed", state.closed);
+  taskbarWindowButton.setAttribute("aria-pressed", String(isVisible));
+
+  requestAnimationFrame(() => {
+    window.dispatchEvent(new Event("resize"));
+  });
+}
+
+function restoreWindow() {
+  state.closed = false;
+  state.minimized = false;
+  applyWindowState();
+}
+
+function toggleMaximize() {
+  if (state.closed) return;
+  state.minimized = false;
+  state.maximized = !state.maximized;
+  applyWindowState();
+}
+
 menuItems.forEach((button) => {
   button.addEventListener("click", () => {
     state.section = button.dataset.section;
@@ -236,10 +279,7 @@ menuItems.forEach((button) => {
 document.querySelectorAll("[data-open]").forEach((button) => {
   button.addEventListener("dblclick", () => {
     state.section = button.dataset.open;
-    windowElement.hidden = false;
-    closedDialog.hidden = true;
-    state.minimized = false;
-    windowElement.classList.remove("minimized");
+    restoreWindow();
     render();
   });
 
@@ -254,25 +294,39 @@ langSwitch.addEventListener("click", () => {
   render();
 });
 
-document.getElementById("minimizeButton").addEventListener("click", () => {
-  state.minimized = !state.minimized;
-  windowElement.classList.toggle("minimized", state.minimized);
+minimizeButton.addEventListener("click", () => {
+  if (state.closed) return;
+  state.minimized = true;
+  applyWindowState();
 });
 
-document.getElementById("maximizeButton").addEventListener("click", () => {
-  state.maximized = !state.maximized;
-  windowElement.classList.toggle("maximized", state.maximized);
+maximizeButton.addEventListener("click", toggleMaximize);
+
+titlebar.addEventListener("dblclick", (event) => {
+  if (event.target.closest(".window-controls")) return;
+  toggleMaximize();
 });
 
-document.getElementById("closeButton").addEventListener("click", () => {
-  windowElement.hidden = true;
-  closedDialog.hidden = false;
+closeButton.addEventListener("click", () => {
+  state.closed = true;
+  state.minimized = false;
+  applyWindowState();
 });
 
-document.getElementById("reopenButton").addEventListener("click", () => {
-  closedDialog.hidden = true;
-  windowElement.hidden = false;
+reopenButton.addEventListener("click", () => {
+  restoreWindow();
   render();
+});
+
+taskbarWindowButton.addEventListener("click", () => {
+  if (state.closed || state.minimized) {
+    restoreWindow();
+    render();
+    return;
+  }
+
+  state.minimized = true;
+  applyWindowState();
 });
 
 function createStars() {
@@ -298,5 +352,6 @@ function updateClock() {
 
 createStars();
 render();
+applyWindowState();
 updateClock();
 setInterval(updateClock, 15000);

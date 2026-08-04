@@ -3,12 +3,12 @@
   if (!toggle) return;
 
   const storageKey = 'chen-homepage-crt-lines';
-  let enabled = true;
+  let enabled = false;
 
   try {
-    enabled = localStorage.getItem(storageKey) !== 'off';
+    enabled = localStorage.getItem(storageKey) === 'on';
   } catch (_) {
-    enabled = true;
+    enabled = false;
   }
 
   function applyState() {

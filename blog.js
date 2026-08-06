@@ -10,13 +10,13 @@
   const uiText = {
     zh: {
       indexTitle: 'Index of /blog',
-      name: 'Name', date: 'Date', size: 'Size', count: '4 个文件 · 0 个目录',
+      name: 'Name', date: 'Date', size: 'Size',
       back: '← 返回博客', toc: '目录', smaller: 'A−', larger: 'A+', previous: '上一篇', next: '下一篇', close: '×',
       author: '邹羽宸', reading: '阅读进度', tocTitle: 'CONTENTS / 目录'
     },
     en: {
       indexTitle: 'Index of /blog',
-      name: 'Name', date: 'Date', size: 'Size', count: '4 files · 0 directories',
+      name: 'Name', date: 'Date', size: 'Size',
       back: '← BACK', toc: 'CONTENTS', smaller: 'A−', larger: 'A+', previous: 'PREV', next: 'NEXT', close: '×',
       author: 'Yuchen Zou', reading: 'READING', tocTitle: 'CONTENTS'
     }
@@ -24,6 +24,10 @@
 
   function blogIndexTemplate(lang) {
     const text = uiText[lang];
+    const articleCount = articles[lang].length;
+    const countText = lang === 'zh'
+      ? `${articleCount} 个文件 · 0 个目录`
+      : `${articleCount} files · 0 directories`;
     return `
       <section class="blog-index-app">
         <h2 class="section-title">${text.indexTitle}</h2>
@@ -38,7 +42,7 @@
               </tr>`).join('')}
           </tbody>
         </table>
-        <p class="note">${text.count}</p>
+        <p class="note">${countText}</p>
         <p class="blog-index-hint">双击文件的感觉，打开的是一块独立的 OpenGL 液态玻璃阅读空间。</p>
       </section>`;
   }

@@ -184,52 +184,6 @@
           ["实验/文献校核与正式报告", "todo"]
         ],
         next: "完成高风险参数区的复算和一致性检查，并统一输出可直接用于报告与答辩的正式图件。"
-      },
-      {
-        id: "ocean-eratio",
-        code: "POC",
-        colour: "gold",
-        category: "research",
-        name: "Global Ocean e-ratio Research",
-        subtitle: "全球海洋颗粒碳输出效率数据库与机制分类",
-        status: "论文推进",
-        statusTone: "paper",
-        type: "海洋生物地球化学 / 数据分析",
-        period: "2025.10 — 至今",
-        role: "数据库构建 / 统计模型 / 论文图件",
-        summary: "整合全球 234Th 推算的颗粒有机碳输出通量、卫星 NPP、Longhurst 生态省区和环境因子，建立全球 e-ratio 数据库，并解释不同海区的物理注入、上升流、颗粒形成与食物网控制机制，目标期刊为 Global Biogeochemical Cycles。",
-        architecture: [
-          "汇总站位级 POC export 数据，保留深度、时间、重复站位和来源信息",
-          "NPP 以 CbPM 为主、VGPM 为补充，按时间窗口匹配并年化",
-          "自动匹配 Longhurst Province / Region / Biome，并维护人工复核结果",
-          "使用 Spearman、偏相关、残差分析、GAM/HGAM 和敏感性分析构建机制证据链",
-          "主文与补充材料分别组织机制地图、代表省区四图、热力图、矩阵和诊断结果"
-        ],
-        highlights: [
-          "数据库覆盖 1989—2023 年、超过 1000 个站位，主分析聚焦 2003—2023 年",
-          "计算 100 m POC export / NPP 的年尺度 e-ratio，并执行 0—1 质量控制",
-          "建立 Wind-mixing/physical-injection、Upwelling、Particle formation/food-web、Composite、Uncertain 五类机制",
-          "完成代表省区 ANTA、CHIL、NADR、SANT、NATR、PEQD、ARCT、ARCH 的机制图",
-          "已形成机制地图、证据得分热力图和自动分类—人工复核矩阵"
-        ],
-        challenges: [
-          "不同研究的采样深度、时间尺度和通量口径不完全一致，需要锁定统一输出深度与匹配规则",
-          "e-ratio 同时受物理输运、生产力和群落组成影响，单变量相关不能直接解释机制",
-          "省区样本量和季节覆盖不均，需要主分析与敏感性分析并行",
-          "目标期刊对数据可追溯性、统计诊断和图件规范要求很高"
-        ],
-        outputs: [
-          "analysis-ready 全球 POC–NPP–环境因子数据库",
-          "Longhurst 省区机制分类与 frozen-chain evidence score",
-          "GBC 主文图件、补充诊断图和论文方法框架"
-        ],
-        stack: ["Python", "R", "mgcv", "GAM/HGAM", "Remote Sensing", "Longhurst", "Statistics"],
-        stages: [
-          ["数据清洗、NPP 匹配与省区归属", "done"],
-          ["机制分类与代表省区分析", "done"],
-          ["V2 数据库、敏感性分析与论文写作", "active"]
-        ],
-        next: "冻结不覆盖原文件的 analysis-ready V2 数据库，补齐敏感性分析和诊断，并完成 GBC 稿件主文与补充材料。"
       }
     ],
     en: []
@@ -241,7 +195,7 @@
     zh: {
       heading: "PROJECTS.EXE / 项目管理器", path: "C:\\YUCHEN\\PROJECTS",
       all: "全部", dev: "应用开发", engineering: "工程与器件", research: "科研分析",
-      files: "5 个项目", active: "5 个持续推进", selected: "已选择",
+      files: "4 个项目", active: "4 个持续推进", selected: "已选择",
       overview: "项目概览", architecture: "系统架构", highlights: "关键工作",
       challenges: "技术难点", outputs: "阶段成果", stack: "技术栈",
       roadmap: "当前进度", next: "下一步", type: "类型", period: "周期",
@@ -252,7 +206,7 @@
     en: {
       heading: "PROJECTS.EXE / PROJECT MANAGER", path: "C:\\YUCHEN\\PROJECTS",
       all: "ALL", dev: "APP DEV", engineering: "ENGINEERING", research: "RESEARCH",
-      files: "5 PROJECTS", active: "5 IN PROGRESS", selected: "SELECTED",
+      files: "4 PROJECTS", active: "4 IN PROGRESS", selected: "SELECTED",
       overview: "OVERVIEW", architecture: "ARCHITECTURE", highlights: "KEY WORK",
       challenges: "CHALLENGES", outputs: "OUTPUTS", stack: "TECH STACK",
       roadmap: "PROGRESS", next: "NEXT STEP", type: "TYPE", period: "PERIOD",

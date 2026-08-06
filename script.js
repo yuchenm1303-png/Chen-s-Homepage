@@ -44,7 +44,6 @@ const content = {
             ${projectTemplate("AI", "AI Agent / Android App", "进行中", "手机端视觉智能体、无障碍交互与界面自动化。", "Kotlin · LLM · Vision · Agent")}
             ${projectTemplate("GaN", "GaN HEMT Simulation", "科研", "基于 Sentaurus 的增强型 GaN HEMT 器件建模、重离子与温度效应分析。", "TCAD · Semiconductor · Physics")}
             ${projectTemplate("MAT", "Cradle–Pendulum Dynamics", "建模", "摇篮—摆架—工作台耦合系统的有限元装配、模态分析与非线性动力学。", "MATLAB · FEM · Newmark")}
-            ${projectTemplate("POC", "Global Ocean e-ratio Research", "论文中", "全球海洋 POC 输出效率数据库、Longhurst 省区和机制链分类研究。", "Python · Remote Sensing · Statistics")}
           </ul>
         </section>
       `,
@@ -117,7 +116,6 @@ const content = {
             ${projectTemplate("AI", "AI Agent / Android App", "ACTIVE", "A phone-side visual agent for accessibility-driven UI interaction and automation.", "Kotlin · LLM · Vision · Agent")}
             ${projectTemplate("GaN", "GaN HEMT Simulation", "RESEARCH", "Sentaurus modelling of enhancement-mode GaN HEMTs under heavy-ion and temperature effects.", "TCAD · Semiconductor · Physics")}
             ${projectTemplate("MAT", "Cradle–Pendulum Dynamics", "MODELLING", "Finite-element assembly, modal analysis and nonlinear dynamics of a coupled cradle system.", "MATLAB · FEM · Newmark")}
-            ${projectTemplate("POC", "Global Ocean e-ratio Research", "PAPER", "A global POC export-efficiency database with Longhurst provinces and mechanism-chain classification.", "Python · Remote Sensing · Statistics")}
           </ul>
         </section>
       `,

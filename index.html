@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/titlebar-floppy.svg?v=20260803-1207" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="assets/titlebar-floppy.svg?v=20260803-1207" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="custom.css" />
+  <link rel="stylesheet" href="custom.css?v=20260808-1228" />
   <link rel="stylesheet" href="star-theme.css?v=20260801-2105" />
   <link rel="stylesheet" href="star-refinement.css?v=20260801-2105" />
   <link rel="stylesheet" href="projects.css?v=20260801-2130" />
@@ -27,17 +27,6 @@
     <div class="cloud-layer cloud-layer-a" aria-hidden="true"></div>
     <div class="cloud-layer cloud-layer-b" aria-hidden="true"></div>
     <div class="stars" id="stars" aria-hidden="true"></div>
-
-    <aside class="desktop-icons" aria-label="Desktop shortcuts">
-      <button class="desktop-shortcut" data-open="projects" type="button">
-        <span class="shortcut-icon folder-icon" aria-hidden="true"></span>
-        <span data-i18n="shortcutProjects">My Projects</span>
-      </button>
-      <button class="desktop-shortcut" data-open="contact" type="button">
-        <span class="shortcut-icon mail-icon" aria-hidden="true">@</span>
-        <span data-i18n="shortcutContact">Contact</span>
-      </button>
-    </aside>
 
     <main class="stage">
       <section class="window" id="profileWindow" aria-labelledby="windowTitle">
@@ -84,7 +73,10 @@
     </main>
 
     <div class="taskbar" aria-label="Desktop taskbar">
-      <div class="start-button"><img src="assets/icon.svg" alt="" /> START</div>
+      <div class="start-button" aria-label="Start">
+        <span class="start-mark" aria-hidden="true"></span>
+        <span>START</span>
+      </div>
       <button class="taskbar-item is-active" id="taskbarWindowButton" type="button" aria-pressed="true">Chen</button>
       <button class="crt-toggle" id="crtToggle" type="button" aria-pressed="false" title="开启 CRT 条纹">
         <span class="crt-toggle-led" aria-hidden="true"></span>

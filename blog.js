@@ -7,6 +7,7 @@
 
   articles.en = articles.zh.map((article) => ({ ...article }));
 
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const uiText = {
     zh: {
       indexTitle: 'Index of /blog',
@@ -59,15 +60,33 @@
   let readerRoot = null;
   let renderer = null;
   let currentArticleId = null;
+  let currentArticleLang = null;
   let currentFontScale = 1;
   let previousBodyOverflow = '';
+  let blogIndexDelegated = false;
+  let articleScroll = null;
+  let articleDocument = null;
+  let progressBar = null;
+  let progressText = null;
+  let readerControls = [];
+  let headingNodes = [];
+  let tocLinkById = new Map();
+  let activeHeadingIndex = 0;
+  let activeTocLink = null;
+  let lastProgressPercent = -1;
+  let readingFrame = 0;
+  let resizeFrame = 0;
+  let glassStartFrame = 0;
+  let closeTimer = 0;
 
   function initialiseBlogIndex() {
-    contentElement.querySelectorAll('[data-blog-id]').forEach((link) => {
-      link.addEventListener('click', (event) => {
-        event.preventDefault();
-        openArticle(link.dataset.blogId, true);
-      });
+    if (blogIndexDelegated) return;
+    blogIndexDelegated = true;
+    contentElement.addEventListener('click', (event) => {
+      const link = event.target.closest('[data-blog-id]');
+      if (!link || !contentElement.contains(link)) return;
+      event.preventDefault();
+      openArticle(link.dataset.blogId, true);
     });
   }
 
@@ -107,19 +126,25 @@
       </div>`;
     document.body.appendChild(readerRoot);
 
-    readerRoot.querySelectorAll('[data-reader-action]').forEach((button) => {
+    articleScroll = readerRoot.querySelector('#articleScroll');
+    articleDocument = readerRoot.querySelector('#articleDocument');
+    progressBar = readerRoot.querySelector('#articleProgressBar');
+    progressText = readerRoot.querySelector('#articleProgressText');
+    readerControls = [...readerRoot.querySelectorAll('.legacy-glass-control')];
+
+    readerControls.forEach((button) => {
       button.addEventListener('click', () => handleAction(button.dataset.readerAction));
     });
-    readerRoot.querySelector('#articleScroll').addEventListener('scroll', updateReadingState, { passive: true });
+    articleScroll.addEventListener('scroll', scheduleReadingState, { passive: true });
     readerRoot.addEventListener('click', (event) => {
       const anchor = event.target.closest('a[href^="#section-"]');
       if (!anchor) return;
       event.preventDefault();
       const target = readerRoot.querySelector(anchor.getAttribute('href'));
-      target?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+      target?.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'start' });
       if (innerWidth <= 760) readerRoot.classList.remove('toc-open');
     });
-    addEventListener('resize', refreshGlassGeometry, { passive: true });
+    addEventListener('resize', scheduleGlassGeometry, { passive: true });
     document.addEventListener('keydown', (event) => {
       if (readerRoot.hidden) return;
       if (event.key === 'Escape') closeArticle(true);
@@ -127,29 +152,58 @@
     return readerRoot;
   }
 
+  function cancelPendingClose() {
+    if (!closeTimer) return;
+    clearTimeout(closeTimer);
+    closeTimer = 0;
+  }
+
   function openArticle(id, pushHash = false) {
     const lang = state.lang;
     const article = articles[lang].find((item) => item.id === id) || articles[lang][0];
     const root = ensureReader();
+    cancelPendingClose();
+
+    if (!root.hidden && currentArticleId === article.id && currentArticleLang === lang) {
+      root.classList.add('is-open');
+      articleScroll?.focus({ preventScroll: true });
+      if (pushHash && location.hash !== `#/blog/${article.id}`) {
+        history.pushState({ article: article.id }, '', `#/blog/${article.id}`);
+      }
+      return;
+    }
+
+    if (!root.hidden) renderer?.stop();
     currentArticleId = article.id;
+    currentArticleLang = lang;
     populateArticle(article, lang);
+
     if (root.hidden) previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     document.body.classList.add('article-reader-open');
     root.hidden = false;
     root.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => {
+    root.dispatchEvent(new CustomEvent('blog:reader-opened'));
+
+    cancelAnimationFrame(glassStartFrame);
+    glassStartFrame = requestAnimationFrame(() => {
       root.classList.add('is-open');
-      initialiseGlassRenderer();
-      root.querySelector('#articleScroll').focus({ preventScroll: true });
+      articleScroll?.focus({ preventScroll: true });
+      glassStartFrame = requestAnimationFrame(() => {
+        glassStartFrame = 0;
+        initialiseGlassRenderer();
+        scheduleReadingState();
+      });
     });
-    if (pushHash && location.hash !== `#/blog/${article.id}`) history.pushState({ article: article.id }, '', `#/blog/${article.id}`);
+
+    if (pushHash && location.hash !== `#/blog/${article.id}`) {
+      history.pushState({ article: article.id }, '', `#/blog/${article.id}`);
+    }
   }
 
   function populateArticle(article, lang) {
     const text = uiText[lang];
-    const documentElement = readerRoot.querySelector('#articleDocument');
-    documentElement.innerHTML = `
+    articleDocument.innerHTML = `
       <header class="article-header">
         <div class="article-kicker"><span>${article.category}</span><i></i><span>${article.date}</span></div>
         <h1>${article.title}</h1>
@@ -162,23 +216,30 @@
       <div class="article-body">${article.body}</div>
       <footer class="article-ending"><span>EOF</span><p>这篇文章仍会随着项目进展继续修订。</p></footer>`;
 
-    documentElement.querySelectorAll('h2, h3').forEach((heading, index) => {
+    headingNodes = [...articleDocument.querySelectorAll('h2, h3')];
+    headingNodes.forEach((heading, index) => {
       heading.id = `section-${index + 1}`;
     });
-    buildToc(documentElement, text);
+    buildToc(text);
     setControlLabels(text);
-    readerRoot.querySelector('#articleScroll').scrollTop = 0;
+    articleScroll.scrollTop = 0;
     currentFontScale = 1;
     readerRoot.style.setProperty('--article-font-scale', currentFontScale);
-    updateReadingState();
+    activeHeadingIndex = 0;
+    activeTocLink = null;
+    lastProgressPercent = -1;
+    updateReadingStateNow();
+    readerRoot.dispatchEvent(new CustomEvent('blog:article-populated'));
   }
 
-  function buildToc(documentElement, text) {
-    const headings = [...documentElement.querySelectorAll('h2, h3')];
+  function buildToc(text) {
     const links = readerRoot.querySelector('.toc-links');
     readerRoot.querySelector('.toc-title').textContent = text.tocTitle;
     readerRoot.querySelector('.toc-reading span').textContent = text.reading;
-    links.innerHTML = headings.map((heading) => `<a class="toc-level-${heading.tagName.toLowerCase()}" href="#${heading.id}" data-target="${heading.id}">${heading.textContent}</a>`).join('');
+    links.innerHTML = headingNodes.map((heading) => `<a class="toc-level-${heading.tagName.toLowerCase()}" href="#${heading.id}" data-target="${heading.id}">${heading.textContent}</a>`).join('');
+    tocLinkById = new Map(
+      [...links.querySelectorAll('a[data-target]')].map((link) => [link.dataset.target, link])
+    );
   }
 
   function setControlLabels(text) {
@@ -186,8 +247,9 @@
       back: text.back, toc: text.toc, smaller: text.smaller, larger: text.larger,
       previous: text.previous, next: text.next, close: text.close
     };
-    Object.entries(labels).forEach(([action, label]) => {
-      const button = readerRoot.querySelector(`[data-reader-action="${action}"]`);
+    readerControls.forEach((button) => {
+      const label = labels[button.dataset.readerAction];
+      if (!label) return;
       button.textContent = label;
       button.setAttribute('aria-label', label);
     });
@@ -200,26 +262,40 @@
       const ok = renderer.initialise();
       if (!ok) readerRoot.classList.add('glass-fallback');
     }
-    const controls = readerRoot.querySelectorAll('.legacy-glass-control');
-    renderer?.bind(readerRoot.querySelector('#articleGlassShell'), controls);
+    renderer?.bind(readerRoot.querySelector('#articleGlassShell'), readerControls);
     renderer?.start();
   }
 
-  function refreshGlassGeometry() {
-    if (!readerRoot || readerRoot.hidden) return;
-    renderer?.bind(readerRoot.querySelector('#articleGlassShell'), readerRoot.querySelectorAll('.legacy-glass-control'));
+  function scheduleGlassGeometry() {
+    if (!readerRoot || readerRoot.hidden || resizeFrame) return;
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = 0;
+      renderer?.bind(readerRoot.querySelector('#articleGlassShell'), readerControls);
+      scheduleReadingState();
+    });
   }
 
   function closeArticle(updateHash = false) {
     if (!readerRoot || readerRoot.hidden) return;
+    cancelAnimationFrame(glassStartFrame);
+    glassStartFrame = 0;
+    cancelAnimationFrame(readingFrame);
+    readingFrame = 0;
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = 0;
     readerRoot.classList.remove('is-open', 'toc-open');
     renderer?.stop();
-    setTimeout(() => {
+
+    cancelPendingClose();
+    closeTimer = setTimeout(() => {
+      closeTimer = 0;
       readerRoot.hidden = true;
       readerRoot.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = previousBodyOverflow;
       document.body.classList.remove('article-reader-open');
-    }, 260);
+      readerRoot.dispatchEvent(new CustomEvent('blog:reader-closed'));
+    }, reducedMotion.matches ? 0 : 190);
+
     if (updateHash) history.pushState({}, '', '#/blog');
   }
 
@@ -229,6 +305,7 @@
     if (action === 'smaller' || action === 'larger') {
       currentFontScale = Math.min(1.20, Math.max(0.88, currentFontScale + (action === 'larger' ? 0.06 : -0.06)));
       readerRoot.style.setProperty('--article-font-scale', currentFontScale.toFixed(2));
+      scheduleGlassGeometry();
       return;
     }
     const langArticles = articles[state.lang];
@@ -238,21 +315,50 @@
     openArticle(next.id, true);
   }
 
-  function updateReadingState() {
-    if (!readerRoot || readerRoot.hidden) return;
-    const scroller = readerRoot.querySelector('#articleScroll');
-    const max = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
-    const progress = Math.min(1, Math.max(0, scroller.scrollTop / max));
-    readerRoot.querySelector('#articleProgressBar').style.transform = `scaleX(${progress})`;
-    readerRoot.querySelector('#articleProgressText').textContent = `${Math.round(progress * 100)}%`;
+  function scheduleReadingState() {
+    if (!readerRoot || readerRoot.hidden || readingFrame) return;
+    readingFrame = requestAnimationFrame(() => {
+      readingFrame = 0;
+      updateReadingStateNow();
+    });
+  }
 
-    const headings = [...readerRoot.querySelectorAll('.article-document h2, .article-document h3')];
-    let activeId = headings[0]?.id;
-    for (const heading of headings) {
-      if (heading.getBoundingClientRect().top <= 150) activeId = heading.id;
-      else break;
+  function updateReadingStateNow() {
+    if (!readerRoot || readerRoot.hidden || !articleScroll) return;
+    const max = Math.max(1, articleScroll.scrollHeight - articleScroll.clientHeight);
+    const progress = Math.min(1, Math.max(0, articleScroll.scrollTop / max));
+    progressBar.style.transform = `scaleX(${progress})`;
+
+    const percent = Math.round(progress * 100);
+    if (percent !== lastProgressPercent) {
+      progressText.textContent = `${percent}%`;
+      lastProgressPercent = percent;
     }
-    readerRoot.querySelectorAll('.toc-links a').forEach((link) => link.classList.toggle('is-active', link.dataset.target === activeId));
+
+    if (!headingNodes.length) return;
+    let nextIndex = Math.min(activeHeadingIndex, headingNodes.length - 1);
+
+    while (
+      nextIndex + 1 < headingNodes.length
+      && headingNodes[nextIndex + 1].getBoundingClientRect().top <= 150
+    ) {
+      nextIndex += 1;
+    }
+
+    while (
+      nextIndex > 0
+      && headingNodes[nextIndex].getBoundingClientRect().top > 150
+    ) {
+      nextIndex -= 1;
+    }
+
+    activeHeadingIndex = nextIndex;
+    const nextLink = tocLinkById.get(headingNodes[nextIndex]?.id) || null;
+    if (nextLink !== activeTocLink) {
+      activeTocLink?.classList.remove('is-active');
+      nextLink?.classList.add('is-active');
+      activeTocLink = nextLink;
+    }
   }
 
   function syncHashRoute() {

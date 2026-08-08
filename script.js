@@ -23,7 +23,7 @@ const content = {
               <p class="profile-meta">He/Him · 22 岁</p>
               <ul class="role-list copy">
                 <li>电气工程及其自动化 · 大三</li>
-                <li>独立开发者 / 科研实践者</li>
+                <li>独立开发者</li>
               </ul>
             </div>
           </div>

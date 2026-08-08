@@ -4,12 +4,12 @@
   content.zh.sections.about = content.zh.sections.about
     .replace('alt="Jack 的像素头像"', `alt="${chineseName}的像素头像"`)
     .replace('<h1 class="profile-name">Jack</h1>', `<h1 class="profile-name">${chineseName}</h1>`)
-    .replaceAll("CHEN", "YUCHEN");
+    .replaceAll("CHEN", "SMIREL");
 
   content.en.sections.about = content.en.sections.about
     .replace('alt="Pixel portrait of Jack"', `alt="Pixel portrait of Zou Yuchen (${chineseName})"`)
     .replace('<h1 class="profile-name">Jack</h1>', `<h1 class="profile-name">${chineseName}</h1>`)
-    .replaceAll("CHEN", "YUCHEN");
+    .replaceAll("CHEN", "SMIREL");
 
   const titlebarIcon = document.querySelector(".titlebar-title .app-icon");
   if (titlebarIcon) {

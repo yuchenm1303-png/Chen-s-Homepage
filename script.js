@@ -220,11 +220,8 @@ function render() {
     if (dictionary[key]) element.textContent = dictionary[key];
   });
 
-  contentElement.classList.remove("screen-refresh");
-  void contentElement.offsetWidth;
   contentElement.innerHTML = dictionary.sections[state.section];
   contentElement.scrollTop = 0;
-  contentElement.classList.add("screen-refresh");
 
   menuItems.forEach((button) => {
     button.classList.toggle("active", button.dataset.section === state.section);

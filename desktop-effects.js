@@ -2,7 +2,7 @@
   const toggle = document.getElementById('crtToggle');
   if (!toggle) return;
 
-  const storageKey = 'chen-homepage-crt-lines';
+  const storageKey = 'smirel-homepage-crt-lines';
   let enabled = false;
 
   try {

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const MAX_SECTION_NODES = 7;
+  const MAX_SECTION_NODES = matchMedia('(max-width: 820px)').matches ? 12 : 10;
   let transforming = false;
 
   function createCard(kind, label) {
@@ -89,11 +89,8 @@
       }
 
       if (ending) {
-        if (chapterCards.length) {
-          chapterCards[chapterCards.length - 1].appendChild(ending);
-        } else {
-          heroCard.appendChild(ending);
-        }
+        if (chapterCards.length) chapterCards[chapterCards.length - 1].appendChild(ending);
+        else heroCard.appendChild(ending);
       }
 
       documentElement.replaceChildren(fragment);
@@ -103,8 +100,10 @@
     }
 
     requestAnimationFrame(() => {
+      // Host changes are the only geometry invalidation needed here. Dispatching
+      // a synthetic global resize rebuilt the full backdrop and woke unrelated
+      // page listeners even though the viewport itself had not changed.
       reader.dispatchEvent(new CustomEvent('blog:glass-hosts-changed'));
-      dispatchEvent(new Event('resize'));
     });
   }
 

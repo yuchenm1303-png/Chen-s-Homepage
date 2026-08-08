@@ -1,0 +1,76 @@
+/* Whole-site performance layer. Loaded last so it can remove expensive visual
+ * work without changing the established layout or content hierarchy. */
+
+/* CRT is off by default. The noise texture has no visible value in that state,
+ * so avoid keeping a full-screen SVG turbulence layer in the compositor. */
+body.crt-lines-off .noise-overlay {
+  display: none !important;
+}
+
+/* Keep layout invalidation local to the complex panes. */
+.projects-app,
+.blog-index-app,
+.contact-index-app,
+.project-inspector,
+.article-control-bar,
+.article-toc,
+.article-glass-card {
+  contain: layout paint style;
+}
+
+/* Long project details below the fold do not need to be fully painted until
+ * they approach the visible scroll area. The remembered intrinsic size avoids
+ * layout jumps after a panel has been visited once. */
+.project-inspector .inspector-panel {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 150px;
+}
+
+/* CSS filter drop-shadows force an offscreen filtered bitmap while scrolling.
+ * A regular box-shadow keeps the same depth cue but is materially cheaper for
+ * the moving article cards and sticky glass chrome. */
+.article-glass-card {
+  filter: none !important;
+  box-shadow: 0 22px 34px rgba(0, 0, 0, .32);
+}
+
+.article-control-bar {
+  filter: none !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .25);
+}
+
+.article-toc {
+  filter: none !important;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, .25);
+}
+
+.article-code,
+.article-callout {
+  contain: layout paint style;
+}
+
+/* The mobile toolbar already has layered gradients that provide the glass
+ * appearance. Removing live backdrop-filter avoids a full-width realtime blur
+ * on every article scroll frame. */
+@media (max-width: 820px) {
+  .article-control-bar.mobile-stable-toolbar {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .article-glass-card {
+    box-shadow: 0 16px 27px rgba(0, 0, 0, .28);
+  }
+}
+
+/* One continuously moving status bar is cheap when it stays on the compositor. */
+.status-progress-track::before {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-progress-track::before {
+    will-change: auto;
+  }
+}

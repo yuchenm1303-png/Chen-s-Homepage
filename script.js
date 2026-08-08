@@ -34,7 +34,7 @@ const content = {
             <p>这里会保存我的经历。</p>
             <p>晚安。</p>
           </div>
-          <div class="terminal-box">C:\\CHEN&gt; SYSTEM READY · POWER &amp; CODE<span class="cursor-block"></span></div>
+          <div class="terminal-box">C:\\SMIREL&gt; SYSTEM READY · POWER &amp; CODE<span class="cursor-block"></span></div>
         </section>
       `,
       projects: `
@@ -106,7 +106,7 @@ const content = {
             <p>I study Electrical Engineering &amp; Automation and keep building AI applications, engineering simulations and research data workflows.</p>
             <p>This site is a long-term digital room for real projects, study notes and ideas — not merely an online résumé.</p>
           </div>
-          <div class="terminal-box">C:\\CHEN&gt; SYSTEM READY · POWER &amp; CODE<span class="cursor-block"></span></div>
+          <div class="terminal-box">C:\\SMIREL&gt; SYSTEM READY · POWER &amp; CODE<span class="cursor-block"></span></div>
         </section>
       `,
       projects: `

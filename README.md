@@ -1,4 +1,4 @@
-# Chen's Homepage
+# Smirel's Homepage
 
 一个原创的复古个人主页：Windows 95/98 窗口、梦核粉色云层、像素素材、CRT 扫描线和中英文切换。
 
@@ -7,7 +7,7 @@
 - About / Projects / Blog / Contact 四个栏目
 - 中文与英文切换
 - 最小化、最大化、关闭与重新打开窗口
-- 桌面快捷方式、任务栏与时钟
+- 任务栏与时钟
 - 原创 SVG 像素头像、像素猫和应用图标
 - 桌面、iPad、手机响应式布局
 - GitHub Pages 自动部署工作流

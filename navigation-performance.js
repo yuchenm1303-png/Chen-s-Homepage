@@ -3,11 +3,18 @@
 
   if (typeof state === 'undefined' || typeof render !== 'function' || !contentElement) return;
 
+  const originalRender = render;
   const sectionCache = new Map();
+  const scrollCache = new Map();
   const validSections = new Set(['about', 'projects', 'blog', 'contact']);
+  let visibleLang = state.lang;
+  let visibleSection = state.section;
+  let insideOriginalRender = false;
 
   const style = document.createElement('style');
   style.textContent = `
+    .navigation-cache-pane { display: contents; }
+
     .menu-item,
     .menu-item:active,
     .menu-item.active {
@@ -28,72 +35,145 @@
 
   const cacheKey = (lang, section) => `${lang}:${section}`;
 
-  function syncMenuState() {
+  function syncChrome() {
+    const dictionary = content[state.lang];
+    document.documentElement.lang = state.lang === 'zh' ? 'zh-CN' : 'en';
+    langSwitch.textContent = state.lang === 'zh' ? 'EN' : 'CN';
+
+    document.querySelectorAll('[data-i18n]').forEach((element) => {
+      const key = element.dataset.i18n;
+      if (dictionary[key]) element.textContent = dictionary[key];
+    });
+
     menuItems.forEach((button) => {
       button.classList.toggle('active', button.dataset.section === state.section);
     });
   }
 
-  function stashCurrentSection() {
-    if (!contentElement.firstChild) return;
+  function wrapCurrentContent(lang = visibleLang, section = visibleSection) {
+    const key = cacheKey(lang, section);
+    let pane = sectionCache.get(key);
 
-    const fragment = document.createDocumentFragment();
-    while (contentElement.firstChild) {
-      fragment.appendChild(contentElement.firstChild);
+    if (pane?.parentNode === contentElement) return pane;
+
+    if (
+      contentElement.children.length === 1
+      && contentElement.firstElementChild?.classList.contains('navigation-cache-pane')
+    ) {
+      pane = contentElement.firstElementChild;
+      sectionCache.set(key, pane);
+      return pane;
     }
-    sectionCache.set(cacheKey(state.lang, state.section), fragment);
+
+    pane = document.createElement('div');
+    pane.className = 'navigation-cache-pane';
+    pane.dataset.navigationCacheKey = key;
+    while (contentElement.firstChild) pane.appendChild(contentElement.firstChild);
+    contentElement.appendChild(pane);
+    sectionCache.set(key, pane);
+    return pane;
   }
 
-  function restoreCachedSection(targetSection) {
-    const key = cacheKey(state.lang, targetSection);
-    const fragment = sectionCache.get(key);
-    if (!fragment) return false;
+  function stashVisibleSection() {
+    if (!contentElement.firstChild) return;
+    const key = cacheKey(visibleLang, visibleSection);
+    scrollCache.set(key, contentElement.scrollTop);
+    const pane = wrapCurrentContent(visibleLang, visibleSection);
+    if (pane.parentNode === contentElement) pane.remove();
+  }
 
-    contentElement.replaceChildren(fragment);
-    sectionCache.delete(key);
-    contentElement.scrollTop = 0;
+  function restoreCachedSection(lang, section) {
+    const key = cacheKey(lang, section);
+    const pane = sectionCache.get(key);
+    if (!pane) return false;
+
+    contentElement.replaceChildren(pane);
+    visibleLang = lang;
+    visibleSection = section;
+    contentElement.scrollTop = scrollCache.get(key) || 0;
     return true;
   }
 
-  function navigateToSection(targetSection) {
-    if (!validSections.has(targetSection) || targetSection === state.section) return;
+  function renderCurrentState() {
+    const targetLang = state.lang;
+    const targetSection = state.section;
 
-    stashCurrentSection();
-    state.section = targetSection;
-    syncMenuState();
+    if (targetLang === visibleLang && targetSection === visibleSection && contentElement.firstChild) {
+      syncChrome();
+      return;
+    }
 
-    if (restoreCachedSection(targetSection)) return;
+    stashVisibleSection();
+    syncChrome();
 
-    // First visit still goes through the original renderer so Projects/Blog
-    // can perform their one-time setup. Later visits reuse the existing DOM,
-    // preserving listeners and avoiding repeated innerHTML parsing/layout.
-    render();
+    if (restoreCachedSection(targetLang, targetSection)) {
+      syncChrome();
+      return;
+    }
+
+    insideOriginalRender = true;
+    try {
+      originalRender();
+    } finally {
+      insideOriginalRender = false;
+    }
+
+    visibleLang = targetLang;
+    visibleSection = targetSection;
+    wrapCurrentContent(targetLang, targetSection);
+    syncChrome();
   }
+
+  render = function cachedRender() {
+    if (insideOriginalRender) return originalRender();
+    renderCurrentState();
+  };
+
+  // Cache the already-rendered initial section once. From then on each return
+  // moves one lightweight wrapper node instead of rebuilding all descendants.
+  wrapCurrentContent(visibleLang, visibleSection);
 
   document.addEventListener('click', (event) => {
     const menuButton = event.target.closest('.menu-item[data-section]');
     if (menuButton) {
+      const target = menuButton.dataset.section;
+      if (!validSections.has(target)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      navigateToSection(menuButton.dataset.section);
+      state.section = target;
+      render();
       return;
     }
 
     const shortcut = event.target.closest('[data-open]');
     if (shortcut) {
+      const target = shortcut.dataset.open;
+      if (!validSections.has(target)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      navigateToSection(shortcut.dataset.open);
+      state.section = target;
+      render();
+      return;
+    }
+
+    if (event.target.closest('#langSwitch')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      state.lang = state.lang === 'zh' ? 'en' : 'zh';
+      render();
     }
   }, true);
 
   document.addEventListener('dblclick', (event) => {
     const shortcut = event.target.closest('[data-open]');
     if (!shortcut) return;
+    const target = shortcut.dataset.open;
+    if (!validSections.has(target)) return;
 
     event.preventDefault();
     event.stopImmediatePropagation();
     restoreWindow();
-    navigateToSection(shortcut.dataset.open);
+    state.section = target;
+    render();
   }, true);
 })();

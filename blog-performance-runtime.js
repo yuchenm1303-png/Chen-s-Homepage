@@ -3,7 +3,7 @@
 
   const HOST_SELECTOR = '.article-glass-card, .article-control-bar, #articleToc';
   const ACTIVE_CLASS = 'app-shell-runtime-active';
-  const RELEASE_DELAY_MS = 2600;
+  const RELEASE_DELAY_MS = 2200;
   const pointerHosts = new Map();
   const touchHosts = new Map();
   const touchCounts = new WeakMap();
@@ -59,9 +59,9 @@
   const scheduleSweep = () => {
     if (sweepHandle) return;
     if ('requestIdleCallback' in window) {
-      sweepHandle = requestIdleCallback(sweepIdleCanvases, { timeout: 700 });
+      sweepHandle = requestIdleCallback(sweepIdleCanvases, { timeout: 500 });
     } else {
-      sweepHandle = setTimeout(sweepIdleCanvases, 360);
+      sweepHandle = setTimeout(sweepIdleCanvases, 220);
     }
   };
 
@@ -113,18 +113,28 @@
   addEventListener('touchend', finishTouches, { capture: true, passive: true });
   addEventListener('touchcancel', finishTouches, { capture: true, passive: true });
 
-  const installObserver = () => {
-    const reader = document.querySelector('.article-reader');
-    if (!reader) return false;
-    const observer = new MutationObserver(scheduleSweep);
-    observer.observe(reader, { childList: true, subtree: true });
+  const install = (reader) => {
+    if (!reader || reader.__performanceRuntimeInstalled) return Boolean(reader);
+    reader.__performanceRuntimeInstalled = true;
+
+    // The old runtime watched the entire reader subtree. WebGL canvases, press
+    // canvases and article segmentation all generated mutation traffic even
+    // though the cleanup only needs to run after real lifecycle changes.
+    // Explicit reader events keep the same cleanup behaviour without a broad
+    // MutationObserver on every DOM insertion/removal.
+    reader.addEventListener('blog:glass-hosts-changed', scheduleSweep);
+    reader.addEventListener('blog:reader-opened', scheduleSweep);
+    reader.addEventListener('blog:reader-closed', scheduleSweep);
+    reader.addEventListener('blog:article-populated', scheduleSweep);
     scheduleSweep();
     return true;
   };
 
-  if (!installObserver()) {
+  const reader = document.querySelector('.article-reader');
+  if (!install(reader)) {
     const observer = new MutationObserver(() => {
-      if (!installObserver()) return;
+      const nextReader = document.querySelector('.article-reader');
+      if (!install(nextReader)) return;
       observer.disconnect();
     });
     observer.observe(document.body, { childList: true, subtree: true });

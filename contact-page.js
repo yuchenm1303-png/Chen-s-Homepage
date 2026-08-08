@@ -31,7 +31,7 @@
       label: 'QQ',
       value: '552078638',
       copyValue: '552078638',
-      href: 'tencent://message/?uin=552078638&Site=Chen%27s%20Homepage&Menu=yes',
+      href: 'tencent://message/?uin=552078638&Site=Smirel%27s%20Homepage&Menu=yes',
       zhAction: '打开QQ',
       enAction: 'Open QQ'
     }

@@ -3,29 +3,12 @@
 .project-colour-mint { color: #168b6d; }
 .project-colour-blue { color: #386db8; }
 
+/* Keep one scroll owner: the main content pane. Project list/detail should flow
+   naturally instead of creating a second right-side scrollbar. */
 .project-browser,
 .project-inspector {
-  max-height: 338px;
-  overflow: auto;
-  scrollbar-color: var(--window-dark) var(--window-face);
-}
-
-.project-browser::-webkit-scrollbar,
-.project-inspector::-webkit-scrollbar {
-  width: 13px;
-}
-
-.project-browser::-webkit-scrollbar-track,
-.project-inspector::-webkit-scrollbar-track {
-  background: var(--window-face);
-  border-left: 1px solid var(--window-dark);
-}
-
-.project-browser::-webkit-scrollbar-thumb,
-.project-inspector::-webkit-scrollbar-thumb {
-  border: 2px solid;
-  border-color: var(--window-light) var(--window-dark) var(--window-dark) var(--window-light);
-  background: var(--window-face);
+  max-height: none;
+  overflow: visible;
 }
 
 .project-detail-list {
@@ -84,12 +67,4 @@
 .project-fact strong {
   white-space: normal;
   line-height: 1.35;
-}
-
-@media (max-width: 760px) {
-  .project-browser,
-  .project-inspector {
-    max-height: none;
-    overflow: visible;
-  }
 }

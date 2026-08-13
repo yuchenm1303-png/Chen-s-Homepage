@@ -1,9 +1,9 @@
 <section class="studio-section studio-intro studio-reveal" aria-labelledby="studioNarrativeTitle">
   <p class="studio-kicker">LISTING STUDIO · MAKRO AUTOMATION</p>
   <div class="studio-intro-grid">
-    <h2 id="studioNarrativeTitle">把重复上架，变成一条<br />可检查的工作流。</h2>
+    <h2 id="studioNarrativeTitle">从商品链接开始，准备<br />Makro Listing 草稿。</h2>
     <div class="studio-intro-copy">
-      <p>从供应商链接开始。先拿到证据，再生成计划，最后进入真实浏览器。</p>
+      <p>先采集商品资料，再整理字段；确认后进入浏览器填写。</p>
       <div class="studio-inline-meta" aria-label="产品模式">
         <span>Single</span><i></i><span>Batch</span><i></i><span>Stable</span>
       </div>
@@ -14,8 +14,8 @@
 <section class="studio-section feature-chapter studio-reveal" aria-labelledby="captureTitle">
   <div class="feature-copy">
     <span class="feature-sequence">01 / SOURCE CAPTURE</span>
-    <h2 id="captureTitle">先拿到证据。</h2>
-    <p>页面文本、参数、截图和商品图片，统一进入同一份 source bundle。后面的判断只基于已经采集到的事实。</p>
+    <h2 id="captureTitle">采集商品资料</h2>
+    <p>读取页面文字、参数、截图和商品图片，保存为 source bundle。后续字段判断只使用这些已采集内容。</p>
     <div class="feature-notes" aria-label="采集内容">
       <span>TEXT</span><span>SPECS</span><span>SCREENSHOT</span><span>IMAGES</span>
     </div>
@@ -41,15 +41,15 @@
         <div class="evidence-row"><span>Product photos</span><strong>12</strong></div>
       </div>
     </div>
-    <div class="capture-caption"><span>Source bundle</span><strong>Evidence before inference</strong></div>
+    <div class="capture-caption"><span>Source bundle</span><strong>Collected product data</strong></div>
   </div>
 </section>
 
 <section class="studio-section feature-chapter feature-chapter-reverse studio-reveal" aria-labelledby="planTitle">
   <div class="feature-copy">
     <span class="feature-sequence">02 / LISTING PLAN</span>
-    <h2 id="planTitle">再决定，哪些字段可以写。</h2>
-    <p>READY 直接进入计划。MISSING、CONFLICT 和 BLOCKED 留在明面上，不把不确定内容伪装成答案。</p>
+    <h2 id="planTitle">整理可写字段</h2>
+    <p>READY 可以进入 Fill Plan；MISSING、CONFLICT 和 BLOCKED 保留原状态，缺什么就直接显示什么。</p>
     <div class="feature-notes" aria-label="字段状态">
       <span>READY</span><span>MISSING</span><span>CONFLICT</span><span>BLOCKED</span>
     </div>
@@ -72,16 +72,16 @@
       <div><i></i></div>
       <strong>READ-ONLY</strong>
     </div>
-    <p class="plan-caption">Nothing is written to Step 3 while the plan is being prepared.</p>
+    <p class="plan-caption">Step 3 stays read-only while the plan is prepared.</p>
   </div>
 </section>
 
 <section class="studio-section feature-chapter studio-reveal" aria-labelledby="executeTitle">
   <div class="feature-copy">
-    <span class="feature-sequence">03 / CONTROLLED EXECUTION</span>
-    <h2 id="executeTitle">最后，才进入真实浏览器。</h2>
-    <p>填写字段、上传 Product Photos、Save，再 reopen 验证。真正的执行入口和准备阶段始终分开。</p>
-    <div class="feature-callout">Send to QC <span>永远由你决定</span></div>
+    <span class="feature-sequence">03 / EXECUTION</span>
+    <h2 id="executeTitle">确认后再写入</h2>
+    <p>执行时填写字段、上传 Product Photos，Save 后 reopen 检查保存结果。</p>
+    <div class="feature-callout">Send to QC <span>只手动操作</span></div>
   </div>
 
   <div class="feature-stage execute-stage cards" aria-hidden="true">
@@ -95,13 +95,13 @@
       <div class="execute-progress">
         <div class="execute-step done"><span>01</span><p><strong>Fill fields</strong><small>Step 3</small></p><i>✓</i></div>
         <div class="execute-step done"><span>02</span><p><strong>Product photos</strong><small>Upload</small></p><i>✓</i></div>
-        <div class="execute-step active"><span>03</span><p><strong>Save & reopen</strong><small>Persistence check</small></p><i>●</i></div>
+        <div class="execute-step active"><span>03</span><p><strong>Save & reopen</strong><small>Check saved data</small></p><i>●</i></div>
         <div class="execute-step manual"><span>04</span><p><strong>Send to QC</strong><small>Manual only</small></p><i>⌁</i></div>
       </div>
       <div class="execute-summary">
         <p class="visual-label">EXECUTION RESULT</p>
-        <strong>Draft verified</strong>
-        <span>Fields and images persisted after reopen.</span>
+        <strong>Saved draft</strong>
+        <span>Fields and images found after reopen.</span>
       </div>
     </div>
   </div>
@@ -110,8 +110,8 @@
 <section class="studio-section batch-section studio-reveal" aria-labelledby="batchTitle">
   <div class="batch-copy">
     <span class="feature-sequence">SINGLE / BATCH</span>
-    <h2 id="batchTitle">一个登录会话，多个独立任务。</h2>
-    <p>Single 适合逐条确认；Batch 让多个商品共享同一个 Makro 会话，但每个任务仍保留自己的状态和受控标签页。</p>
+    <h2 id="batchTitle">一个 Makro 登录，多个商品任务</h2>
+    <p>Single 逐个处理；Batch 共用 Makro 登录状态，但每个商品仍使用自己的任务状态和标签页。</p>
   </div>
   <div class="batch-stage cards" aria-hidden="true">
     <div class="batch-session"><span class="session-pulse"></span><strong>Makro Browser</strong><small>1 persistent session</small></div>
@@ -125,24 +125,24 @@
 
 <section class="studio-section boundary-section studio-reveal" aria-labelledby="boundaryTitle">
   <div class="boundary-heading">
-    <span class="feature-sequence">CONTROLLED BY DESIGN</span>
-    <h2 id="boundaryTitle">自动化更快，边界更清楚。</h2>
+    <span class="feature-sequence">AUTOMATION LIMITS</span>
+    <h2 id="boundaryTitle">自动化做到哪里</h2>
   </div>
   <div class="boundary-grid">
     <article class="boundary-item">
-      <strong>ZERO WRITE</strong>
-      <h3>准备阶段不写入。</h3>
-      <p>采集、识别和 Fill Plan 都保持 read-only。</p>
+      <strong>PREPARE</strong>
+      <h3>准备时不写 Step 3</h3>
+      <p>采集、解析和 Fill Plan 都是只读。</p>
     </article>
     <article class="boundary-item">
-      <strong>EXPLICIT</strong>
-      <h3>真实执行单独触发。</h3>
-      <p>填写、上传和保存只从明确的执行入口开始。</p>
+      <strong>EXECUTE</strong>
+      <h3>填写需要明确执行</h3>
+      <p>只有从执行入口开始，才会填写、上传和保存。</p>
     </article>
     <article class="boundary-item">
       <strong>MANUAL QC</strong>
-      <h3>最终送审留给你。</h3>
-      <p>程序不会自动点击 Send to QC。</p>
+      <h3>Send to QC 不自动点击</h3>
+      <p>最终送审由你手动完成。</p>
     </article>
   </div>
 </section>
@@ -150,14 +150,14 @@
 <section class="studio-section distribution-section studio-reveal" aria-labelledby="distributionTitle">
   <div class="distribution-hero cards">
     <div class="distribution-main">
-      <span class="feature-sequence">SECURE DISTRIBUTION</span>
-      <h2 id="distributionTitle">正式版本，只走正式通道。</h2>
-      <p>网页下载、应用启动和 Stable 更新，共用同一套授权边界。</p>
+      <span class="feature-sequence">DOWNLOAD & ACCESS</span>
+      <h2 id="distributionTitle">下载和客户端共用账号权限</h2>
+      <p>同一个账号用于网页下载、客户端启动和 Stable 更新。</p>
     </div>
     <div class="distribution-rail">
-      <div><span>01</span><p><strong>Account + Device</strong><small>授权账户与当前 Windows 设备一起验证。</small></p></div>
-      <div><span>02</span><p><strong>Stable Channel</strong><small>客户端只读取正式发布的 stable manifest。</small></p></div>
-      <div><span>03</span><p><strong>Private Download</strong><small>短时下载地址 + 版本与文件完整性校验。</small></p></div>
+      <div><span>01</span><p><strong>Account + Device</strong><small>登录后检查账号权限和当前 Windows 设备。</small></p></div>
+      <div><span>02</span><p><strong>Stable Channel</strong><small>客户端只安装 Stable 正式版本。</small></p></div>
+      <div><span>03</span><p><strong>Private Download</strong><small>下载链接有时效，安装前会核对版本和文件校验值。</small></p></div>
     </div>
   </div>
 </section>

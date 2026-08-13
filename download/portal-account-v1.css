@@ -1,0 +1,121 @@
+.account-secondary-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.account-link-button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px;
+  background: rgba(255,255,255,.045);
+  color: rgba(255,255,255,.58);
+  font: inherit;
+  font-size: .66rem;
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease, transform .2s ease;
+}
+
+.account-link-button:hover {
+  color: rgba(255,255,255,.88);
+  border-color: rgba(255,255,255,.13);
+  background: rgba(255,255,255,.075);
+  transform: translateY(-1px);
+}
+
+.account-link-button:active {
+  transform: scale(.98);
+}
+
+.onboarding-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.onboarding-field {
+  display: grid;
+  gap: 7px;
+}
+
+.onboarding-field > span {
+  color: rgba(255,255,255,.52);
+  font-size: .66rem;
+}
+
+.onboarding-field input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 9px;
+  outline: none;
+  background: rgba(6,15,25,.22);
+  color: rgba(255,255,255,.90);
+  font: inherit;
+  font-size: .76rem;
+  transition: border-color .2s ease, background-color .2s ease;
+}
+
+.onboarding-field input:focus {
+  border-color: rgba(139,222,238,.42);
+  background: rgba(6,15,25,.30);
+}
+
+.onboarding-submit {
+  min-height: 43px;
+  margin-top: 2px;
+  border: 1px solid rgba(166,238,224,.15);
+  border-radius: 9px;
+  background: rgba(128,221,205,.13);
+  color: rgba(235,255,250,.92);
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 600;
+  transition: transform .2s ease, background-color .2s ease;
+}
+
+.onboarding-submit:hover {
+  background: rgba(128,221,205,.19);
+  transform: translateY(-1px);
+}
+
+.onboarding-submit:active {
+  transform: scale(.985);
+}
+
+.onboarding-submit:disabled {
+  cursor: default;
+  opacity: .55;
+  transform: none;
+}
+
+.onboarding-status {
+  min-height: 20px;
+  margin: 2px 0 0;
+  color: rgba(255,255,255,.48);
+  font-size: .67rem;
+  line-height: 1.55;
+}
+
+.onboarding-status[data-state="ok"] { color: rgba(176,244,217,.82); }
+.onboarding-status[data-state="warn"] { color: rgba(255,218,162,.82); }
+.onboarding-status[data-state="error"] { color: rgba(255,184,184,.84); }
+
+.onboarding-policy {
+  margin: 2px 0 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 9px;
+  background: rgba(0,0,0,.08);
+  color: rgba(255,255,255,.40);
+  font-size: .63rem;
+  line-height: 1.65;
+}
+
+@media (max-width: 650px) {
+  .account-secondary-actions {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,354 @@
+/* Listing Studio product depth layer.
+   Adds information density without returning to a uniform card wall. */
+
+.depth-section {
+  position: relative;
+}
+
+.depth-heading {
+  display: grid;
+  grid-template-columns: minmax(0, .72fr) minmax(320px, 1.28fr);
+  align-items: end;
+  gap: clamp(36px, 7vw, 104px);
+  margin-bottom: clamp(30px, 4vw, 54px);
+}
+
+.depth-heading h2 {
+  margin-top: 15px;
+  max-width: 720px;
+  font-size: clamp(1.9rem, 3vw, 3.35rem);
+  font-weight: 610;
+  line-height: 1.06;
+  letter-spacing: -.038em;
+  text-wrap: balance;
+}
+
+.depth-heading > p {
+  max-width: 570px;
+  justify-self: end;
+  color: rgba(255,255,255,.57);
+  font-size: clamp(.76rem, .92vw, .9rem);
+  line-height: 1.82;
+}
+
+/* Field state guide — one continuous information surface. */
+.state-guide {
+  overflow: hidden;
+  border-top: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.state-guide-row {
+  display: grid;
+  grid-template-columns: minmax(130px, .48fr) minmax(220px, .9fr) minmax(260px, 1.35fr) minmax(180px, .8fr);
+  align-items: center;
+  gap: 24px;
+  min-height: 96px;
+  padding: 20px 4px;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+  transition: transform .26s cubic-bezier(.22,1,.36,1), background-color .26s ease;
+}
+
+.state-guide-row:last-child { border-bottom: 0; }
+
+.state-guide-row > strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255,255,255,.88);
+  font-size: .72rem;
+  letter-spacing: .08em;
+}
+
+.state-guide-row > strong::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(206,240,255,.7);
+  box-shadow: 0 0 14px rgba(206,240,255,.28);
+}
+
+.state-guide-row[data-state="ready"] > strong::before { background: rgba(148,255,225,.9); box-shadow: 0 0 14px rgba(148,255,225,.38); }
+.state-guide-row[data-state="missing"] > strong::before { background: rgba(255,224,164,.86); box-shadow: 0 0 14px rgba(255,224,164,.28); }
+.state-guide-row[data-state="conflict"] > strong::before { background: rgba(255,188,216,.86); box-shadow: 0 0 14px rgba(255,188,216,.28); }
+.state-guide-row[data-state="blocked"] > strong::before { background: rgba(199,192,255,.84); box-shadow: 0 0 14px rgba(199,192,255,.28); }
+
+.state-guide-row h3 {
+  margin: 0;
+  color: rgba(255,255,255,.82);
+  font-size: .95rem;
+  font-weight: 560;
+}
+
+.state-guide-row p,
+.state-guide-row small {
+  margin: 0;
+  color: rgba(255,255,255,.46);
+  font-size: .68rem;
+  line-height: 1.65;
+}
+
+.state-guide-row small {
+  justify-self: end;
+  color: rgba(255,255,255,.34);
+  text-align: right;
+  letter-spacing: .04em;
+}
+
+/* Capabilities: two editorial columns, not cards. */
+.capability-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(34px, 6vw, 88px);
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.capability-line {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 18px;
+  min-height: 122px;
+  padding: 26px 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  transition: transform .26s cubic-bezier(.22,1,.36,1), opacity .26s ease;
+}
+
+.capability-line > span {
+  color: rgba(255,255,255,.28);
+  font-size: .58rem;
+  font-weight: 680;
+  letter-spacing: .1em;
+}
+
+.capability-line h3 {
+  margin: 0;
+  color: rgba(255,255,255,.83);
+  font-size: 1rem;
+  font-weight: 570;
+}
+
+.capability-line p {
+  margin: 9px 0 0;
+  max-width: 560px;
+  color: rgba(255,255,255,.47);
+  font-size: .69rem;
+  line-height: 1.7;
+}
+
+/* Daily workflow: compact but informative timeline. */
+.daily-rail {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  border-top: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.daily-rail::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 51px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(180,237,255,.05), rgba(180,237,255,.3), rgba(216,191,255,.25), rgba(180,237,255,.05));
+  pointer-events: none;
+}
+
+.daily-step {
+  position: relative;
+  z-index: 1;
+  min-height: 208px;
+  padding: 25px 24px 25px 0;
+  transition: transform .26s cubic-bezier(.22,1,.36,1), opacity .26s ease;
+}
+
+.daily-step + .daily-step { padding-left: 24px; }
+
+.daily-step > span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 28px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 50%;
+  background: rgba(80,109,147,.34);
+  color: rgba(255,255,255,.52);
+  font-size: .55rem;
+  font-weight: 700;
+}
+
+.daily-step h3 {
+  margin: 0;
+  color: rgba(255,255,255,.84);
+  font-size: .9rem;
+  font-weight: 570;
+}
+
+.daily-step p {
+  margin: 10px 0 0;
+  color: rgba(255,255,255,.44);
+  font-size: .65rem;
+  line-height: 1.68;
+}
+
+/* FAQ uses native details so it remains keyboard/touch friendly. */
+.faq-list {
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.faq-item {
+  border-bottom: 1px solid rgba(255,255,255,.065);
+}
+
+.faq-item summary {
+  position: relative;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 18px;
+  min-height: 86px;
+  list-style: none;
+  cursor: pointer;
+  color: rgba(255,255,255,.82);
+  transition: color .22s ease, transform .22s cubic-bezier(.22,1,.36,1);
+}
+
+.faq-item summary::-webkit-details-marker { display: none; }
+
+.faq-index {
+  color: rgba(255,255,255,.28);
+  font-size: .57rem;
+  font-weight: 680;
+  letter-spacing: .08em;
+}
+
+.faq-item summary strong {
+  font-size: .91rem;
+  font-weight: 560;
+}
+
+.faq-plus {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  justify-self: end;
+}
+
+.faq-plus::before,
+.faq-plus::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 1px;
+  background: rgba(255,255,255,.46);
+  transform: translate(-50%,-50%);
+  transition: transform .25s cubic-bezier(.22,1,.36,1), opacity .25s ease;
+}
+
+.faq-plus::after { transform: translate(-50%,-50%) rotate(90deg); }
+.faq-item[open] .faq-plus::after { transform: translate(-50%,-50%) rotate(0deg); opacity: 0; }
+
+.faq-answer {
+  max-width: 820px;
+  padding: 0 46px 28px 72px;
+  color: rgba(255,255,255,.48);
+  font-size: .69rem;
+  line-height: 1.78;
+}
+
+.faq-answer strong { color: rgba(255,255,255,.72); font-weight: 560; }
+
+@media (hover:hover) and (pointer:fine) {
+  .state-guide-row:hover { transform: translate3d(6px,0,0); background: rgba(255,255,255,.018); }
+  .capability-line:hover { transform: translate3d(5px,0,0); }
+  .daily-step:hover { transform: translate3d(0,-4px,0); }
+  .faq-item summary:hover { transform: translate3d(5px,0,0); color: #fff; }
+}
+
+/* Staged re-entry motion driven by the existing studio reveal observer. */
+html.studio-motion-ready .depth-section .depth-heading > *,
+html.studio-motion-ready .depth-section .state-guide-row,
+html.studio-motion-ready .depth-section .capability-line,
+html.studio-motion-ready .depth-section .daily-step,
+html.studio-motion-ready .depth-section .faq-item {
+  opacity: 0;
+  transform: translate3d(0,18px,0);
+  transition: opacity .72s cubic-bezier(.16,1,.3,1), transform .72s cubic-bezier(.16,1,.3,1);
+}
+
+html.studio-motion-ready .depth-section.is-visible .depth-heading > *,
+html.studio-motion-ready .depth-section.is-visible .state-guide-row,
+html.studio-motion-ready .depth-section.is-visible .capability-line,
+html.studio-motion-ready .depth-section.is-visible .daily-step,
+html.studio-motion-ready .depth-section.is-visible .faq-item {
+  opacity: 1;
+  transform: translate3d(0,0,0);
+}
+
+.depth-section.is-visible .depth-heading > :nth-child(2) { transition-delay: .10s; }
+.depth-section.is-visible .state-guide-row:nth-child(1),
+.depth-section.is-visible .capability-line:nth-child(1),
+.depth-section.is-visible .daily-step:nth-child(1),
+.depth-section.is-visible .faq-item:nth-child(1) { transition-delay: .08s; }
+.depth-section.is-visible .state-guide-row:nth-child(2),
+.depth-section.is-visible .capability-line:nth-child(2),
+.depth-section.is-visible .daily-step:nth-child(2),
+.depth-section.is-visible .faq-item:nth-child(2) { transition-delay: .13s; }
+.depth-section.is-visible .state-guide-row:nth-child(3),
+.depth-section.is-visible .capability-line:nth-child(3),
+.depth-section.is-visible .daily-step:nth-child(3),
+.depth-section.is-visible .faq-item:nth-child(3) { transition-delay: .18s; }
+.depth-section.is-visible .state-guide-row:nth-child(4),
+.depth-section.is-visible .capability-line:nth-child(4),
+.depth-section.is-visible .daily-step:nth-child(4),
+.depth-section.is-visible .faq-item:nth-child(4) { transition-delay: .23s; }
+.depth-section.is-visible .capability-line:nth-child(5),
+.depth-section.is-visible .daily-step:nth-child(5),
+.depth-section.is-visible .faq-item:nth-child(5) { transition-delay: .28s; }
+.depth-section.is-visible .capability-line:nth-child(6),
+.depth-section.is-visible .daily-step:nth-child(6),
+.depth-section.is-visible .faq-item:nth-child(6) { transition-delay: .33s; }
+
+@media (max-width: 1050px) {
+  .state-guide-row {
+    grid-template-columns: minmax(110px,.45fr) minmax(180px,.8fr) minmax(220px,1.25fr);
+  }
+  .state-guide-row small { display: none; }
+  .daily-rail { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .daily-rail::before { display: none; }
+  .daily-step { min-height: 170px; border-bottom: 1px solid rgba(255,255,255,.05); }
+}
+
+@media (max-width: 760px) {
+  .depth-heading { grid-template-columns: 1fr; gap: 18px; }
+  .depth-heading > p { justify-self: start; }
+  .state-guide-row { grid-template-columns: 1fr; gap: 8px; padding: 22px 0; }
+  .capability-board { grid-template-columns: 1fr; }
+  .daily-rail { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .faq-item summary { grid-template-columns: 38px minmax(0,1fr) 28px; }
+  .faq-answer { padding-left: 56px; }
+}
+
+@media (max-width: 520px) {
+  .daily-rail { grid-template-columns: 1fr; }
+  .daily-step, .daily-step + .daily-step { padding: 22px 0; min-height: 0; }
+  .daily-step > span { margin-bottom: 16px; }
+  .faq-answer { padding: 0 0 24px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.studio-motion-ready .depth-section .depth-heading > *,
+  html.studio-motion-ready .depth-section .state-guide-row,
+  html.studio-motion-ready .depth-section .capability-line,
+  html.studio-motion-ready .depth-section .daily-step,
+  html.studio-motion-ready .depth-section .faq-item {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

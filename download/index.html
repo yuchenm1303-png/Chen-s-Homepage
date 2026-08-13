@@ -38,9 +38,7 @@
     <section class="dashboard">
       <article class="release-card cards fade">
         <div class="release-head">
-          <div>
-            <p class="kicker">LATEST RELEASE</p>
-          </div>
+          <div><p class="kicker">LATEST RELEASE</p></div>
           <span class="release-badge">WINDOWS · X64</span>
         </div>
 
@@ -49,40 +47,23 @@
           <span id="publishedAt">2026.08.13 发布</span>
         </div>
 
-        <p class="release-summary">
-          当前稳定构建。用于 Makro 单链接与批量商品上架工作流，下载入口始终指向最新正式版本。
-        </p>
+        <p class="release-summary">当前稳定构建。用于 Makro 单链接与批量商品上架工作流，下载入口始终指向最新正式版本。</p>
 
         <div class="release-meta">
-          <div class="meta-item">
-            <span>PLATFORM</span>
-            <strong id="platformText">Windows 10 / 11 · x64</strong>
-          </div>
-          <div class="meta-item">
-            <span>PACKAGE</span>
-            <strong id="fileSizeText">待发布</strong>
-          </div>
-          <div class="meta-item">
-            <span>ACCESS</span>
-            <strong id="accountStateText">未登录</strong>
-          </div>
+          <div class="meta-item"><span>PLATFORM</span><strong id="platformText">Windows 10 / 11 · x64</strong></div>
+          <div class="meta-item"><span>PACKAGE</span><strong id="fileSizeText">待发布</strong></div>
+          <div class="meta-item"><span>ACCESS</span><strong id="accountStateText">未登录</strong></div>
         </div>
 
         <button class="download-button cards" id="downloadButton" type="button" disabled>
-          <span class="download-copy">
-            <strong>下载最新版</strong>
-            <small id="downloadButtonHint">登录后解锁</small>
-          </span>
+          <span class="download-copy"><strong>下载最新版</strong><small id="downloadButtonHint">登录后解锁</small></span>
           <span class="download-arrow">⇩</span>
         </button>
       </article>
 
       <aside class="account-card cards fade">
         <div class="account-head">
-          <div>
-            <p class="kicker">ACCOUNT ACCESS</p>
-            <h2>用户登录</h2>
-          </div>
+          <div><p class="kicker">ACCOUNT ACCESS</p><h2>用户登录</h2></div>
           <span class="secure-pill">SECURE</span>
         </div>
 
@@ -90,14 +71,8 @@
 
         <div id="loggedOutState">
           <form id="loginForm" class="login-form" autocomplete="on">
-            <label>
-              <span>邮箱</span>
-              <input id="emailInput" type="email" autocomplete="email" placeholder="name@example.com" required />
-            </label>
-            <label>
-              <span>密码</span>
-              <input id="passwordInput" type="password" autocomplete="current-password" placeholder="••••••••" required />
-            </label>
+            <label><span>邮箱</span><input id="emailInput" type="email" autocomplete="email" placeholder="name@example.com" required /></label>
+            <label><span>密码</span><input id="passwordInput" type="password" autocomplete="current-password" placeholder="••••••••" required /></label>
             <button class="login-button cards" type="submit">登录</button>
           </form>
           <p class="form-note" id="loginMessage">登录后即可下载最新版安装包。</p>
@@ -106,45 +81,22 @@
         <div id="loggedInState" class="signed-in" hidden>
           <div class="signed-in-state">
             <div class="account-avatar">✓</div>
-            <div>
-              <p class="kicker">SIGNED IN</p>
-              <p class="account-email" id="accountEmail">—</p>
-            </div>
+            <div><p class="kicker">SIGNED IN</p><p class="account-email" id="accountEmail">—</p></div>
           </div>
           <button class="logout-button" id="logoutButton" type="button">退出登录</button>
         </div>
 
-        <div class="account-footer">
-          <span>Private distribution</span>
-          <span>smirel.com</span>
-        </div>
+        <div class="account-footer"><span>Private distribution</span><span>smirel.com</span></div>
       </aside>
     </section>
 
     <section class="utility-grid fade">
-      <button class="utility-card cards" id="notesAction" type="button">
-        <span class="utility-icon">☷</span>
-        <h3>更新日志</h3>
-        <p>查看当前正式版本的主要变化。</p>
-      </button>
-
-      <button class="utility-card cards" id="systemAction" type="button">
-        <span class="utility-icon">▣</span>
-        <h3>运行环境</h3>
-        <p>Windows、Edge 与系统架构要求。</p>
-      </button>
-
-      <button class="utility-card cards" id="supportAction" type="button">
-        <span class="utility-icon">?</span>
-        <h3>安装帮助</h3>
-        <p>安装、登录与启动问题入口。</p>
-      </button>
+      <button class="utility-card cards" id="notesAction" type="button"><span class="utility-icon">☷</span><h3>更新日志</h3><p>查看当前正式版本的主要变化。</p></button>
+      <button class="utility-card cards" id="systemAction" type="button"><span class="utility-icon">▣</span><h3>运行环境</h3><p>Windows、Edge 与系统架构要求。</p></button>
+      <button class="utility-card cards" id="supportAction" type="button"><span class="utility-icon">?</span><h3>安装帮助</h3><p>安装、登录与启动问题入口。</p></button>
     </section>
 
-    <footer class="footer fade">
-      <span>© 2026 Listing Studio</span>
-      <span>Secure software distribution portal</span>
-    </footer>
+    <footer class="footer fade"><span>© 2026 Listing Studio</span><span>Secure software distribution portal</span></footer>
   </main>
 
   <div class="modal-layer" id="modalLayer" hidden>
@@ -158,8 +110,7 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
   <script src="./config-v3.js"></script>
-  <script type="module" src="./app-v3.js"></script>
+  <script type="module" src="./app-v4.js"></script>
 </body>
 </html>

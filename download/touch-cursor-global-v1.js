@@ -1,4 +1,6 @@
 (() => {
+  if (window.matchMedia?.("(pointer: fine)").matches) return;
+
   const dot = document.getElementById("cursorDot");
   const follow = document.getElementById("cursorFollow");
   if (!dot || !follow) return;

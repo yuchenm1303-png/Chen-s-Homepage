@@ -1,0 +1,7 @@
+html.session-boot #loggedOutState,
+html.session-boot #loggedInState,
+html.session-boot #accountStateText,
+html.session-boot #downloadButton {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

@@ -4,8 +4,13 @@
 
     const css = document.createElement('link');
     css.rel = 'stylesheet';
-    css.href = './portal-content-v3.css?v=20260813-1';
+    css.href = './portal-content-v3.css?v=20260813-2';
     document.head.appendChild(css);
+
+    const motionCss = document.createElement('link');
+    motionCss.rel = 'stylesheet';
+    motionCss.href = './portal-motion-v1.css?v=20260813-1';
+    document.head.appendChild(motionCss);
 
     const hero = document.querySelector('.portal-title-copy > p:last-child');
     if (hero) {
@@ -16,7 +21,7 @@
     if (!details) return;
 
     try {
-      const response = await fetch('./portal-content-v3.html?v=20260813-1', { cache: 'no-store' });
+      const response = await fetch('./portal-content-v3.html?v=20260813-2', { cache: 'no-store' });
       if (!response.ok) return;
 
       const holder = document.createElement('div');

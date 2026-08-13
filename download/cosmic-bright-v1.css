@@ -4,7 +4,7 @@
   z-index: -5;
   overflow: hidden;
   pointer-events: none;
-  background: #718fd0;
+  background: #52689f;
   transform: translateZ(0);
 }
 
@@ -20,36 +20,36 @@
   background:
     linear-gradient(
       180deg,
-      #a8d8ef 0%,
-      #91c7e3 25%,
-      #7eaed6 47%,
-      #8797d2 68%,
-      #aa8fc9 86%,
-      #7c82b8 100%
+      #78a9c8 0%,
+      #6f9abb 25%,
+      #637fae 47%,
+      #6b73a4 68%,
+      #866fa5 86%,
+      #59618c 100%
     );
 }
 
 .cosmos-glow {
   background:
-    radial-gradient(ellipse at 22% 18%, rgba(255,255,255,.33), transparent 42%),
-    radial-gradient(ellipse at 76% 38%, rgba(169,243,239,.22), transparent 37%),
-    radial-gradient(ellipse at 32% 85%, rgba(235,188,235,.18), transparent 44%);
+    radial-gradient(ellipse at 22% 18%, rgba(255,255,255,.22), transparent 42%),
+    radial-gradient(ellipse at 76% 38%, rgba(169,243,239,.16), transparent 37%),
+    radial-gradient(ellipse at 32% 85%, rgba(235,188,235,.14), transparent 44%);
 }
 
-.cosmos-nebula { opacity: .9; }
+.cosmos-nebula { opacity: .82; }
 .cosmos-nebula-cyan {
   background: radial-gradient(
     ellipse at 75% 47%,
-    rgba(99, 239, 233, .24) 0%,
-    rgba(96, 194, 216, .13) 34%,
+    rgba(79, 213, 214, .2) 0%,
+    rgba(77, 157, 190, .11) 34%,
     transparent 64%
   );
 }
 .cosmos-nebula-violet {
   background: radial-gradient(
     ellipse at 24% 88%,
-    rgba(217, 147, 226, .24) 0%,
-    rgba(133, 108, 195, .13) 38%,
+    rgba(187, 116, 201, .2) 0%,
+    rgba(110, 88, 170, .12) 38%,
     transparent 68%
   );
 }
@@ -246,9 +246,9 @@
 
 .cosmos-vignette {
   box-shadow:
-    inset 0 0 180px rgba(68,72,120,.2),
-    inset 0 -110px 180px rgba(77,74,128,.16),
-    inset 0 100px 170px rgba(255,255,255,.06);
+    inset 0 0 210px rgba(45,49,88,.28),
+    inset 0 -130px 200px rgba(48,46,84,.24),
+    inset 0 90px 160px rgba(255,255,255,.035);
 }
 
 @media (max-width:760px) {

@@ -131,17 +131,6 @@ a { text-decoration: none; }
   padding: 30px;
   overflow: hidden;
 }
-.release-card::after {
-  content: "";
-  position: absolute;
-  right: -70px;
-  bottom: -110px;
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.018);
-}
 .release-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; position: relative; z-index: 1; }
 .kicker { color: rgba(255,255,255,.46); font-size: .68rem; letter-spacing: .14em; }
 .release-badge { padding: 7px 10px; border-radius: 999px; background: rgba(255,255,255,.08); color: rgba(255,255,255,.68); font-size: .68rem; }

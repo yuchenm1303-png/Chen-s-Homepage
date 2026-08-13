@@ -1,0 +1,225 @@
+.release-state-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.release-state-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.095);
+  border: 1px solid rgba(255,255,255,.055);
+  color: rgba(255,255,255,.58);
+  font-size: .63rem;
+}
+
+.release-state-item i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.52);
+}
+
+.release-state-item.live i {
+  background: #8df0ca;
+  box-shadow: 0 0 10px rgba(141,240,202,.5);
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 58px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  height: 32px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255,255,255,.42);
+  font-size: .62rem;
+  cursor: pointer;
+  transition: background-color .2s ease, color .2s ease;
+}
+
+.password-toggle:hover {
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.86);
+}
+
+.login-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+}
+
+.login-button::after {
+  content: "→";
+  color: rgba(255,255,255,.48);
+  transition: transform .2s ease, color .2s ease;
+}
+
+.login-button:hover::after {
+  transform: translateX(3px);
+  color: rgba(255,255,255,.9);
+}
+
+.account-status-panel {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 7px;
+  background: rgba(0,0,0,.10);
+  border: 1px solid rgba(255,255,255,.05);
+}
+
+.account-status-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: .67rem;
+}
+
+.account-status-line + .account-status-line {
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255,255,255,.05);
+}
+
+.account-status-line span {
+  color: rgba(255,255,255,.4);
+}
+
+.account-status-line strong {
+  color: rgba(255,255,255,.74);
+  font-weight: 560;
+}
+
+.utility-overline {
+  display: block;
+  margin-top: 13px;
+  color: rgba(255,255,255,.34);
+  font-size: .57rem;
+  letter-spacing: .12em;
+}
+
+.utility-card h3 {
+  margin-top: 5px;
+}
+
+.modal-card {
+  width: min(590px, calc(100vw - 34px));
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 24px 80px rgba(35,51,82,.18);
+}
+
+.modal-summary {
+  margin-bottom: 16px;
+  color: rgba(255,255,255,.54);
+  font-size: .75rem;
+  line-height: 1.7;
+}
+
+.modal-list li {
+  position: relative;
+  padding: 11px 0 11px 17px;
+}
+
+.modal-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(141,240,202,.8);
+  box-shadow: 0 0 8px rgba(141,240,202,.28);
+}
+
+.support-grid {
+  display: grid;
+  gap: 9px;
+}
+
+.support-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr);
+  gap: 11px;
+  padding: 12px;
+  border-radius: 7px;
+  background: rgba(0,0,0,.09);
+  border: 1px solid rgba(255,255,255,.05);
+}
+
+.support-index {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.48);
+  font-size: .62rem;
+}
+
+.support-item strong {
+  display: block;
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.support-item p {
+  margin-top: 4px;
+  color: rgba(255,255,255,.48);
+  font-size: .69rem;
+  line-height: 1.55;
+}
+
+.spec-row strong {
+  font-size: .78rem;
+  font-weight: 580;
+}
+
+.spec-note {
+  margin-top: 15px;
+  padding: 11px 12px;
+  border-radius: 7px;
+  background: rgba(255,255,255,.055);
+  color: rgba(255,255,255,.56);
+  font-size: .69rem;
+  line-height: 1.6;
+}
+
+.footer-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.footer-status i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.35);
+}
+
+@media (max-width: 650px) {
+  .release-state-row { gap: 6px; }
+  .release-state-item { min-height: 28px; padding: 0 8px; }
+  .modal-card { padding: 24px 22px 26px; }
+}

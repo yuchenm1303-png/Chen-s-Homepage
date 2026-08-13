@@ -1,0 +1,330 @@
+.topbar {
+  padding: 0 2px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.portal-nav {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.10);
+  border: 1px solid rgba(255,255,255,.07);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.portal-nav a {
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: rgba(255,255,255,.58);
+  font-size: .68rem;
+  transition: color .2s ease, background-color .2s ease, transform .2s ease;
+}
+
+.portal-nav a:hover {
+  color: rgba(255,255,255,.92);
+  background: rgba(255,255,255,.08);
+  transform: translateY(-1px);
+}
+
+.portal-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: end;
+}
+
+.portal-title-copy {
+  min-width: 0;
+}
+
+.portal-title-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 5px;
+}
+
+.title-chip {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.10);
+  border: 1px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,.62);
+  font-size: .66rem;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.title-chip.live::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #8df0ca;
+  box-shadow: 0 0 10px rgba(141,240,202,.54);
+  vertical-align: 1px;
+}
+
+.dashboard {
+  grid-template-columns: minmax(0, 1.62fr) minmax(330px, .78fr);
+}
+
+.release-card,
+.account-card {
+  min-height: 404px;
+}
+
+.release-card {
+  padding: 26px 28px 28px;
+}
+
+.release-product {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 23px;
+}
+
+.release-product-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255,255,255,.11);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: inset 0 1px rgba(255,255,255,.12);
+  font-size: .78rem;
+  font-weight: 760;
+  letter-spacing: .06em;
+}
+
+.release-product-copy {
+  min-width: 0;
+}
+
+.release-product-copy strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.release-product-copy span {
+  display: block;
+  margin-top: 3px;
+  color: rgba(255,255,255,.44);
+  font-size: .68rem;
+}
+
+.release-channel {
+  margin-left: auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.65);
+  font-size: .64rem;
+  letter-spacing: .04em;
+}
+
+.version-large {
+  display: flex;
+  align-items: flex-end;
+  gap: 15px;
+  margin-top: 4px;
+}
+
+.version-large strong {
+  font-size: clamp(3.25rem, 6.2vw, 5.35rem);
+}
+
+.version-large span {
+  margin: 0 0 7px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.12);
+  color: rgba(255,255,255,.55);
+  white-space: nowrap;
+}
+
+.release-summary {
+  margin-top: 20px;
+  max-width: 660px;
+}
+
+.release-meta {
+  margin-top: 19px;
+}
+
+.meta-item {
+  background: rgba(0,0,0,.10);
+  border: 1px solid rgba(255,255,255,.045);
+}
+
+.download-button {
+  margin-top: 15px;
+  min-height: 62px;
+  padding: 0 16px 0 18px;
+  background: rgba(255,255,255,.13);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.download-button:not(:disabled)::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: #8df0ca;
+  box-shadow: 0 0 12px rgba(141,240,202,.48);
+}
+
+.download-copy {
+  margin-right: auto;
+}
+
+.account-card {
+  display: flex;
+  flex-direction: column;
+  padding: 26px;
+}
+
+.account-intro {
+  margin-top: 13px;
+}
+
+.login-form {
+  margin-top: 20px;
+}
+
+.account-access-flow {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,.075);
+}
+
+.flow-label {
+  color: rgba(255,255,255,.38);
+  font-size: .62rem;
+  letter-spacing: .12em;
+}
+
+.flow-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.flow-step {
+  min-width: 0;
+  padding: 9px 9px 10px;
+  border-radius: 6px;
+  background: rgba(0,0,0,.10);
+  border: 1px solid rgba(255,255,255,.045);
+}
+
+.flow-step span {
+  display: block;
+  color: rgba(255,255,255,.32);
+  font-size: .56rem;
+  letter-spacing: .08em;
+}
+
+.flow-step strong {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255,255,255,.72);
+  font-size: .67rem;
+  font-weight: 580;
+}
+
+.account-footer {
+  margin-top: 14px;
+  padding-top: 13px;
+}
+
+.utility-grid {
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.utility-card {
+  position: relative;
+  min-height: 126px;
+  overflow: hidden;
+  padding: 20px 21px;
+}
+
+.utility-card::after {
+  content: "→";
+  position: absolute;
+  right: 18px;
+  top: 19px;
+  color: rgba(255,255,255,.34);
+  font-size: 1rem;
+  transition: transform .22s ease, color .22s ease;
+}
+
+.utility-card:hover::after {
+  transform: translateX(3px);
+  color: rgba(255,255,255,.75);
+}
+
+.utility-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.08);
+  font-size: .9rem;
+}
+
+.utility-card h3 {
+  margin-top: 13px;
+}
+
+.utility-card p {
+  max-width: 82%;
+}
+
+.footer {
+  margin-top: 14px;
+  padding: 0 2px;
+}
+
+@media (max-width: 980px) {
+  .portal-nav { display: none; }
+  .portal-title { grid-template-columns: 1fr; gap: 12px; }
+  .portal-title-meta { padding-bottom: 0; }
+  .dashboard { grid-template-columns: 1fr; }
+  .release-card, .account-card { min-height: auto; }
+  .account-access-flow { margin-top: 22px; }
+}
+
+@media (max-width: 650px) {
+  .topbar-right { gap: 10px; }
+  .portal-title-meta { flex-wrap: wrap; }
+  .release-card { padding: 21px; }
+  .release-product { align-items: flex-start; }
+  .release-channel { display: none; }
+  .version-large { display: block; }
+  .version-large span { display: inline-block; margin-top: 10px; }
+  .flow-steps { grid-template-columns: 1fr; }
+  .utility-card p { max-width: 90%; }
+}

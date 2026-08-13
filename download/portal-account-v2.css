@@ -34,6 +34,22 @@
   transform: scale(.985);
 }
 
+.password-field input {
+  background-color: #24384a !important;
+  box-shadow: inset 0 0 0 1000px #24384a !important;
+  -webkit-box-shadow: inset 0 0 0 1000px #24384a !important;
+  color: rgba(255,255,255,.94) !important;
+  -webkit-text-fill-color: rgba(255,255,255,.94) !important;
+  caret-color: rgba(255,255,255,.92) !important;
+}
+
+.password-field input:focus {
+  background-color: #203547 !important;
+  box-shadow: inset 0 0 0 1000px #203547 !important;
+  -webkit-box-shadow: inset 0 0 0 1000px #203547 !important;
+  border-color: rgba(151,220,238,.28) !important;
+}
+
 @media (max-width: 650px) {
   .signed-account-actions {
     grid-template-columns: 1fr;

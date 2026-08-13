@@ -8,6 +8,8 @@
   style.textContent = `
     .cursor-dot {
       position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
       width: 10px !important;
       height: 10px !important;
       margin: -5px 0 0 -5px !important;
@@ -25,6 +27,8 @@
 
     .cursor-follow {
       position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
       width: 18px !important;
       height: 18px !important;
       margin: 0 !important;
@@ -61,9 +65,12 @@
   let prev = null;
   let raf = 0;
 
+  const moveDot = (x, y) => {
+    dot.style.translate = `${x}px ${y}px`;
+  };
+
   const moveFollow = (x, y) => {
-    follow.style.left = `${x}px`;
-    follow.style.top = `${y}px`;
+    follow.style.translate = `${x}px ${y}px`;
   };
 
   const render = () => {
@@ -89,8 +96,7 @@
   };
 
   document.addEventListener("mousemove", (event) => {
-    dot.style.left = `${event.clientX}px`;
-    dot.style.top = `${event.clientY}px`;
+    moveDot(event.clientX, event.clientY);
     dot.classList.add("cursor-visible");
 
     if (curr === null) moveFollow(event.clientX - 8, event.clientY - 8);

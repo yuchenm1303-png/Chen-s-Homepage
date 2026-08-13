@@ -1,7 +1,7 @@
 window.DOWNLOAD_PORTAL_CONFIG = {
   brand: {
     name: "Listing Studio",
-    domain: "Distribution Center"
+    domain: "Downloads"
   },
   release: {
     version: "v0.1.2",
@@ -10,7 +10,7 @@ window.DOWNLOAD_PORTAL_CONFIG = {
     fileSize: "156 MB",
     downloadUrl: "",
     notes: [
-      "稳定性与上架流程优化。"
+      "修复上架流程和界面问题。"
     ]
   },
   releaseSource: {

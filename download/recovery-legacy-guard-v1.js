@@ -58,3 +58,25 @@
     applyBrandIcon();
   }
 })();
+
+// Registration flow v1: load after deferred/module scripts have attached their
+// legacy handlers, then replace only the registration entry with the staged
+// create -> verify email -> await approval experience.
+(() => {
+  const style = document.createElement("link");
+  style.rel = "stylesheet";
+  style.href = "./registration-flow-v1.css?v=20260813-1";
+  document.head.appendChild(style);
+
+  const boot = () => window.setTimeout(() => {
+    import("./registration-flow-v1.js?v=20260813-1").catch((error) => {
+      console.error("registration flow bootstrap failed", error);
+    });
+  }, 0);
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+})();

@@ -171,3 +171,37 @@
 .release-shell {
   animation: none !important;
 }
+
+/* Brighter star cores and wider soft bloom, preserving the existing palette and timing. */
+.small-star {
+  box-shadow:
+    0 0 10px currentColor,
+    0 0 24px color-mix(in srgb, currentColor 82%, transparent),
+    0 0 42px color-mix(in srgb, currentColor 48%, transparent),
+    0 0 68px color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.major-star,
+.hero-flare {
+  box-shadow:
+    0 0 10px rgba(var(--star-color), 1),
+    0 0 28px rgba(var(--star-color), .64),
+    0 0 54px rgba(var(--star-color), .34),
+    0 0 84px rgba(var(--star-color), .16);
+}
+
+.major-star::before,
+.major-star::after,
+.hero-flare::before,
+.hero-flare::after {
+  filter:
+    drop-shadow(0 0 4px rgba(var(--star-color), .82))
+    drop-shadow(0 0 12px rgba(var(--star-color), .38));
+}
+
+.hero-dot {
+  box-shadow:
+    0 0 12px currentColor,
+    0 0 28px rgba(255, 240, 208, .48),
+    0 0 46px rgba(205, 235, 242, .18);
+}

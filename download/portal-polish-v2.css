@@ -223,3 +223,185 @@
   .release-state-item { min-height: 28px; padding: 0 8px; }
   .modal-card { padding: 24px 22px 26px; }
 }
+
+/* Layout refinement v3 */
+:root {
+  --portal-shell-max: 1360px;
+  --portal-edge: clamp(24px, 4vw, 72px);
+}
+
+html { scroll-padding-top: 24px; }
+
+.release-shell {
+  width: min(var(--portal-shell-max), calc(100vw - (var(--portal-edge) * 2)));
+  min-height: 100svh;
+  padding: 28px 0 36px;
+  justify-content: flex-start;
+}
+
+.topbar {
+  height: 60px;
+  margin-bottom: 44px;
+  padding: 0 4px;
+}
+.brand { gap: 13px; }
+.brand-mark { width: 42px; height: 42px; }
+.brand-copy strong { font-size: 1.03rem; }
+.brand-copy small { margin-top: 2px; font-size: .67rem; letter-spacing: .15em; }
+.topbar-right { gap: 22px; }
+.portal-nav { padding: 5px; }
+.portal-nav a { padding: 8px 13px; font-size: .7rem; }
+.service-status { font-size: .76rem; }
+
+.portal-title {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 46px;
+  margin: 0 0 31px;
+  align-items: end;
+}
+.portal-title-copy { max-width: 840px; }
+.portal-title .eyebrow { font-size: .7rem; letter-spacing: .16em; }
+.portal-title h1 {
+  margin-top: 10px;
+  font-size: clamp(2.6rem, 4.2vw, 4.15rem);
+  line-height: 1.02;
+  letter-spacing: -.045em;
+}
+.portal-title p {
+  max-width: 760px;
+  margin-top: 14px;
+  font-size: .9rem;
+  line-height: 1.72;
+}
+.portal-title-meta { gap: 10px; padding-bottom: 8px; }
+.title-chip { padding: 8px 12px; font-size: .68rem; }
+
+.dashboard {
+  grid-template-columns: minmax(0, 1.68fr) minmax(390px, .82fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.release-card,
+.account-card {
+  min-height: 470px;
+  border: 1px solid rgba(255,255,255,.085);
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(34,50,82,.10), inset 0 1px rgba(255,255,255,.035);
+}
+
+.release-card { padding: 34px 36px 32px; }
+.release-product { gap: 15px; margin-bottom: 31px; }
+.release-product-icon { width: 52px; height: 52px; border-radius: 13px; }
+.release-product-copy strong { font-size: 1.04rem; }
+.release-product-copy span { margin-top: 4px; font-size: .7rem; }
+.release-channel,
+.release-badge { padding: 8px 11px; }
+.release-head { align-items: center; }
+.version-large { gap: 18px; margin-top: 11px; }
+.version-large strong { font-size: clamp(3.65rem, 5.8vw, 5.7rem); line-height: .92; }
+.version-large span { margin-bottom: 8px; padding: 7px 10px; }
+.release-summary { max-width: 720px; margin-top: 26px; font-size: .92rem; line-height: 1.82; }
+.release-state-row { gap: 9px; margin-top: 20px; }
+.release-state-item { min-height: 31px; padding: 0 11px; }
+.release-meta { gap: 12px; margin-top: 26px; }
+.meta-item { padding: 14px 15px; border-radius: 9px; }
+.meta-item span { font-size: .63rem; letter-spacing: .02em; }
+.meta-item strong { margin-top: 6px; font-size: .78rem; }
+.download-button { min-height: 68px; margin-top: 20px; padding: 0 18px 0 20px; border-radius: 11px; }
+.download-copy { gap: 3px; }
+.download-copy strong { font-size: 1rem; }
+.download-copy small { font-size: .69rem; }
+
+.account-card { padding: 34px 32px 30px; }
+.account-head h2 { margin-top: 7px; font-size: 1.58rem; line-height: 1.15; }
+.secure-pill { padding: 7px 10px; }
+.account-intro { margin-top: 17px; font-size: .83rem; line-height: 1.72; }
+.login-form { gap: 14px; margin-top: 25px; }
+.login-form label { gap: 7px; font-size: .7rem; }
+.login-form input { height: 48px; padding: 0 14px; border-radius: 10px; }
+.password-toggle { right: 7px; bottom: 8px; }
+.login-button { height: 48px; padding: 0 15px; border-radius: 10px; }
+.account-secondary-actions { gap: 10px; margin-top: 12px; }
+.account-link-button { min-height: 40px; border-radius: 9px; }
+.form-note { margin-top: 12px; font-size: .68rem; line-height: 1.65; }
+.signed-in { min-height: 230px; margin-top: 26px; }
+.account-status-panel { margin-top: 22px; padding: 15px; border-radius: 9px; }
+.account-access-flow { padding-top: 22px; }
+.flow-steps { gap: 9px; margin-top: 12px; }
+.flow-step { padding: 11px 10px 12px; border-radius: 8px; }
+.flow-step strong { margin-top: 5px; }
+.account-footer { margin-top: 18px; padding-top: 15px; }
+
+.utility-grid { gap: 18px; margin-top: 24px; }
+.utility-card {
+  min-height: 154px;
+  padding: 24px 25px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(34,50,82,.08), inset 0 1px rgba(255,255,255,.028);
+}
+.utility-card::after { right: 22px; top: 22px; }
+.utility-icon { width: 31px; height: 31px; border-radius: 9px; }
+.utility-overline { margin-top: 15px; }
+.utility-card h3 { margin-top: 6px; font-size: 1rem; }
+.utility-card p { max-width: 78%; margin-top: 7px; font-size: .73rem; line-height: 1.65; }
+.footer { margin-top: 24px; padding: 0 4px 8px; font-size: .67rem; }
+.modal-card { border-radius: 14px; }
+.onboarding-field input,
+.onboarding-submit { min-height: 46px; }
+
+@media (max-width: 1220px) {
+  :root { --portal-edge: 24px; }
+  .release-shell { width: calc(100vw - 48px); }
+  .dashboard { grid-template-columns: minmax(0, 1.48fr) minmax(350px, .92fr); gap: 18px; }
+  .release-card { padding: 30px 31px; }
+  .account-card { padding: 30px 28px 27px; }
+}
+
+@media (max-width: 980px) {
+  .release-shell { width: min(860px, calc(100vw - 40px)); padding-top: 22px; }
+  .topbar { margin-bottom: 34px; }
+  .portal-title { grid-template-columns: 1fr; gap: 15px; margin-bottom: 27px; }
+  .portal-title-copy { max-width: 760px; }
+  .portal-title-meta { padding-bottom: 0; }
+  .dashboard { grid-template-columns: 1fr; gap: 18px; }
+  .release-card,
+  .account-card { min-height: auto; padding: 30px; }
+  .account-access-flow { margin-top: 28px; }
+  .utility-grid { margin-top: 18px; }
+}
+
+@media (max-width: 820px) {
+  .release-shell { width: calc(100vw - 32px); }
+  .portal-title h1 { font-size: clamp(2.35rem, 8vw, 3.25rem); }
+  .utility-grid { grid-template-columns: 1fr; gap: 14px; }
+  .utility-card { min-height: 128px; }
+  .utility-card p { max-width: 90%; }
+}
+
+@media (max-width: 650px) {
+  :root { --portal-edge: 12px; }
+  .release-shell { width: calc(100vw - 24px); padding: 18px 0 26px; }
+  .topbar { height: auto; min-height: 52px; margin-bottom: 28px; }
+  .brand { gap: 10px; }
+  .brand-mark { width: 38px; height: 38px; }
+  .portal-title { gap: 12px; margin-bottom: 22px; }
+  .portal-title h1 { margin-top: 8px; font-size: 2.3rem; }
+  .portal-title p { margin-top: 11px; font-size: .82rem; line-height: 1.68; }
+  .dashboard { gap: 14px; }
+  .release-card,
+  .account-card { padding: 22px; border-radius: 12px; }
+  .release-product { gap: 12px; margin-bottom: 24px; }
+  .release-product-icon { width: 46px; height: 46px; }
+  .version-large strong { font-size: 3.2rem; }
+  .release-summary { margin-top: 21px; font-size: .86rem; }
+  .release-state-row { margin-top: 17px; }
+  .release-meta { margin-top: 20px; }
+  .download-button { min-height: 62px; margin-top: 16px; }
+  .account-intro { font-size: .8rem; }
+  .login-form { margin-top: 21px; }
+  .utility-grid { margin-top: 14px; }
+  .utility-card { min-height: 122px; padding: 21px 22px; border-radius: 11px; }
+  .footer { margin-top: 18px; }
+}

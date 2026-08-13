@@ -166,3 +166,8 @@
     letter-spacing: -.015em;
   }
 }
+
+/* Avoid painting the intentionally blurred intro frame on refresh. */
+.release-shell {
+  animation: none !important;
+}

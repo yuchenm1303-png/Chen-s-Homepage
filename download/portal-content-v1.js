@@ -12,6 +12,11 @@
     motionCss.href = './portal-motion-v1.css?v=20260813-1';
     document.head.appendChild(motionCss);
 
+    const refineCss = document.createElement('link');
+    refineCss.rel = 'stylesheet';
+    refineCss.href = './portal-refine-v1.css?v=20260813-1';
+    document.head.appendChild(refineCss);
+
     const hero = document.querySelector('.portal-title-copy > p:last-child');
     if (hero) {
       hero.textContent = '从供应商链接到 Makro 草稿。先准备，再执行；每一步都可检查。';
@@ -27,7 +32,10 @@
       const holder = document.createElement('div');
       holder.innerHTML = await response.text();
       const nodes = Array.from(holder.children);
-      nodes.forEach((node) => details.before(node));
+
+      const fragment = document.createDocumentFragment();
+      nodes.forEach((node) => fragment.appendChild(node));
+      details.parentNode.insertBefore(fragment, details.nextSibling);
 
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const sections = nodes.filter((node) => node.classList.contains('studio-reveal'));

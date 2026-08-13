@@ -47,11 +47,10 @@
 
       document.documentElement.classList.add('studio-motion-ready');
 
-      const observer = new IntersectionObserver((entries) => {
+      const revealObserver = new IntersectionObserver((entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
           entry.target.classList.add('is-visible');
-          observer.unobserve(entry.target);
         }
       }, {
         root: null,
@@ -59,7 +58,21 @@
         threshold: 0.08,
       });
 
-      sections.forEach((section) => observer.observe(section));
+      const resetObserver = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) continue;
+          entry.target.classList.remove('is-visible');
+        }
+      }, {
+        root: null,
+        rootMargin: '18% 0px 18% 0px',
+        threshold: 0,
+      });
+
+      sections.forEach((section) => {
+        revealObserver.observe(section);
+        resetObserver.observe(section);
+      });
     } catch (_) {}
   };
 

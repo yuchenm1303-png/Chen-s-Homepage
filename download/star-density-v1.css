@@ -1,0 +1,183 @@
+/* Listing Studio cosmic density pass.
+   Adds lightweight CSS-only star fields on top of the existing DOM stars. */
+
+.parallax-layer-far::before,
+.parallax-layer-far::after,
+.parallax-layer-near::before,
+.parallax-layer-near::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+/* Dense distant field: small, crisp, mostly ivory/cyan points. */
+.parallax-layer-far::before {
+  width: 1.6px;
+  height: 1.6px;
+  background: rgba(255,244,218,.92);
+  box-shadow:
+    4vw 9vh 0 rgba(255,244,218,.86),
+    8vw 29vh 0 rgba(205,235,242,.82),
+    13vw 17vh 0 rgba(241,211,225,.76),
+    16vw 48vh 0 rgba(255,244,218,.84),
+    20vw 66vh 0 rgba(205,235,242,.78),
+    24vw 11vh 0 rgba(255,244,218,.9),
+    27vw 39vh 0 rgba(241,211,225,.74),
+    30vw 82vh 0 rgba(205,235,242,.78),
+    34vw 25vh 0 rgba(255,244,218,.84),
+    38vw 54vh 0 rgba(205,235,242,.84),
+    41vw 7vh 0 rgba(241,211,225,.74),
+    45vw 72vh 0 rgba(255,244,218,.88),
+    48vw 32vh 0 rgba(205,235,242,.8),
+    51vw 91vh 0 rgba(255,244,218,.82),
+    55vw 15vh 0 rgba(241,211,225,.76),
+    58vw 61vh 0 rgba(205,235,242,.82),
+    62vw 41vh 0 rgba(255,244,218,.88),
+    65vw 77vh 0 rgba(241,211,225,.72),
+    69vw 21vh 0 rgba(205,235,242,.82),
+    72vw 55vh 0 rgba(255,244,218,.86),
+    75vw 6vh 0 rgba(241,211,225,.76),
+    79vw 86vh 0 rgba(205,235,242,.8),
+    82vw 36vh 0 rgba(255,244,218,.88),
+    86vw 64vh 0 rgba(241,211,225,.72),
+    89vw 14vh 0 rgba(205,235,242,.84),
+    93vw 47vh 0 rgba(255,244,218,.86),
+    97vw 73vh 0 rgba(205,235,242,.8);
+  filter: drop-shadow(0 0 4px rgba(232,246,255,.48));
+  animation: cosmic-density-far-a 12.8s ease-in-out infinite;
+}
+
+.parallax-layer-far::after {
+  width: 1.15px;
+  height: 1.15px;
+  background: rgba(205,235,242,.86);
+  box-shadow:
+    2vw 57vh 0 rgba(205,235,242,.76),
+    6vw 79vh 0 rgba(255,244,218,.72),
+    11vw 38vh 0 rgba(241,211,225,.68),
+    15vw 88vh 0 rgba(205,235,242,.74),
+    19vw 22vh 0 rgba(255,244,218,.7),
+    23vw 73vh 0 rgba(241,211,225,.66),
+    28vw 58vh 0 rgba(205,235,242,.74),
+    33vw 94vh 0 rgba(255,244,218,.7),
+    37vw 43vh 0 rgba(241,211,225,.66),
+    42vw 64vh 0 rgba(205,235,242,.72),
+    46vw 19vh 0 rgba(255,244,218,.72),
+    50vw 49vh 0 rgba(241,211,225,.66),
+    54vw 84vh 0 rgba(205,235,242,.76),
+    59vw 28vh 0 rgba(255,244,218,.7),
+    64vw 92vh 0 rgba(241,211,225,.68),
+    68vw 48vh 0 rgba(205,235,242,.74),
+    73vw 70vh 0 rgba(255,244,218,.7),
+    78vw 25vh 0 rgba(241,211,225,.66),
+    83vw 91vh 0 rgba(205,235,242,.76),
+    87vw 52vh 0 rgba(255,244,218,.72),
+    91vw 31vh 0 rgba(241,211,225,.66),
+    96vw 60vh 0 rgba(205,235,242,.74);
+  filter: drop-shadow(0 0 3px rgba(232,246,255,.38));
+  animation: cosmic-density-far-b 15.6s ease-in-out infinite;
+}
+
+/* Near field: fewer but brighter points for stronger depth. */
+.parallax-layer-near::before {
+  width: 2.35px;
+  height: 2.35px;
+  background: rgba(255,244,218,.96);
+  box-shadow:
+    5vw 18vh 0 rgba(255,244,218,.92),
+    12vw 52vh 0 rgba(205,235,242,.9),
+    18vw 83vh 0 rgba(241,211,225,.84),
+    25vw 31vh 0 rgba(205,235,242,.9),
+    32vw 69vh 0 rgba(255,244,218,.9),
+    39vw 13vh 0 rgba(241,211,225,.84),
+    46vw 47vh 0 rgba(205,235,242,.92),
+    53vw 78vh 0 rgba(255,244,218,.9),
+    61vw 26vh 0 rgba(241,211,225,.84),
+    69vw 62vh 0 rgba(205,235,242,.92),
+    77vw 88vh 0 rgba(255,244,218,.9),
+    84vw 39vh 0 rgba(241,211,225,.84),
+    92vw 71vh 0 rgba(205,235,242,.92),
+    98vw 24vh 0 rgba(255,244,218,.9);
+  filter:
+    drop-shadow(0 0 6px rgba(235,247,255,.72))
+    drop-shadow(0 0 13px rgba(205,235,242,.34));
+  animation: cosmic-density-near-a 10.8s ease-in-out infinite;
+}
+
+.parallax-layer-near::after {
+  width: 1.85px;
+  height: 1.85px;
+  background: rgba(205,235,242,.94);
+  box-shadow:
+    7vw 71vh 0 rgba(205,235,242,.86),
+    15vw 27vh 0 rgba(255,244,218,.84),
+    22vw 61vh 0 rgba(241,211,225,.8),
+    29vw 91vh 0 rgba(205,235,242,.86),
+    36vw 38vh 0 rgba(255,244,218,.84),
+    44vw 74vh 0 rgba(241,211,225,.8),
+    57vw 17vh 0 rgba(205,235,242,.88),
+    64vw 53vh 0 rgba(255,244,218,.84),
+    72vw 81vh 0 rgba(241,211,225,.8),
+    80vw 19vh 0 rgba(205,235,242,.88),
+    88vw 58vh 0 rgba(255,244,218,.84),
+    95vw 87vh 0 rgba(241,211,225,.8);
+  filter: drop-shadow(0 0 5px rgba(235,247,255,.6));
+  animation: cosmic-density-near-b 13.4s ease-in-out infinite;
+}
+
+/* Existing stars get a modest visibility lift without changing their motion model. */
+.small-star {
+  box-shadow:
+    0 0 9px currentColor,
+    0 0 21px color-mix(in srgb, currentColor 78%, transparent),
+    0 0 36px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.major-star,
+.hero-flare {
+  box-shadow:
+    0 0 10px rgba(var(--star-color), 1),
+    0 0 28px rgba(var(--star-color), .58),
+    0 0 54px rgba(var(--star-color), .25);
+}
+
+@keyframes cosmic-density-far-a {
+  0%,100% { opacity:.66; }
+  42% { opacity:1; }
+  72% { opacity:.76; }
+}
+@keyframes cosmic-density-far-b {
+  0%,100% { opacity:.58; }
+  36% { opacity:.88; }
+  68% { opacity:.7; }
+}
+@keyframes cosmic-density-near-a {
+  0%,100% { opacity:.7; }
+  45% { opacity:1; }
+  76% { opacity:.82; }
+}
+@keyframes cosmic-density-near-b {
+  0%,100% { opacity:.64; }
+  38% { opacity:.94; }
+  70% { opacity:.74; }
+}
+
+@media (max-width:760px) {
+  .parallax-layer-far::before { opacity:.86; }
+  .parallax-layer-far::after { opacity:.72; }
+  .parallax-layer-near::before { opacity:.88; }
+  .parallax-layer-near::after { opacity:.76; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .parallax-layer-far::before,
+  .parallax-layer-far::after,
+  .parallax-layer-near::before,
+  .parallax-layer-near::after {
+    animation:none !important;
+  }
+}

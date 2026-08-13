@@ -19,13 +19,6 @@
   document.head.appendChild(script);
 })();
 
-(() => {
-  const style = document.createElement("link");
-  style.rel = "stylesheet";
-  style.href = "./evening-sky-v1.css?v=20260813-2";
-  document.head.appendChild(style);
-})();
-
 // Use the exact PNG source embedded by the packaged Listing Studio app.
 (() => {
   const APP_ICON_SOURCE = "https://raw.githubusercontent.com/yuchenm1303-png/ecommerce-agent/feat/local-test-gui/app/app_icon_data.py";

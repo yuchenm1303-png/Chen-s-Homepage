@@ -1,0 +1,40 @@
+@media (pointer: fine) {
+  * {
+    cursor: url("./cursor-reference.svg") 4 4, auto !important;
+  }
+
+  html.custom-cursor.custom-cursor,
+  html.custom-cursor.custom-cursor body,
+  html.custom-cursor.custom-cursor body * {
+    cursor: url("./cursor-reference.svg") 4 4, auto !important;
+  }
+
+  .cursor-dot {
+    display: none !important;
+  }
+
+  .cursor-follow {
+    position: fixed !important;
+    width: 18px !important;
+    height: 18px !important;
+    margin: 0 !important;
+    background: #fff !important;
+    border: 0 !important;
+    border-radius: 25px !important;
+    box-shadow: none !important;
+    opacity: .25 !important;
+    pointer-events: none !important;
+    z-index: 10086 !important;
+    transition: .2s ease-in-out !important;
+    transition-property: background, opacity, transform !important;
+  }
+
+  .cursor-follow.hidden {
+    opacity: 0 !important;
+  }
+
+  .cursor-follow.active {
+    opacity: .5 !important;
+    transform: scale(.5) !important;
+  }
+}

@@ -147,3 +147,22 @@
     transform: none !important;
   }
 }
+
+/* Give the release version a little more breathing room without changing the card layout. */
+.version-large {
+  gap: 22px;
+}
+
+.version-large strong {
+  font-size: clamp(3.35rem, 5.2vw, 5.15rem);
+  line-height: .98;
+  letter-spacing: -.018em;
+  font-weight: 560;
+}
+
+@media (max-width: 650px) {
+  .version-large strong {
+    font-size: clamp(3.1rem, 16vw, 4.35rem);
+    letter-spacing: -.015em;
+  }
+}

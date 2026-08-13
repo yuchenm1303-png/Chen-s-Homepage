@@ -1,0 +1,73 @@
+/* Restore pre-layout component visuals. Keep spacing/grid/typography refinements from portal-polish-v2.css. */
+.release-card,
+.account-card {
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.utility-card {
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.release-product-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+.meta-item {
+  border-radius: 6px;
+}
+
+.download-button {
+  border-radius: 6px;
+}
+
+.login-form input {
+  border-radius: 6px;
+}
+
+.login-button {
+  border-radius: 6px;
+}
+
+.account-link-button {
+  border-radius: 8px;
+}
+
+.account-status-panel {
+  border-radius: 7px;
+}
+
+.flow-step {
+  border-radius: 6px;
+}
+
+.utility-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.modal-card {
+  border-radius: 6px;
+}
+
+.onboarding-field input {
+  min-height: 42px;
+}
+
+.onboarding-submit {
+  min-height: 43px;
+}
+
+@media (max-width: 650px) {
+  .release-card,
+  .account-card,
+  .utility-card {
+    border-radius: 6px;
+  }
+}

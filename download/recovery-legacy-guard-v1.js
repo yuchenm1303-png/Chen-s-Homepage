@@ -7,16 +7,11 @@
 
   if (!hasLegacyRecovery) return;
 
-  // Password recovery now uses the email OTP flow only. Strip legacy recovery
-  // parameters before Supabase clients initialize so an old one-time link or
-  // mail prefetch cannot reopen the obsolete reset-password modal.
   url.searchParams.delete("recovery");
   url.hash = "";
   window.history.replaceState({}, "", url.pathname + url.search);
 })();
 
-// Independent product-content bootstrap. Kept outside the recovery guard so
-// the existing recovery behavior is unchanged.
 (() => {
   const script = document.createElement("script");
   script.src = "./portal-content-v2.js?v=20260813-2";
@@ -24,7 +19,6 @@
   document.head.appendChild(script);
 })();
 
-// Replace the temporary LS badge with the Listing Studio application icon.
 (() => {
   const applyBrandIcon = () => {
     const mark = document.querySelector(".brand-mark");
@@ -59,17 +53,17 @@
   }
 })();
 
-// Registration flow v1: load after deferred/module scripts have attached their
-// legacy handlers, then replace only the registration entry with the staged
-// create -> verify email -> await approval experience.
+// Registration v2 keeps email confirmation inside the original registration
+// window by verifying the email OTP in-place. No confirmation-page redirect is
+// required for the normal signup flow.
 (() => {
   const style = document.createElement("link");
   style.rel = "stylesheet";
-  style.href = "./registration-flow-v1.css?v=20260813-1";
+  style.href = "./registration-flow-v1.css?v=20260813-2";
   document.head.appendChild(style);
 
   const boot = () => window.setTimeout(() => {
-    import("./registration-flow-v1.js?v=20260813-1").catch((error) => {
+    import("./registration-flow-v2.js?v=20260813-1").catch((error) => {
       console.error("registration flow bootstrap failed", error);
     });
   }, 0);

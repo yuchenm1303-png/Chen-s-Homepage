@@ -71,3 +71,79 @@
     border-radius: 6px;
   }
 }
+
+/* Scroll depth: foreground cards move at normal page speed; cosmic layers deliberately lag behind. */
+.cosmos-glow,
+.cosmos-nebula-cyan,
+.cosmos-nebula-violet {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@supports (animation-timeline: scroll()) {
+  .cosmos-glow {
+    animation: portal-depth-glow linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0% 100%;
+  }
+
+  .cosmos-nebula-violet {
+    animation: portal-depth-nebula-violet linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0% 100%;
+  }
+
+  .cosmos-nebula-cyan {
+    animation: portal-depth-nebula-cyan linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0% 100%;
+  }
+
+  .parallax-layer-far {
+    animation: portal-depth-stars-far linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0% 100%;
+  }
+
+  .parallax-layer-near {
+    animation: portal-depth-stars-near linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0% 100%;
+  }
+}
+
+@keyframes portal-depth-glow {
+  from { transform: translate3d(0,0,0); }
+  to { transform: translate3d(0,-10px,0); }
+}
+
+@keyframes portal-depth-nebula-violet {
+  from { transform: translate3d(0,0,0); }
+  to { transform: translate3d(0,-18px,0); }
+}
+
+@keyframes portal-depth-nebula-cyan {
+  from { transform: translate3d(0,0,0); }
+  to { transform: translate3d(0,-26px,0); }
+}
+
+@keyframes portal-depth-stars-far {
+  from { transform: translate3d(0,0,0); }
+  to { transform: translate3d(0,-58px,0); }
+}
+
+@keyframes portal-depth-stars-near {
+  from { transform: translate3d(0,0,0); }
+  to { transform: translate3d(0,-126px,0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cosmos-glow,
+  .cosmos-nebula-cyan,
+  .cosmos-nebula-violet,
+  .parallax-layer-far,
+  .parallax-layer-near {
+    animation: none !important;
+    transform: none !important;
+  }
+}

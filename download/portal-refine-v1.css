@@ -1,0 +1,138 @@
+/* Listing Studio refinement: tighter editorial scale + lightweight interaction feedback. */
+
+/* The v3 narrative was intentionally oversized; bring it back to a calmer product-site scale. */
+.studio-intro h2 {
+  max-width: 900px;
+  font-size: clamp(2.35rem, 4.2vw, 4.7rem);
+  line-height: 1.01;
+  letter-spacing: -.044em;
+}
+
+.feature-copy h2,
+.batch-copy h2,
+.boundary-heading h2,
+.distribution-main h2 {
+  font-size: clamp(1.9rem, 3vw, 3.35rem);
+  line-height: 1.06;
+  letter-spacing: -.038em;
+}
+
+.studio-intro-copy > p,
+.feature-copy > p,
+.batch-copy > p,
+.distribution-main > p {
+  font-size: clamp(.76rem, .92vw, .9rem);
+}
+
+/* Keep the three real action cards near the download/account area. */
+.utility-grid + .studio-section {
+  margin-top: clamp(72px, 7vw, 104px);
+}
+
+/* Dynamic product panels are injected after app-v7's one-time .cards scan,
+   so give them their own compositor-friendly pointer feedback. */
+.studio-section .plan-status,
+.studio-section .capture-preview,
+.studio-section .capture-evidence,
+.studio-section .evidence-row,
+.studio-section .execute-step,
+.studio-section .execute-summary,
+.studio-section .batch-job,
+.studio-section .boundary-item,
+.studio-section .distribution-rail > div {
+  transition:
+    transform .26s cubic-bezier(.22, 1, .36, 1),
+    background-color .26s ease,
+    border-color .26s ease,
+    opacity .26s ease;
+  transform-origin: center;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .studio-section .plan-status:hover,
+  .studio-section .capture-preview:hover,
+  .studio-section .capture-evidence:hover,
+  .studio-section .execute-summary:hover {
+    transform: translate3d(0, -3px, 0);
+    background-color: rgba(255,255,255,.025);
+    border-color: rgba(255,255,255,.09);
+  }
+
+  .studio-section .evidence-row:hover,
+  .studio-section .execute-step:hover,
+  .studio-section .batch-job:hover,
+  .studio-section .distribution-rail > div:hover {
+    transform: translate3d(5px, 0, 0);
+    background-color: rgba(255,255,255,.025);
+  }
+
+  .studio-section .boundary-item:hover {
+    transform: translate3d(0, -4px, 0);
+  }
+
+  .studio-section .feature-stage:hover,
+  .studio-section .batch-stage:hover,
+  .studio-section .distribution-hero:hover {
+    border-color: rgba(255,255,255,.11);
+    box-shadow: 0 34px 88px rgba(24,30,57,.15), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+}
+
+.studio-section .plan-status:active,
+.studio-section .capture-preview:active,
+.studio-section .capture-evidence:active,
+.studio-section .evidence-row:active,
+.studio-section .execute-step:active,
+.studio-section .execute-summary:active,
+.studio-section .batch-job:active,
+.studio-section .boundary-item:active,
+.studio-section .distribution-rail > div:active {
+  transform: scale(.985);
+  transition-duration: .09s;
+}
+
+/* Make interactive-looking inner panels respond to touch as well. */
+@media (pointer:coarse) {
+  .studio-section .plan-status,
+  .studio-section .capture-preview,
+  .studio-section .capture-evidence,
+  .studio-section .execute-step,
+  .studio-section .execute-summary,
+  .studio-section .batch-job,
+  .studio-section .boundary-item,
+  .studio-section .distribution-rail > div {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@media (max-width: 900px) {
+  .studio-intro h2 {
+    font-size: clamp(2.25rem, 8vw, 3.8rem);
+  }
+  .feature-copy h2,
+  .batch-copy h2,
+  .boundary-heading h2,
+  .distribution-main h2 {
+    font-size: clamp(1.85rem, 6.8vw, 2.8rem);
+  }
+}
+
+@media (max-width: 520px) {
+  .studio-intro h2 {
+    font-size: 2.35rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-section .plan-status,
+  .studio-section .capture-preview,
+  .studio-section .capture-evidence,
+  .studio-section .evidence-row,
+  .studio-section .execute-step,
+  .studio-section .execute-summary,
+  .studio-section .batch-job,
+  .studio-section .boundary-item,
+  .studio-section .distribution-rail > div {
+    transition: none !important;
+  }
+}

@@ -41,7 +41,7 @@
     const styles = [
       './portal-content-v3.css?v=20260813-2',
       './portal-motion-v1.css?v=20260813-1',
-      './portal-refine-v1.css?v=20260813-2',
+      './portal-refine-v1.css?v=20260813-3',
       './portal-depth-v1.css?v=20260813-1'
     ];
 

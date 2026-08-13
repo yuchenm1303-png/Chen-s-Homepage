@@ -14,3 +14,12 @@
   url.hash = "";
   window.history.replaceState({}, "", url.pathname + url.search);
 })();
+
+// Independent product-content bootstrap. Kept outside the recovery guard so
+// the existing recovery behavior is unchanged.
+(() => {
+  const script = document.createElement("script");
+  script.src = "./portal-content-v1.js?v=20260813-1";
+  script.async = false;
+  document.head.appendChild(script);
+})();

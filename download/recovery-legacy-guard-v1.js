@@ -22,7 +22,7 @@
 (() => {
   const style = document.createElement("link");
   style.rel = "stylesheet";
-  style.href = "./evening-sky-v1.css?v=20260813-1";
+  style.href = "./evening-sky-v1.css?v=20260813-2";
   document.head.appendChild(style);
 })();
 

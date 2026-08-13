@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./styles-v3.css" />
   <link rel="stylesheet" href="./cosmic-bright-v1.css" />
   <link rel="stylesheet" href="./portal-polish-v1.css" />
+  <link rel="stylesheet" href="./portal-polish-v2.css" />
 </head>
 <body>
   <div class="cosmos" aria-hidden="true">
@@ -111,6 +112,12 @@
 
         <p class="release-summary">当前稳定构建。用于 Makro 单链接与批量商品上架工作流，下载入口始终指向最新正式版本。</p>
 
+        <div class="release-state-row" aria-label="发布状态">
+          <span class="release-state-item live"><i></i>Stable release</span>
+          <span class="release-state-item"><i></i>Account gated</span>
+          <span class="release-state-item"><i></i>Windows installer</span>
+        </div>
+
         <div class="release-meta">
           <div class="meta-item"><span>PLATFORM</span><strong id="platformText">Windows 10 / 11 · x64</strong></div>
           <div class="meta-item"><span>PACKAGE</span><strong id="fileSizeText">待发布</strong></div>
@@ -126,16 +133,23 @@
       <aside class="account-card cards fade" id="account">
         <div class="account-head">
           <div><p class="kicker">ACCOUNT ACCESS</p><h2>用户登录</h2></div>
-          <span class="secure-pill">SECURE</span>
+          <span class="secure-pill">ACCESS</span>
         </div>
 
         <p class="account-intro">登录状态只用于控制安装包下载权限。后续可以继续接入授权有效期、用户状态和版本访问策略。</p>
 
         <div id="loggedOutState">
           <form id="loginForm" class="login-form" autocomplete="on">
-            <label><span>邮箱</span><input id="emailInput" type="email" autocomplete="email" placeholder="name@example.com" required /></label>
-            <label><span>密码</span><input id="passwordInput" type="password" autocomplete="current-password" placeholder="••••••••" required /></label>
-            <button class="login-button cards" type="submit">登录</button>
+            <label>
+              <span>邮箱</span>
+              <input id="emailInput" type="email" autocomplete="email" placeholder="name@example.com" required />
+            </label>
+            <label class="password-field">
+              <span>密码</span>
+              <input id="passwordInput" type="password" autocomplete="current-password" placeholder="••••••••" required />
+              <button class="password-toggle" id="passwordToggle" type="button" aria-pressed="false">显示</button>
+            </label>
+            <button class="login-button cards" type="submit"><span>登录并解锁</span></button>
           </form>
           <p class="form-note" id="loginMessage">登录后即可下载最新版安装包。</p>
         </div>
@@ -145,6 +159,12 @@
             <div class="account-avatar">✓</div>
             <div><p class="kicker">SIGNED IN</p><p class="account-email" id="accountEmail">—</p></div>
           </div>
+
+          <div class="account-status-panel">
+            <div class="account-status-line"><span>下载权限</span><strong>已解锁</strong></div>
+            <div class="account-status-line"><span>会话状态</span><strong>保持登录</strong></div>
+          </div>
+
           <button class="logout-button" id="logoutButton" type="button">退出登录</button>
         </div>
 
@@ -164,22 +184,28 @@
     <section class="utility-grid fade" id="details">
       <button class="utility-card cards" id="notesAction" type="button">
         <span class="utility-icon">☷</span>
+        <span class="utility-overline">RELEASE</span>
         <h3>更新日志</h3>
         <p>查看当前正式版本的主要变化与界面更新。</p>
       </button>
       <button class="utility-card cards" id="systemAction" type="button">
         <span class="utility-icon">▣</span>
+        <span class="utility-overline">SYSTEM</span>
         <h3>运行环境</h3>
         <p>查看 Windows、Edge 与系统架构要求。</p>
       </button>
       <button class="utility-card cards" id="supportAction" type="button">
         <span class="utility-icon">?</span>
+        <span class="utility-overline">SUPPORT</span>
         <h3>安装帮助</h3>
         <p>安装、登录、更新与启动问题的统一入口。</p>
       </button>
     </section>
 
-    <footer class="footer fade"><span>© 2026 Listing Studio</span><span>Secure software distribution portal</span></footer>
+    <footer class="footer fade">
+      <span>© 2026 Listing Studio</span>
+      <span class="footer-status"><i></i>Secure software distribution portal</span>
+    </footer>
   </main>
 
   <div class="modal-layer" id="modalLayer" hidden>
@@ -194,6 +220,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="./config-v3.js"></script>
-  <script type="module" src="./app-v5.js"></script>
+  <script type="module" src="./app-v6.js"></script>
 </body>
 </html>

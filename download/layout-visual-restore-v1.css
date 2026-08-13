@@ -129,12 +129,12 @@
 
 @keyframes portal-depth-stars-far {
   from { transform: translate3d(0,0,0); }
-  to { transform: translate3d(0,-58px,0); }
+  to { transform: translate3d(0,-82px,0); }
 }
 
 @keyframes portal-depth-stars-near {
   from { transform: translate3d(0,0,0); }
-  to { transform: translate3d(0,-126px,0); }
+  to { transform: translate3d(0,-172px,0); }
 }
 
 @media (prefers-reduced-motion: reduce) {

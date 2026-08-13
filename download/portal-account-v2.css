@@ -1,0 +1,41 @@
+.signed-account-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.switch-account-button,
+.signed-account-actions .logout-button {
+  width: 100%;
+  min-height: 38px;
+  margin: 0;
+}
+
+.switch-account-button {
+  padding: 0 12px;
+  border: 1px solid rgba(157, 225, 240, .12);
+  border-radius: 9px;
+  background: rgba(103, 193, 214, .09);
+  color: rgba(231, 251, 255, .82);
+  font: inherit;
+  font-size: .68rem;
+  transition: color .2s ease, background-color .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.switch-account-button:hover {
+  color: rgba(255, 255, 255, .96);
+  background: rgba(103, 193, 214, .15);
+  border-color: rgba(157, 225, 240, .2);
+  transform: translateY(-1px);
+}
+
+.switch-account-button:active {
+  transform: scale(.985);
+}
+
+@media (max-width: 650px) {
+  .signed-account-actions {
+    grid-template-columns: 1fr;
+  }
+}

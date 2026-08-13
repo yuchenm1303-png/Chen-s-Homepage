@@ -1,0 +1,302 @@
+/* Refined one-shot scroll narrative motion for Listing Studio.
+   Compositor-friendly: opacity + transform only. */
+
+:root {
+  --studio-motion-ease: cubic-bezier(.16, 1, .3, 1);
+  --studio-motion-soft: cubic-bezier(.22, 1, .36, 1);
+}
+
+/* v3 had a simple whole-section reveal. Replace it with staged child motion. */
+html.studio-motion-ready .studio-reveal {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+html.studio-motion-ready .studio-intro .studio-kicker,
+html.studio-motion-ready .studio-intro h2,
+html.studio-motion-ready .studio-intro-copy,
+html.studio-motion-ready .feature-copy .feature-sequence,
+html.studio-motion-ready .feature-copy h2,
+html.studio-motion-ready .feature-copy > p,
+html.studio-motion-ready .feature-copy .feature-notes,
+html.studio-motion-ready .feature-copy .feature-callout,
+html.studio-motion-ready .feature-stage,
+html.studio-motion-ready .batch-copy .feature-sequence,
+html.studio-motion-ready .batch-copy h2,
+html.studio-motion-ready .batch-copy > p,
+html.studio-motion-ready .batch-stage,
+html.studio-motion-ready .boundary-heading .feature-sequence,
+html.studio-motion-ready .boundary-heading h2,
+html.studio-motion-ready .boundary-item,
+html.studio-motion-ready .distribution-main .feature-sequence,
+html.studio-motion-ready .distribution-main h2,
+html.studio-motion-ready .distribution-main > p,
+html.studio-motion-ready .distribution-rail > div,
+html.studio-motion-ready .studio-support-reveal .utility-card {
+  opacity: 0;
+  will-change: transform, opacity;
+  transition-property: opacity, transform;
+  transition-duration: .82s;
+  transition-timing-function: var(--studio-motion-ease);
+}
+
+/* Intro: editorial title first, supporting copy second. */
+html.studio-motion-ready .studio-intro .studio-kicker { transform: translate3d(0, 14px, 0); }
+html.studio-motion-ready .studio-intro h2 { transform: translate3d(0, 34px, 0); }
+html.studio-motion-ready .studio-intro-copy { transform: translate3d(0, 24px, 0); }
+
+html.studio-motion-ready .studio-intro.is-visible .studio-kicker,
+html.studio-motion-ready .studio-intro.is-visible h2,
+html.studio-motion-ready .studio-intro.is-visible .studio-intro-copy {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+html.studio-motion-ready .studio-intro.is-visible .studio-kicker { transition-delay: .03s; }
+html.studio-motion-ready .studio-intro.is-visible h2 { transition-delay: .10s; transition-duration: 1s; }
+html.studio-motion-ready .studio-intro.is-visible .studio-intro-copy { transition-delay: .23s; }
+
+/* Feature chapters: copy and visual arrive from opposite planes. */
+html.studio-motion-ready .feature-copy .feature-sequence,
+html.studio-motion-ready .feature-copy h2,
+html.studio-motion-ready .feature-copy > p,
+html.studio-motion-ready .feature-copy .feature-notes,
+html.studio-motion-ready .feature-copy .feature-callout {
+  transform: translate3d(-24px, 12px, 0);
+}
+
+html.studio-motion-ready .feature-chapter-reverse .feature-copy .feature-sequence,
+html.studio-motion-ready .feature-chapter-reverse .feature-copy h2,
+html.studio-motion-ready .feature-chapter-reverse .feature-copy > p,
+html.studio-motion-ready .feature-chapter-reverse .feature-copy .feature-notes {
+  transform: translate3d(24px, 12px, 0);
+}
+
+html.studio-motion-ready .feature-stage {
+  transform: translate3d(34px, 18px, 0) scale(.986) !important;
+  transform-origin: center center;
+  transition-duration: 1.08s !important;
+}
+
+html.studio-motion-ready .feature-chapter-reverse .feature-stage {
+  transform: translate3d(-34px, 18px, 0) scale(.986) !important;
+}
+
+html.studio-motion-ready .feature-chapter.is-visible .feature-copy .feature-sequence,
+html.studio-motion-ready .feature-chapter.is-visible .feature-copy h2,
+html.studio-motion-ready .feature-chapter.is-visible .feature-copy > p,
+html.studio-motion-ready .feature-chapter.is-visible .feature-copy .feature-notes,
+html.studio-motion-ready .feature-chapter.is-visible .feature-copy .feature-callout,
+html.studio-motion-ready .feature-chapter.is-visible .feature-stage {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1) !important;
+}
+
+html.studio-motion-ready .feature-chapter.is-visible .feature-copy .feature-sequence { transition-delay: .02s; }
+html.studio-motion-ready .feature-chapter.is-visible .feature-copy h2 { transition-delay: .08s; transition-duration: .95s; }
+html.studio-motion-ready .feature-chapter.is-visible .feature-copy > p { transition-delay: .17s; }
+html.studio-motion-ready .feature-chapter.is-visible .feature-copy .feature-notes,
+html.studio-motion-ready .feature-chapter.is-visible .feature-copy .feature-callout { transition-delay: .26s; }
+html.studio-motion-ready .feature-chapter.is-visible .feature-stage { transition-delay: .12s; }
+
+/* Stage internals: the visual tells a small story after the shell arrives. */
+html.studio-motion-ready .capture-url,
+html.studio-motion-ready .capture-preview,
+html.studio-motion-ready .evidence-row,
+html.studio-motion-ready .capture-caption,
+html.studio-motion-ready .plan-head,
+html.studio-motion-ready .plan-status,
+html.studio-motion-ready .plan-ready-line,
+html.studio-motion-ready .plan-caption,
+html.studio-motion-ready .browser-bar,
+html.studio-motion-ready .execute-step,
+html.studio-motion-ready .execute-summary,
+html.studio-motion-ready .batch-session,
+html.studio-motion-ready .batch-job {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+  transition: opacity .68s var(--studio-motion-soft), transform .68s var(--studio-motion-soft);
+}
+
+html.studio-motion-ready .studio-reveal.is-visible .capture-url,
+html.studio-motion-ready .studio-reveal.is-visible .capture-preview,
+html.studio-motion-ready .studio-reveal.is-visible .evidence-row,
+html.studio-motion-ready .studio-reveal.is-visible .capture-caption,
+html.studio-motion-ready .studio-reveal.is-visible .plan-head,
+html.studio-motion-ready .studio-reveal.is-visible .plan-status,
+html.studio-motion-ready .studio-reveal.is-visible .plan-ready-line,
+html.studio-motion-ready .studio-reveal.is-visible .plan-caption,
+html.studio-motion-ready .studio-reveal.is-visible .browser-bar,
+html.studio-motion-ready .studio-reveal.is-visible .execute-step,
+html.studio-motion-ready .studio-reveal.is-visible .execute-summary,
+html.studio-motion-ready .studio-reveal.is-visible .batch-session,
+html.studio-motion-ready .studio-reveal.is-visible .batch-job {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Capture stagger */
+html.studio-motion-ready .is-visible .capture-url { transition-delay: .28s; }
+html.studio-motion-ready .is-visible .capture-preview { transition-delay: .36s; }
+html.studio-motion-ready .is-visible .evidence-row:nth-of-type(2) { transition-delay: .38s; }
+html.studio-motion-ready .is-visible .evidence-row:nth-of-type(3) { transition-delay: .44s; }
+html.studio-motion-ready .is-visible .evidence-row:nth-of-type(4) { transition-delay: .50s; }
+html.studio-motion-ready .is-visible .evidence-row:nth-of-type(5) { transition-delay: .56s; }
+html.studio-motion-ready .is-visible .capture-caption { transition-delay: .62s; }
+
+/* Listing plan stagger + progress bars grow after the cards land. */
+html.studio-motion-ready .is-visible .plan-head { transition-delay: .27s; }
+html.studio-motion-ready .is-visible .plan-status:nth-child(1) { transition-delay: .34s; }
+html.studio-motion-ready .is-visible .plan-status:nth-child(2) { transition-delay: .40s; }
+html.studio-motion-ready .is-visible .plan-status:nth-child(3) { transition-delay: .46s; }
+html.studio-motion-ready .is-visible .plan-status:nth-child(4) { transition-delay: .52s; }
+html.studio-motion-ready .is-visible .plan-ready-line { transition-delay: .60s; }
+html.studio-motion-ready .is-visible .plan-caption { transition-delay: .66s; }
+
+html.studio-motion-ready .plan-status i::after,
+html.studio-motion-ready .plan-ready-line > div i {
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 1.05s var(--studio-motion-ease);
+}
+
+html.studio-motion-ready .is-visible .plan-status i::after,
+html.studio-motion-ready .is-visible .plan-ready-line > div i {
+  transform: scaleX(1);
+}
+
+html.studio-motion-ready .is-visible .plan-status:nth-child(1) i::after { transition-delay: .50s; }
+html.studio-motion-ready .is-visible .plan-status:nth-child(2) i::after { transition-delay: .56s; }
+html.studio-motion-ready .is-visible .plan-status:nth-child(3) i::after { transition-delay: .62s; }
+html.studio-motion-ready .is-visible .plan-status:nth-child(4) i::after { transition-delay: .68s; }
+html.studio-motion-ready .is-visible .plan-ready-line > div i { transition-delay: .76s; }
+
+/* Execution reads top-to-bottom like a real task progressing. */
+html.studio-motion-ready .is-visible .browser-bar { transition-delay: .27s; }
+html.studio-motion-ready .is-visible .execute-step:nth-child(1) { transition-delay: .34s; }
+html.studio-motion-ready .is-visible .execute-step:nth-child(2) { transition-delay: .40s; }
+html.studio-motion-ready .is-visible .execute-step:nth-child(3) { transition-delay: .46s; }
+html.studio-motion-ready .is-visible .execute-step:nth-child(4) { transition-delay: .52s; }
+html.studio-motion-ready .is-visible .execute-summary { transition-delay: .58s; }
+
+/* Batch: session establishes first, jobs queue in behind it. */
+html.studio-motion-ready .batch-copy .feature-sequence,
+html.studio-motion-ready .batch-copy h2,
+html.studio-motion-ready .batch-copy > p {
+  transform: translate3d(-24px, 12px, 0);
+}
+
+html.studio-motion-ready .batch-stage {
+  transform: translate3d(32px, 16px, 0) scale(.988) !important;
+  transition-duration: 1.04s !important;
+}
+
+html.studio-motion-ready .batch-section.is-visible .batch-copy .feature-sequence,
+html.studio-motion-ready .batch-section.is-visible .batch-copy h2,
+html.studio-motion-ready .batch-section.is-visible .batch-copy > p,
+html.studio-motion-ready .batch-section.is-visible .batch-stage {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1) !important;
+}
+
+html.studio-motion-ready .batch-section.is-visible .batch-copy .feature-sequence { transition-delay: .02s; }
+html.studio-motion-ready .batch-section.is-visible .batch-copy h2 { transition-delay: .08s; }
+html.studio-motion-ready .batch-section.is-visible .batch-copy > p { transition-delay: .17s; }
+html.studio-motion-ready .batch-section.is-visible .batch-stage { transition-delay: .12s; }
+html.studio-motion-ready .batch-section.is-visible .batch-session { transition-delay: .30s; }
+html.studio-motion-ready .batch-section.is-visible .batch-job:nth-child(1) { transition-delay: .38s; }
+html.studio-motion-ready .batch-section.is-visible .batch-job:nth-child(2) { transition-delay: .45s; }
+html.studio-motion-ready .batch-section.is-visible .batch-job:nth-child(3) { transition-delay: .52s; }
+
+/* Safety boundary: editorial heading, then three columns in sequence. */
+html.studio-motion-ready .boundary-heading .feature-sequence,
+html.studio-motion-ready .boundary-heading h2,
+html.studio-motion-ready .boundary-item {
+  transform: translate3d(0, 24px, 0);
+}
+
+html.studio-motion-ready .boundary-section.is-visible .boundary-heading .feature-sequence,
+html.studio-motion-ready .boundary-section.is-visible .boundary-heading h2,
+html.studio-motion-ready .boundary-section.is-visible .boundary-item {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+html.studio-motion-ready .boundary-section.is-visible .boundary-heading .feature-sequence { transition-delay: .02s; }
+html.studio-motion-ready .boundary-section.is-visible .boundary-heading h2 { transition-delay: .10s; }
+html.studio-motion-ready .boundary-section.is-visible .boundary-item:nth-child(1) { transition-delay: .24s; }
+html.studio-motion-ready .boundary-section.is-visible .boundary-item:nth-child(2) { transition-delay: .32s; }
+html.studio-motion-ready .boundary-section.is-visible .boundary-item:nth-child(3) { transition-delay: .40s; }
+
+/* Distribution: main statement anchors first, rail follows line by line. */
+html.studio-motion-ready .distribution-main .feature-sequence,
+html.studio-motion-ready .distribution-main h2,
+html.studio-motion-ready .distribution-main > p {
+  transform: translate3d(-22px, 12px, 0);
+}
+html.studio-motion-ready .distribution-rail > div {
+  transform: translate3d(24px, 0, 0);
+}
+
+html.studio-motion-ready .distribution-section.is-visible .distribution-main .feature-sequence,
+html.studio-motion-ready .distribution-section.is-visible .distribution-main h2,
+html.studio-motion-ready .distribution-section.is-visible .distribution-main > p,
+html.studio-motion-ready .distribution-section.is-visible .distribution-rail > div {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+html.studio-motion-ready .distribution-section.is-visible .distribution-main .feature-sequence { transition-delay: .03s; }
+html.studio-motion-ready .distribution-section.is-visible .distribution-main h2 { transition-delay: .10s; }
+html.studio-motion-ready .distribution-section.is-visible .distribution-main > p { transition-delay: .20s; }
+html.studio-motion-ready .distribution-section.is-visible .distribution-rail > div:nth-child(1) { transition-delay: .28s; }
+html.studio-motion-ready .distribution-section.is-visible .distribution-rail > div:nth-child(2) { transition-delay: .36s; }
+html.studio-motion-ready .distribution-section.is-visible .distribution-rail > div:nth-child(3) { transition-delay: .44s; }
+
+/* Existing support cards get a final, quieter stagger. */
+html.studio-motion-ready .studio-support-reveal .utility-card {
+  transform: translate3d(0, 22px, 0);
+}
+html.studio-motion-ready .studio-support-reveal.is-visible .utility-card {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+html.studio-motion-ready .studio-support-reveal.is-visible .utility-card:nth-child(1) { transition-delay: .02s; }
+html.studio-motion-ready .studio-support-reveal.is-visible .utility-card:nth-child(2) { transition-delay: .10s; }
+html.studio-motion-ready .studio-support-reveal.is-visible .utility-card:nth-child(3) { transition-delay: .18s; }
+
+/* Never make touch/mobile users wait through long sequencing. */
+@media (max-width: 700px) {
+  html.studio-motion-ready .studio-intro h2,
+  html.studio-motion-ready .feature-stage,
+  html.studio-motion-ready .batch-stage {
+    transition-duration: .76s !important;
+  }
+  html.studio-motion-ready .feature-copy .feature-sequence,
+  html.studio-motion-ready .feature-copy h2,
+  html.studio-motion-ready .feature-copy > p,
+  html.studio-motion-ready .feature-chapter-reverse .feature-copy .feature-sequence,
+  html.studio-motion-ready .feature-chapter-reverse .feature-copy h2,
+  html.studio-motion-ready .feature-chapter-reverse .feature-copy > p,
+  html.studio-motion-ready .batch-copy .feature-sequence,
+  html.studio-motion-ready .batch-copy h2,
+  html.studio-motion-ready .batch-copy > p,
+  html.studio-motion-ready .feature-stage,
+  html.studio-motion-ready .batch-stage {
+    transform: translate3d(0, 22px, 0) scale(.992) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.studio-motion-ready .studio-intro *,
+  html.studio-motion-ready .feature-chapter *,
+  html.studio-motion-ready .batch-section *,
+  html.studio-motion-ready .boundary-section *,
+  html.studio-motion-ready .distribution-section *,
+  html.studio-motion-ready .studio-support-reveal .utility-card {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

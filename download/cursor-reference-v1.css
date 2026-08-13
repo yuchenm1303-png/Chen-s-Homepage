@@ -1,0 +1,37 @@
+.cursor-dot {
+  width: 10px !important;
+  height: 10px !important;
+  margin: -5px 0 0 -5px !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+}
+.cursor-dot.cursor-visible { opacity: 1 !important; }
+
+.cursor-follow {
+  width: 18px !important;
+  height: 18px !important;
+  margin: -9px 0 0 -9px !important;
+  border: 0 !important;
+  border-radius: 25px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+  transition: .2s ease-in-out !important;
+  transition-property: background, opacity, width, height, margin !important;
+}
+.cursor-follow.cursor-visible { opacity: .25 !important; }
+.cursor-follow.pressed {
+  width: 9px !important;
+  height: 9px !important;
+  margin: -4.5px 0 0 -4.5px !important;
+  background: #fff !important;
+  opacity: .5 !important;
+}
+
+@media (max-width: 720px), (pointer: coarse) {
+  .cursor-dot,
+  .cursor-follow { display: none !important; }
+}

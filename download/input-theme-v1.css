@@ -1,0 +1,61 @@
+.login-form,
+.onboarding-form {
+  color-scheme: dark;
+}
+
+.login-form input,
+.onboarding-field input {
+  -webkit-appearance: none;
+  appearance: none;
+  color: rgba(255,255,255,.94) !important;
+  caret-color: rgba(255,255,255,.92);
+  background-color: rgba(11,27,42,.62) !important;
+}
+
+.login-form input[type="password"],
+.login-form input[type="email"],
+.onboarding-field input[type="password"],
+.onboarding-field input[type="email"],
+.onboarding-field input[type="text"] {
+  background-color: rgba(11,27,42,.62) !important;
+}
+
+.login-form input:-webkit-autofill,
+.login-form input:-webkit-autofill:hover,
+.login-form input:-webkit-autofill:focus,
+.login-form input:-webkit-autofill:active,
+.onboarding-field input:-webkit-autofill,
+.onboarding-field input:-webkit-autofill:hover,
+.onboarding-field input:-webkit-autofill:focus,
+.onboarding-field input:-webkit-autofill:active {
+  -webkit-text-fill-color: rgba(255,255,255,.94) !important;
+  caret-color: rgba(255,255,255,.92) !important;
+  -webkit-box-shadow: 0 0 0 1000px #24384a inset !important;
+  box-shadow: 0 0 0 1000px #24384a inset !important;
+  border-color: rgba(255,255,255,.10) !important;
+  background-color: #24384a !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
+.login-form input:autofill,
+.onboarding-field input:autofill {
+  color: rgba(255,255,255,.94) !important;
+  box-shadow: 0 0 0 1000px #24384a inset !important;
+  border-color: rgba(255,255,255,.10) !important;
+  background-color: #24384a !important;
+}
+
+.login-form input:focus,
+.onboarding-field input:focus,
+.login-form input:-webkit-autofill:focus,
+.onboarding-field input:-webkit-autofill:focus {
+  border-color: rgba(151,220,238,.28) !important;
+  -webkit-box-shadow: 0 0 0 1000px #203547 inset, 0 0 0 1px rgba(151,220,238,.06) !important;
+  box-shadow: 0 0 0 1000px #203547 inset, 0 0 0 1px rgba(151,220,238,.06) !important;
+}
+
+.login-form input::selection,
+.onboarding-field input::selection {
+  background: rgba(132,205,226,.28);
+  color: #fff;
+}

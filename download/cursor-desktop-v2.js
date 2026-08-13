@@ -53,6 +53,10 @@
   `;
   document.head.appendChild(style);
 
+  dot.classList.remove("cursor-visible");
+  follow.classList.remove("cursor-visible", "pressed", "active");
+  follow.classList.add("hidden");
+
   let curr = null;
   let prev = null;
   let raf = 0;

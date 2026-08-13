@@ -31,8 +31,6 @@ const modalKicker = $("modalKicker");
 const modalTitle = $("modalTitle");
 const modalBody = $("modalBody");
 const toast = $("toast");
-const cursorDot = $("cursorDot");
-const cursorFollow = $("cursorFollow");
 
 let supabase = null;
 let session = null;
@@ -406,87 +404,47 @@ document.addEventListener("keydown", (event) => {
 });
 
 function installMouseAndTouchInteractions() {
-  let mouseEnabled = false;
-  let targetX = window.innerWidth / 2;
-  let targetY = window.innerHeight / 2;
-  let followX = targetX;
-  let followY = targetY;
-  let cursorVisible = false;
-  let cursorRafStarted = false;
-
-  const enableMouseMode = () => {
-    if (mouseEnabled || !cursorDot || !cursorFollow) return;
-    mouseEnabled = true;
-    document.documentElement.classList.add("custom-cursor");
-
-    if (!document.getElementById("download-mouse-runtime-style")) {
-      const style = document.createElement("style");
-      style.id = "download-mouse-runtime-style";
-      style.textContent = `
-        html.custom-cursor, html.custom-cursor body,
-        html.custom-cursor a, html.custom-cursor button,
-        html.custom-cursor input, html.custom-cursor label { cursor:none !important; }
-        html.custom-cursor .cursor-dot,
-        html.custom-cursor .cursor-follow { display:block !important; }
-      `;
-      document.head.appendChild(style);
-    }
-  };
-
-  const setCursorVisible = (next) => {
-    if (!cursorDot || !cursorFollow || cursorVisible === next) return;
-    cursorVisible = next;
-    cursorDot.classList.toggle("cursor-visible", next);
-    cursorFollow.classList.toggle("cursor-visible", next);
-  };
-
-  const renderCursorFollow = () => {
-    followX += (targetX - followX) * 0.35;
-    followY += (targetY - followY) * 0.35;
-    cursorFollow.style.transform = `translate3d(${followX}px, ${followY}px, 0)`;
-    requestAnimationFrame(renderCursorFollow);
-  };
-
-  const moveCursor = (clientX, clientY) => {
-    enableMouseMode();
-    if (!mouseEnabled) return;
-    targetX = clientX;
-    targetY = clientY;
-    cursorDot.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
-    setCursorVisible(true);
-    if (!cursorRafStarted) {
-      cursorRafStarted = true;
-      requestAnimationFrame(renderCursorFollow);
-    }
-  };
-
-  window.addEventListener("mousemove", (event) => moveCursor(event.clientX, event.clientY), { passive: true });
-  window.addEventListener("pointermove", (event) => {
-    if (event.pointerType === "mouse" || event.pointerType === "pen") moveCursor(event.clientX, event.clientY);
-  }, { passive: true });
-  window.addEventListener("mousedown", () => cursorFollow?.classList.add("pressed"), { passive: true });
-  window.addEventListener("mouseup", () => cursorFollow?.classList.remove("pressed"), { passive: true });
-  document.addEventListener("mouseleave", () => setCursorVisible(false));
-  document.addEventListener("mouseenter", () => { if (mouseEnabled) setCursorVisible(true); });
-
   const cards = [...document.querySelectorAll(".cards")];
   const isDeepestCardTarget = (card, target) => target.closest?.(".cards") === card;
 
   cards.forEach((card) => {
     const hoverScale = card.classList.contains("utility-card") ? 1.02 : 1.01;
     let mouseInside = false;
+    let mouseRect = null;
+    let pendingMouse = null;
+    let mouseRaf = 0;
     let touchId = null;
     let touchRect = null;
 
-    const setCardTransform = (transform, transition = "transform 120ms ease-out, background-color .3s, backdrop-filter .3s") => {
+    const setCardTransform = (transform, transition = "transform 120ms ease-out, background-color .3s") => {
       card.style.transition = transition;
       card.style.transform = transform;
     };
 
     const clearCard = () => {
-      card.style.transition = "transform 220ms ease, background-color .3s, backdrop-filter .3s";
+      if (mouseRaf) {
+        cancelAnimationFrame(mouseRaf);
+        mouseRaf = 0;
+      }
+      pendingMouse = null;
+      mouseRect = null;
+      card.style.transition = "transform 220ms ease, background-color .3s";
       card.style.transform = "translate3d(0,0,0) scale(1)";
       card.style.backgroundColor = "";
+    };
+
+    const renderMouseMove = () => {
+      mouseRaf = 0;
+      if (!mouseInside || !mouseRect || !pendingMouse) return;
+
+      const { clientX, clientY } = pendingMouse;
+      pendingMouse = null;
+      const nx = (clientX - mouseRect.left) / mouseRect.width - 0.5;
+      const ny = (clientY - mouseRect.top) / mouseRect.height - 0.5;
+      const tx = nx * 5;
+      const ty = ny * 4;
+      setCardTransform(`translate3d(${tx}px, ${ty}px, 0) scale(${hoverScale})`);
+      if (card.classList.contains("utility-card")) card.style.backgroundColor = "rgba(0,0,0,.4)";
     };
 
     const bounceHome = () => {
@@ -499,19 +457,14 @@ function installMouseAndTouchInteractions() {
 
     card.addEventListener("mouseenter", () => {
       mouseInside = true;
-      card.style.transition = "transform 120ms ease-out, background-color .3s, backdrop-filter .3s";
+      mouseRect = card.getBoundingClientRect();
+      card.style.transition = "transform 120ms ease-out, background-color .3s";
     });
 
     card.addEventListener("mousemove", (event) => {
       if (!isDeepestCardTarget(card, event.target)) return;
-      enableMouseMode();
-      const rect = card.getBoundingClientRect();
-      const nx = (event.clientX - rect.left) / rect.width - 0.5;
-      const ny = (event.clientY - rect.top) / rect.height - 0.5;
-      const tx = nx * 5;
-      const ty = ny * 4;
-      setCardTransform(`translate3d(${tx}px, ${ty}px, 0) scale(${hoverScale})`);
-      if (card.classList.contains("utility-card")) card.style.backgroundColor = "rgba(0,0,0,.4)";
+      pendingMouse = { clientX: event.clientX, clientY: event.clientY };
+      if (!mouseRaf) mouseRaf = requestAnimationFrame(renderMouseMove);
     }, { passive: true });
 
     card.addEventListener("mousedown", (event) => {

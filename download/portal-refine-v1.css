@@ -105,6 +105,51 @@
   }
 }
 
+/* Performance-only: visible motion is unchanged. Infinite decorative animation is paused
+   while a reveal chapter is outside the existing observer window. */
+html.studio-motion-ready .studio-reveal .stage-ambient,
+html.studio-motion-ready .studio-reveal .execute-step.active > i,
+html.studio-motion-ready .studio-reveal .session-pulse {
+  animation-play-state: paused;
+}
+
+html.studio-motion-ready .studio-reveal.is-visible .stage-ambient,
+html.studio-motion-ready .studio-reveal.is-visible .execute-step.active > i,
+html.studio-motion-ready .studio-reveal.is-visible .session-pulse {
+  animation-play-state: running;
+}
+
+/* Active transform/opacity animations are promoted automatically. Do not pin dozens of
+   finished reveal elements into permanent compositor layers. */
+html.studio-motion-ready .studio-intro .studio-kicker,
+html.studio-motion-ready .studio-intro h2,
+html.studio-motion-ready .studio-intro-copy,
+html.studio-motion-ready .feature-copy .feature-sequence,
+html.studio-motion-ready .feature-copy h2,
+html.studio-motion-ready .feature-copy > p,
+html.studio-motion-ready .feature-copy .feature-notes,
+html.studio-motion-ready .feature-copy .feature-callout,
+html.studio-motion-ready .feature-stage,
+html.studio-motion-ready .batch-copy .feature-sequence,
+html.studio-motion-ready .batch-copy h2,
+html.studio-motion-ready .batch-copy > p,
+html.studio-motion-ready .batch-stage,
+html.studio-motion-ready .boundary-heading .feature-sequence,
+html.studio-motion-ready .boundary-heading h2,
+html.studio-motion-ready .boundary-item,
+html.studio-motion-ready .distribution-main .feature-sequence,
+html.studio-motion-ready .distribution-main h2,
+html.studio-motion-ready .distribution-main > p,
+html.studio-motion-ready .distribution-rail > div,
+html.studio-motion-ready .studio-support-reveal .utility-card,
+.stage-ambient,
+.parallax-layer-far::before,
+.parallax-layer-far::after,
+.parallax-layer-near::before,
+.parallax-layer-near::after {
+  will-change: auto !important;
+}
+
 @media (max-width: 900px) {
   .studio-intro h2 {
     font-size: clamp(2.25rem, 8vw, 3.8rem);

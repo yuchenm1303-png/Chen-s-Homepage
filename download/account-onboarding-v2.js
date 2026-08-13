@@ -201,7 +201,14 @@ function openForgotPassword() {
       showToast("密码重设邮件已请求发送");
     } catch (error) {
       console.error("password reset request failed", error);
-      setStatus(status, "暂时无法发送重设邮件，请稍后重试。", "error");
+      const message = String(error?.message || "");
+      const code = String(error?.code || error?.status || "");
+      if (/rate limit|too many|over_email_send_rate_limit/i.test(message) || code === "429") {
+        setStatus(status, "邮件发送过于频繁，已触发发送限流。请稍后再试，并避免连续点击发送。", "warn");
+        showToast("邮件发送过于频繁，请稍后再试");
+      } else {
+        setStatus(status, "暂时无法发送重设邮件，请稍后重试。", "error");
+      }
     } finally {
       submit.disabled = false;
       submit.textContent = "发送重设邮件";

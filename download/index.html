@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a0d14" />
+  <title>Listing Studio · Download Center</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="background" aria-hidden="true">
+    <div class="grid"></div>
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+    <div class="glow glow-c"></div>
+  </div>
+
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Listing Studio">
+        <span class="brand-mark">LS</span>
+        <span class="brand-copy">
+          <strong>Listing Studio</strong>
+          <small>Distribution Center</small>
+        </span>
+      </a>
+
+      <div class="topbar-meta">
+        <span class="service-state"><i></i> Release service online</span>
+        <span class="divider"></span>
+        <span>Windows x64</span>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow-pill">MAKRO LISTING AUTOMATION</div>
+          <h1>一个更安静的<br />软件发布入口。</h1>
+          <p class="hero-description">
+            登录后直接获取 Listing Studio 最新 Windows 版本。安装包、版本说明和运行环境集中在一个页面，不再需要寻找临时下载链接。
+          </p>
+
+          <div class="hero-points">
+            <span><i></i> 身份验证后下载</span>
+            <span><i></i> 最新版本统一入口</span>
+            <span><i></i> Windows 10 / 11</span>
+          </div>
+        </div>
+
+        <article class="panel account-panel" id="accountCard">
+          <div class="panel-head">
+            <div>
+              <span class="overline">ACCOUNT ACCESS</span>
+              <h2>用户登录</h2>
+            </div>
+            <span class="secure-badge">SECURE</span>
+          </div>
+
+          <div id="loggedOutState">
+            <form id="loginForm" class="login-form" autocomplete="on">
+              <label>
+                <span>邮箱</span>
+                <input id="emailInput" type="email" autocomplete="email" placeholder="name@example.com" required />
+              </label>
+              <label>
+                <span>密码</span>
+                <input id="passwordInput" type="password" autocomplete="current-password" placeholder="••••••••" required />
+              </label>
+              <button class="primary-button" type="submit">登录账户</button>
+            </form>
+            <p class="form-note" id="loginMessage">登录后即可获取最新版安装包。</p>
+          </div>
+
+          <div id="loggedInState" class="signed-in" hidden>
+            <div class="account-avatar">✓</div>
+            <div>
+              <span class="overline">SIGNED IN</span>
+              <p class="account-email" id="accountEmail">—</p>
+            </div>
+            <button class="text-button" id="logoutButton" type="button">退出</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="release-section">
+        <div class="section-title-row">
+          <div>
+            <span class="overline">LATEST RELEASE</span>
+            <h2>最新版下载</h2>
+          </div>
+          <span class="release-state"><i></i> Production</span>
+        </div>
+
+        <div class="release-grid">
+          <article class="panel release-card">
+            <div class="release-main">
+              <div class="app-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>
+              </div>
+
+              <div class="release-copy">
+                <span class="overline">WINDOWS INSTALLER</span>
+                <div class="version-line">
+                  <h3>Listing Studio <span id="versionNumber">v0.1.0</span></h3>
+                  <span class="latest-tag">LATEST</span>
+                </div>
+                <p>适用于日常安装与更新。登录后下载按钮将自动解锁。</p>
+              </div>
+            </div>
+
+            <div class="release-details">
+              <div>
+                <span>发布日期</span>
+                <strong id="publishedAt">2026.08.13 发布</strong>
+              </div>
+              <div>
+                <span>运行平台</span>
+                <strong id="platformText">Windows 10 / 11 · x64</strong>
+              </div>
+              <div>
+                <span>文件大小</span>
+                <strong id="fileSizeText">安装包大小待发布</strong>
+              </div>
+            </div>
+
+            <button class="download-button" id="downloadButton" type="button" disabled>
+              <span class="download-arrow">↓</span>
+              <span class="download-label">
+                <strong>下载最新版</strong>
+                <small id="downloadButtonHint">请先登录</small>
+              </span>
+            </button>
+          </article>
+
+          <article class="panel trust-card">
+            <span class="overline">DELIVERY</span>
+            <h3>受控分发</h3>
+            <p>下载权限与账号会话绑定。正式环境可通过短时签名链接提供安装包，不暴露长期存储地址。</p>
+
+            <div class="trust-list">
+              <div><span class="trust-icon">01</span><p><strong>账户验证</strong><small>Supabase Auth</small></p></div>
+              <div><span class="trust-icon">02</span><p><strong>版本确认</strong><small>Latest release</small></p></div>
+              <div><span class="trust-icon">03</span><p><strong>安全下载</strong><small>Signed URL ready</small></p></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="info-grid">
+        <article class="panel info-card">
+          <div class="info-heading">
+            <span class="info-number">01</span>
+            <div><span class="overline">CHANGELOG</span><h3>本次更新</h3></div>
+          </div>
+          <ul class="release-list" id="releaseNotes"></ul>
+        </article>
+
+        <article class="panel info-card">
+          <div class="info-heading">
+            <span class="info-number">02</span>
+            <div><span class="overline">REQUIREMENTS</span><h3>运行环境</h3></div>
+          </div>
+          <div class="spec-list">
+            <div><span>Operating system</span><strong>Windows 10 / 11</strong></div>
+            <div><span>Architecture</span><strong>x64</strong></div>
+            <div><span>Browser runtime</span><strong>Microsoft Edge</strong></div>
+          </div>
+        </article>
+
+        <article class="panel info-card">
+          <div class="info-heading">
+            <span class="info-number">03</span>
+            <div><span class="overline">SUPPORT</span><h3>安装与支持</h3></div>
+          </div>
+          <p class="support-copy">安装失败、登录异常或启动问题，可在后续接入帮助文档、反馈入口与版本回退说明。</p>
+          <button class="secondary-button" type="button" disabled>支持中心 · 即将开放</button>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <span>© 2026 Listing Studio</span>
+      <span>Private software distribution portal</span>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="./config.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

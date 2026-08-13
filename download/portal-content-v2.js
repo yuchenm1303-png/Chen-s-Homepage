@@ -1,5 +1,41 @@
 (() => {
+  const installBackgroundTone = () => {
+    if (document.getElementById('portal-background-tone-v1')) return;
+
+    const style = document.createElement('style');
+    style.id = 'portal-background-tone-v1';
+    style.textContent = `
+      .cosmos { background: #495b8a; }
+      .cosmos-sky {
+        background: linear-gradient(
+          180deg,
+          #6a96b3 0%,
+          #6287a6 25%,
+          #586f99 47%,
+          #5f668f 68%,
+          #766292 86%,
+          #4d5478 100%
+        );
+      }
+      .cosmos-glow {
+        background:
+          radial-gradient(ellipse at 22% 18%, rgba(255,255,255,.17), transparent 42%),
+          radial-gradient(ellipse at 76% 38%, rgba(169,243,239,.12), transparent 37%),
+          radial-gradient(ellipse at 32% 85%, rgba(235,188,235,.10), transparent 44%);
+      }
+      .cosmos-nebula { opacity: .74; }
+      .cosmos-vignette {
+        box-shadow:
+          inset 0 0 220px rgba(38,43,78,.36),
+          inset 0 -140px 210px rgba(42,40,76,.31),
+          inset 0 90px 160px rgba(255,255,255,.02);
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
   const mount = async () => {
+    installBackgroundTone();
     if (document.querySelector('.studio-intro')) return;
 
     const styles = [

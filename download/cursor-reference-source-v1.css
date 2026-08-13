@@ -3,15 +3,15 @@
     cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' width='10px' height='10px'><circle cx='4' cy='4' r='4' fill='white' /></svg>") 4 4, auto !important;
   }
 
-  html.custom-cursor,
-  html.custom-cursor body,
-  html.custom-cursor body * {
+  html.custom-cursor.custom-cursor,
+  html.custom-cursor.custom-cursor body,
+  html.custom-cursor.custom-cursor body * {
     cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' width='10px' height='10px'><circle cx='4' cy='4' r='4' fill='white' /></svg>") 4 4, auto !important;
   }
 
   .cursor-dot,
-  html.custom-cursor .cursor-dot,
-  html.custom-cursor body .cursor-dot {
+  html.custom-cursor body .cursor-dot,
+  html.custom-cursor.custom-cursor body .cursor-dot {
     display: none !important;
   }
 

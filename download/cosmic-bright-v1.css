@@ -88,19 +88,19 @@
 @keyframes cosmic-twinkle {
   0%,100% {
     opacity: var(--star-opacity, .76);
-    filter: hue-rotate(0deg) brightness(1.05) saturate(1.2);
+    filter: brightness(1.05) saturate(1.2);
   }
   35% {
     opacity: 1;
-    filter: hue-rotate(32deg) brightness(1.72) saturate(1.65);
+    filter: brightness(1.72) saturate(1.35);
   }
   62% {
     opacity: calc(var(--star-opacity, .76) * .66);
-    filter: hue-rotate(74deg) brightness(.96) saturate(1.35);
+    filter: brightness(.96) saturate(1.2);
   }
   82% {
     opacity: .96;
-    filter: hue-rotate(118deg) brightness(1.48) saturate(1.7);
+    filter: brightness(1.48) saturate(1.3);
   }
 }
 @keyframes cosmic-breathe {
@@ -129,12 +129,12 @@
   transform: translate(-50%,-50%);
   opacity: var(--star-opacity);
   animation:
-    cosmic-twinkle 3.2s ease-in-out infinite,
-    cosmic-breathe 3.2s ease-in-out infinite;
+    cosmic-twinkle 6.8s ease-in-out infinite,
+    cosmic-breathe 6.8s ease-in-out infinite;
 }
-.major-star:nth-child(2n) { animation-delay: -1.15s; }
-.major-star:nth-child(3n) { animation-delay: -2.25s; }
-.major-star:nth-child(5n) { animation-duration: 3.7s, 3.7s; }
+.major-star:nth-child(2n) { animation-delay: -2.4s; }
+.major-star:nth-child(3n) { animation-delay: -4.6s; }
+.major-star:nth-child(5n) { animation-duration: 7.8s, 7.8s; }
 
 .major-star::before,
 .major-star::after,
@@ -191,32 +191,32 @@
     0 0 8px currentColor,
     0 0 18px color-mix(in srgb, currentColor 72%, transparent),
     0 0 32px color-mix(in srgb, currentColor 34%, transparent);
-  animation: small-star-twinkle 3.25s ease-in-out infinite;
+  animation: small-star-twinkle 7.2s ease-in-out infinite;
   will-change: transform, opacity, filter;
 }
-.small-star:nth-child(2n) { animation-delay: -1.05s; animation-duration: 2.8s; }
-.small-star:nth-child(3n) { animation-delay: -2.1s; animation-duration: 3.65s; }
-.small-star:nth-child(5n) { animation-delay: -.65s; animation-duration: 2.45s; }
+.small-star:nth-child(2n) { animation-delay: -2.1s; animation-duration: 6.4s; }
+.small-star:nth-child(3n) { animation-delay: -4.2s; animation-duration: 8.2s; }
+.small-star:nth-child(5n) { animation-delay: -1.3s; animation-duration: 5.8s; }
 @keyframes small-star-twinkle {
   0%,100% {
     opacity: var(--small-opacity, .74);
     transform: translate(-50%,-50%) scale(.92);
-    filter: hue-rotate(0deg) brightness(1.05) saturate(1.25);
+    filter: brightness(1.05) saturate(1.15);
   }
   30% {
     opacity: 1;
     transform: translate(-50%,-50%) scale(1.48);
-    filter: hue-rotate(38deg) brightness(1.8) saturate(1.75);
+    filter: brightness(1.8) saturate(1.3);
   }
   58% {
     opacity: .48;
     transform: translate(-50%,-50%) scale(.82);
-    filter: hue-rotate(88deg) brightness(.9) saturate(1.35);
+    filter: brightness(.9) saturate(1.15);
   }
   80% {
     opacity: .95;
     transform: translate(-50%,-50%) scale(1.25);
-    filter: hue-rotate(142deg) brightness(1.5) saturate(1.8);
+    filter: brightness(1.5) saturate(1.28);
   }
 }
 .small-star--ivory { color: rgb(255, 220, 112); }
@@ -254,32 +254,32 @@
 }
 .hero-flare {
   transform-origin: center;
-  animation: hero-star-pulse 3.1s ease-in-out infinite;
+  animation: hero-star-pulse 6.6s ease-in-out infinite;
 }
 @keyframes hero-star-pulse {
   0%,100% {
     opacity: .86;
     transform: scale(.94);
-    filter: hue-rotate(0deg) brightness(1.08) saturate(1.35);
+    filter: brightness(1.08) saturate(1.2);
   }
   38% {
     opacity: 1;
     transform: scale(1.22);
-    filter: hue-rotate(44deg) brightness(1.68) saturate(1.75);
+    filter: brightness(1.68) saturate(1.35);
   }
   68% {
     opacity: .74;
     transform: scale(.9);
-    filter: hue-rotate(98deg) brightness(.96) saturate(1.45);
+    filter: brightness(.96) saturate(1.2);
   }
   84% {
     opacity: 1;
     transform: scale(1.12);
-    filter: hue-rotate(148deg) brightness(1.42) saturate(1.8);
+    filter: brightness(1.42) saturate(1.32);
   }
 }
 .hero-flare-main { --star-color: 83,255,226; --star-size:66px; right:8%; top:22%; }
-.hero-flare-secondary { --star-color: 255,104,213; --star-size:40px; left:28%; bottom:17%; opacity:.94; animation-delay:-1.55s; }
+.hero-flare-secondary { --star-color: 255,104,213; --star-size:40px; left:28%; bottom:17%; opacity:.94; animation-delay:-3.2s; }
 .hero-dot {
   position:absolute;
   width:3px;
@@ -287,16 +287,16 @@
   border-radius:50%;
   background:rgb(255,221,105);
   box-shadow:0 0 10px rgba(255,221,105,.82), 0 0 22px rgba(255,157,76,.38);
-  animation: hero-dot-pulse 2.7s ease-in-out infinite;
+  animation: hero-dot-pulse 5.8s ease-in-out infinite;
 }
 @keyframes hero-dot-pulse {
-  0%,100% { opacity:.7; transform:scale(.86); filter:hue-rotate(0deg) brightness(1); }
-  45% { opacity:1; transform:scale(1.55); filter:hue-rotate(70deg) brightness(1.7); }
-  72% { opacity:.58; transform:scale(.8); filter:hue-rotate(140deg) brightness(.95); }
+  0%,100% { opacity:.7; transform:scale(.86); filter:brightness(1); }
+  45% { opacity:1; transform:scale(1.55); filter:brightness(1.7); }
+  72% { opacity:.58; transform:scale(.8); filter:brightness(.95); }
 }
-.hero-dot-a { left:8%; top:19%; animation-delay:-.4s; }
-.hero-dot-b { left:52%; top:8%; background:rgb(255,106,214); animation-delay:-1.25s; }
-.hero-dot-c { right:24%; bottom:7%; background:rgb(88,255,230); animation-delay:-2s; }
+.hero-dot-a { left:8%; top:19%; animation-delay:-.8s; }
+.hero-dot-b { left:52%; top:8%; background:rgb(255,106,214); animation-delay:-2.5s; }
+.hero-dot-c { right:24%; bottom:7%; background:rgb(88,255,230); animation-delay:-4s; }
 .hero-trail {
   position:absolute;
   left:17%;

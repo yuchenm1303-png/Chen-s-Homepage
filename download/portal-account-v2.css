@@ -30,9 +30,7 @@
   transform: translateY(-1px);
 }
 
-.switch-account-button:active {
-  transform: scale(.985);
-}
+.switch-account-button:active { transform: scale(.985); }
 
 .password-field input {
   background-color: #24384a !important;
@@ -50,8 +48,122 @@
   border-color: rgba(151,220,238,.28) !important;
 }
 
+/* Denser cosmic field: CSS-only, inherits the existing far/near parallax. */
+.parallax-layer-far::before,
+.parallax-layer-far::after,
+.parallax-layer-near::before,
+.parallax-layer-near::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.parallax-layer-far::before {
+  width: 1.6px;
+  height: 1.6px;
+  background: rgba(255,244,218,.94);
+  box-shadow:
+    4vw 9vh 0 rgba(255,244,218,.9), 8vw 29vh 0 rgba(205,235,242,.86),
+    13vw 17vh 0 rgba(241,211,225,.8), 16vw 48vh 0 rgba(255,244,218,.88),
+    20vw 66vh 0 rgba(205,235,242,.82), 24vw 11vh 0 rgba(255,244,218,.94),
+    27vw 39vh 0 rgba(241,211,225,.78), 30vw 82vh 0 rgba(205,235,242,.82),
+    34vw 25vh 0 rgba(255,244,218,.88), 38vw 54vh 0 rgba(205,235,242,.88),
+    41vw 7vh 0 rgba(241,211,225,.78), 45vw 72vh 0 rgba(255,244,218,.92),
+    48vw 32vh 0 rgba(205,235,242,.84), 51vw 91vh 0 rgba(255,244,218,.86),
+    55vw 15vh 0 rgba(241,211,225,.8), 58vw 61vh 0 rgba(205,235,242,.86),
+    62vw 41vh 0 rgba(255,244,218,.92), 65vw 77vh 0 rgba(241,211,225,.76),
+    69vw 21vh 0 rgba(205,235,242,.86), 72vw 55vh 0 rgba(255,244,218,.9),
+    75vw 6vh 0 rgba(241,211,225,.8), 79vw 86vh 0 rgba(205,235,242,.84),
+    82vw 36vh 0 rgba(255,244,218,.92), 86vw 64vh 0 rgba(241,211,225,.76),
+    89vw 14vh 0 rgba(205,235,242,.88), 93vw 47vh 0 rgba(255,244,218,.9),
+    97vw 73vh 0 rgba(205,235,242,.84);
+  filter: drop-shadow(0 0 4px rgba(232,246,255,.52));
+  animation: dense-stars-far 13s ease-in-out infinite;
+}
+
+.parallax-layer-far::after {
+  width: 1.15px;
+  height: 1.15px;
+  background: rgba(205,235,242,.9);
+  box-shadow:
+    2vw 57vh 0 rgba(205,235,242,.8), 6vw 79vh 0 rgba(255,244,218,.76),
+    11vw 38vh 0 rgba(241,211,225,.72), 15vw 88vh 0 rgba(205,235,242,.78),
+    19vw 22vh 0 rgba(255,244,218,.74), 23vw 73vh 0 rgba(241,211,225,.7),
+    28vw 58vh 0 rgba(205,235,242,.78), 33vw 94vh 0 rgba(255,244,218,.74),
+    37vw 43vh 0 rgba(241,211,225,.7), 42vw 64vh 0 rgba(205,235,242,.76),
+    46vw 19vh 0 rgba(255,244,218,.76), 50vw 49vh 0 rgba(241,211,225,.7),
+    54vw 84vh 0 rgba(205,235,242,.8), 59vw 28vh 0 rgba(255,244,218,.74),
+    64vw 92vh 0 rgba(241,211,225,.72), 68vw 48vh 0 rgba(205,235,242,.78),
+    73vw 70vh 0 rgba(255,244,218,.74), 78vw 25vh 0 rgba(241,211,225,.7),
+    83vw 91vh 0 rgba(205,235,242,.8), 87vw 52vh 0 rgba(255,244,218,.76),
+    91vw 31vh 0 rgba(241,211,225,.7), 96vw 60vh 0 rgba(205,235,242,.78);
+  filter: drop-shadow(0 0 3px rgba(232,246,255,.42));
+  animation: dense-stars-far 16s ease-in-out infinite reverse;
+}
+
+.parallax-layer-near::before {
+  width: 2.35px;
+  height: 2.35px;
+  background: rgba(255,244,218,.98);
+  box-shadow:
+    5vw 18vh 0 rgba(255,244,218,.96), 12vw 52vh 0 rgba(205,235,242,.94),
+    18vw 83vh 0 rgba(241,211,225,.88), 25vw 31vh 0 rgba(205,235,242,.94),
+    32vw 69vh 0 rgba(255,244,218,.94), 39vw 13vh 0 rgba(241,211,225,.88),
+    46vw 47vh 0 rgba(205,235,242,.96), 53vw 78vh 0 rgba(255,244,218,.94),
+    61vw 26vh 0 rgba(241,211,225,.88), 69vw 62vh 0 rgba(205,235,242,.96),
+    77vw 88vh 0 rgba(255,244,218,.94), 84vw 39vh 0 rgba(241,211,225,.88),
+    92vw 71vh 0 rgba(205,235,242,.96), 98vw 24vh 0 rgba(255,244,218,.94);
+  filter: drop-shadow(0 0 7px rgba(235,247,255,.76));
+  animation: dense-stars-near 11s ease-in-out infinite;
+}
+
+.parallax-layer-near::after {
+  width: 1.85px;
+  height: 1.85px;
+  background: rgba(205,235,242,.96);
+  box-shadow:
+    7vw 71vh 0 rgba(205,235,242,.9), 15vw 27vh 0 rgba(255,244,218,.88),
+    22vw 61vh 0 rgba(241,211,225,.84), 29vw 91vh 0 rgba(205,235,242,.9),
+    36vw 38vh 0 rgba(255,244,218,.88), 44vw 74vh 0 rgba(241,211,225,.84),
+    57vw 17vh 0 rgba(205,235,242,.92), 64vw 53vh 0 rgba(255,244,218,.88),
+    72vw 81vh 0 rgba(241,211,225,.84), 80vw 19vh 0 rgba(205,235,242,.92),
+    88vw 58vh 0 rgba(255,244,218,.88), 95vw 87vh 0 rgba(241,211,225,.84);
+  filter: drop-shadow(0 0 5px rgba(235,247,255,.66));
+  animation: dense-stars-near 14s ease-in-out infinite reverse;
+}
+
+.small-star {
+  box-shadow: 0 0 10px currentColor, 0 0 23px color-mix(in srgb,currentColor 80%,transparent), 0 0 38px color-mix(in srgb,currentColor 42%,transparent);
+}
+
+.major-star,
+.hero-flare {
+  box-shadow: 0 0 11px rgba(var(--star-color),1), 0 0 30px rgba(var(--star-color),.62), 0 0 58px rgba(var(--star-color),.28);
+}
+
+@keyframes dense-stars-far {
+  0%,100% { opacity:.68; }
+  42% { opacity:1; }
+  72% { opacity:.8; }
+}
+
+@keyframes dense-stars-near {
+  0%,100% { opacity:.72; }
+  45% { opacity:1; }
+  76% { opacity:.84; }
+}
+
 @media (max-width: 650px) {
-  .signed-account-actions {
-    grid-template-columns: 1fr;
-  }
+  .signed-account-actions { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parallax-layer-far::before,
+  .parallax-layer-far::after,
+  .parallax-layer-near::before,
+  .parallax-layer-near::after { animation: none !important; }
 }

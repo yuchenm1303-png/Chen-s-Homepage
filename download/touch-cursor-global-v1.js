@@ -3,6 +3,59 @@
   const follow = document.getElementById("cursorFollow");
   if (!dot || !follow) return;
 
+  if (!document.getElementById("reference-cursor-v1")) {
+    const style = document.createElement("style");
+    style.id = "reference-cursor-v1";
+    style.textContent = `
+      .cursor-dot {
+        width: 18px !important;
+        height: 18px !important;
+        margin: -9px 0 0 -9px !important;
+        background: rgba(255,255,255,.25) !important;
+        box-shadow: none !important;
+        transition:
+          width .2s ease-in-out,
+          height .2s ease-in-out,
+          margin .2s ease-in-out,
+          background-color .2s ease-in-out,
+          opacity .2s ease-in-out !important;
+      }
+
+      html:has(.cursor-follow.pressed) .cursor-dot,
+      body:active .cursor-dot {
+        width: 9px !important;
+        height: 9px !important;
+        margin: -4.5px 0 0 -4.5px !important;
+        background: rgba(255,255,255,.5) !important;
+      }
+
+      .cursor-follow {
+        width: 28px !important;
+        height: 28px !important;
+        margin: -14px 0 0 -14px !important;
+        background: transparent !important;
+        border: 1px solid rgba(255,255,255,.18) !important;
+        box-shadow: 0 0 12px rgba(255,255,255,.035) !important;
+        transition:
+          transform .24s cubic-bezier(.23,1,.32,1),
+          width .2s ease-in-out,
+          height .2s ease-in-out,
+          margin .2s ease-in-out,
+          border-color .2s ease-in-out,
+          opacity .2s ease-in-out !important;
+      }
+
+      .cursor-follow.pressed {
+        width: 24px !important;
+        height: 24px !important;
+        margin: -12px 0 0 -12px !important;
+        background: transparent !important;
+        border-color: rgba(255,255,255,.28) !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   let targetX = window.innerWidth * 0.5;
   let targetY = window.innerHeight * 0.5;
   let followX = targetX;
@@ -55,8 +108,8 @@
 
   const animate = () => {
     if (touching) {
-      followX += (targetX - followX) * 0.35;
-      followY += (targetY - followY) * 0.35;
+      followX += (targetX - followX) * 0.16;
+      followY += (targetY - followY) * 0.16;
       follow.style.transform = `translate3d(${followX}px, ${followY}px, 0)`;
     }
     raf = window.requestAnimationFrame(animate);

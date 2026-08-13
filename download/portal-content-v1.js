@@ -14,7 +14,7 @@
 
     const refineCss = document.createElement('link');
     refineCss.rel = 'stylesheet';
-    refineCss.href = './portal-refine-v1.css?v=20260813-1';
+    refineCss.href = './portal-refine-v1.css?v=20260813-2';
     document.head.appendChild(refineCss);
 
     const hero = document.querySelector('.portal-title-copy > p:last-child');

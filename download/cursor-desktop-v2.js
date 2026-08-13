@@ -1,45 +1,115 @@
 (() => {
   const dot = document.getElementById("cursorDot");
   const follow = document.getElementById("cursorFollow");
-  if (!dot || !follow || !window.PointerEvent) return;
+  if (!dot || !follow) return;
 
-  const root = document.documentElement;
-  const styleId = "listing-studio-low-latency-cursor-style";
+  const style = document.createElement("style");
+  style.id = "reference-homepage-cursor";
+  style.textContent = `
+    .cursor-dot {
+      position: fixed !important;
+      width: 10px !important;
+      height: 10px !important;
+      margin: -5px 0 0 -5px !important;
+      border: 0 !important;
+      border-radius: 50% !important;
+      background: #fff !important;
+      box-shadow: none !important;
+      opacity: 0 !important;
+      transform: none !important;
+      pointer-events: none !important;
+      z-index: 10087 !important;
+    }
 
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.textContent = `
-      html.cursor-low-latency .cursor-dot,
-      html.cursor-low-latency .cursor-follow {
-        transform: var(--ls-cursor-transform, translate3d(-100px, -100px, 0)) !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
+    .cursor-dot.cursor-visible { opacity: 1 !important; }
 
-  const move = (event) => {
-    if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+    .cursor-follow {
+      position: fixed !important;
+      width: 18px !important;
+      height: 18px !important;
+      margin: 0 !important;
+      border: 0 !important;
+      border-radius: 25px !important;
+      background: #fff !important;
+      box-shadow: none !important;
+      opacity: .25 !important;
+      transform: scale(1) !important;
+      pointer-events: none !important;
+      z-index: 10086 !important;
+      transition: .2s ease-in-out !important;
+      transition-property: background, opacity, transform !important;
+    }
 
-    const coalesced = typeof event.getCoalescedEvents === "function"
-      ? event.getCoalescedEvents()
-      : null;
-    const point = coalesced?.length ? coalesced[coalesced.length - 1] : event;
-    const transform = `translate3d(${point.clientX}px, ${point.clientY}px, 0)`;
+    .cursor-follow.hidden { opacity: 0 !important; }
+    .cursor-follow.active {
+      opacity: .5 !important;
+      transform: scale(.5) !important;
+    }
 
-    dot.style.setProperty("--ls-cursor-transform", transform);
-    follow.style.setProperty("--ls-cursor-transform", transform);
-    root.classList.add("cursor-low-latency");
+    @media (max-width: 720px), (pointer: coarse) {
+      .cursor-dot,
+      .cursor-follow { display: none !important; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  let curr = null;
+  let prev = null;
+  let raf = 0;
+
+  const moveFollow = (x, y) => {
+    follow.style.left = `${x}px`;
+    follow.style.top = `${y}px`;
   };
 
-  const releaseToTouchCursor = () => {
-    root.classList.remove("cursor-low-latency");
+  const render = () => {
+    raf = 0;
+    if (!curr) return;
+
+    if (prev) {
+      prev.x += (curr.x - prev.x) * 0.35;
+      prev.y += (curr.y - prev.y) * 0.35;
+      moveFollow(prev.x, prev.y);
+    } else {
+      prev = { ...curr };
+      moveFollow(prev.x, prev.y);
+    }
+
+    if (Math.abs(curr.x - prev.x) > 0.01 || Math.abs(curr.y - prev.y) > 0.01) {
+      raf = requestAnimationFrame(render);
+    }
   };
 
-  window.addEventListener("pointermove", move, { passive: true });
-  document.addEventListener("touchstart", releaseToTouchCursor, { passive: true, capture: true });
-  document.addEventListener("pointerdown", (event) => {
-    if (event.pointerType === "touch") releaseToTouchCursor();
-  }, { passive: true, capture: true });
-  window.addEventListener("blur", releaseToTouchCursor);
+  const queueRender = () => {
+    if (!raf) raf = requestAnimationFrame(render);
+  };
+
+  document.addEventListener("mousemove", (event) => {
+    dot.style.left = `${event.clientX}px`;
+    dot.style.top = `${event.clientY}px`;
+    dot.classList.add("cursor-visible");
+
+    if (curr === null) moveFollow(event.clientX - 8, event.clientY - 8);
+    curr = { x: event.clientX - 8, y: event.clientY - 8 };
+    follow.classList.remove("hidden");
+    follow.classList.add("cursor-visible");
+    queueRender();
+  }, { passive: true });
+
+  document.addEventListener("mouseenter", () => {
+    dot.classList.add("cursor-visible");
+    follow.classList.remove("hidden");
+  });
+
+  document.addEventListener("mouseleave", () => {
+    dot.classList.remove("cursor-visible");
+    follow.classList.add("hidden");
+  });
+
+  document.addEventListener("mousedown", () => follow.classList.add("active"));
+  document.addEventListener("mouseup", () => follow.classList.remove("active"));
+
+  window.addEventListener("pagehide", () => {
+    if (raf) cancelAnimationFrame(raf);
+  }, { once: true });
 })();

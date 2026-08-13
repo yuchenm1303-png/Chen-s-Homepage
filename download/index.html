@@ -125,7 +125,7 @@
         </div>
 
         <button class="download-button cards" id="downloadButton" type="button" disabled>
-          <span class="download-copy"><strong>下载最新版</strong><small id="downloadButtonHint">登录后解锁</small></span>
+          <span class="download-copy"><strong>下载最新版</strong><small id="downloadButtonHint">登录后验证权限</small></span>
           <span class="download-arrow">⇩</span>
         </button>
       </article>
@@ -136,7 +136,7 @@
           <span class="secure-pill">ACCESS</span>
         </div>
 
-        <p class="account-intro">登录状态只用于控制安装包下载权限。后续可以继续接入授权有效期、用户状态和版本访问策略。</p>
+        <p class="account-intro">账户登录与下载权限分开验证。只有管理员已授权且未过期的账户才能解锁安装包。</p>
 
         <div id="loggedOutState">
           <form id="loginForm" class="login-form" autocomplete="on">
@@ -149,9 +149,9 @@
               <input id="passwordInput" type="password" autocomplete="current-password" placeholder="••••••••" required />
               <button class="password-toggle" id="passwordToggle" type="button" aria-pressed="false">显示</button>
             </label>
-            <button class="login-button cards" type="submit"><span>登录并解锁</span></button>
+            <button class="login-button cards" type="submit"><span>登录并验证权限</span></button>
           </form>
-          <p class="form-note" id="loginMessage">登录后即可下载最新版安装包。</p>
+          <p class="form-note" id="loginMessage">仅已授权账户可下载最新版安装包。</p>
         </div>
 
         <div id="loggedInState" class="signed-in" hidden>
@@ -161,8 +161,8 @@
           </div>
 
           <div class="account-status-panel">
-            <div class="account-status-line"><span>下载权限</span><strong>已解锁</strong></div>
-            <div class="account-status-line"><span>会话状态</span><strong>保持登录</strong></div>
+            <div class="account-status-line"><span>下载权限</span><strong id="downloadAccessText" data-state="neutral">未验证</strong></div>
+            <div class="account-status-line"><span>会话状态</span><strong id="sessionStateText" data-state="neutral">未登录</strong></div>
           </div>
 
           <button class="logout-button" id="logoutButton" type="button">退出登录</button>
@@ -219,7 +219,7 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="./config-v3.js"></script>
-  <script type="module" src="./app-v6.js"></script>
+  <script src="./config-v4.js"></script>
+  <script type="module" src="./app-v7.js"></script>
 </body>
 </html>

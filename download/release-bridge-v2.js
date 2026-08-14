@@ -34,12 +34,18 @@
     return `${yyyy}.${mm}.${dd}`;
   }
 
-  function normalizeNotes(value) {
-    if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean);
+  function normalizeNoteList(value) {
+    if (Array.isArray(value)) {
+      return value.map(String).map((item) => item.trim()).filter(Boolean);
+    }
     const text = String(value || "").trim();
-    if (!text) return release.notes || [];
+    if (!text) return [];
     return text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   }
+
+  const packagedNotes = normalizeNoteList(release.notes);
+  const extraNotes = normalizeNoteList(release.notesExtra);
+  release.notes = [...packagedNotes, ...extraNotes];
 
   function renderRelease() {
     const versionNumber = $("versionNumber");
@@ -78,11 +84,12 @@
       throw new Error("invalid_release_metadata");
     }
 
+    const remoteNotes = normalizeNoteList(payload.notes);
     release.version = String(payload.version);
     release.publishedAt = formatDate(payload.publishedAt);
     release.fileSize = String(payload.fileSize || release.fileSize || "—");
     release.downloadUrl = "";
-    release.notes = normalizeNotes(payload.notes);
+    release.notes = [...(remoteNotes.length ? remoteNotes : packagedNotes), ...extraNotes];
 
     document.documentElement.dataset.releaseSource = "stable-metadata-bridge";
     renderRelease();

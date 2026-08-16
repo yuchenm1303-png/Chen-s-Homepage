@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#91c7e3" />
-  <title>Listing Studio · Usage</title>
+  <title>Listing Studio · Usage Monitor</title>
   <link rel="stylesheet" href="./styles-v3.css" />
   <link rel="stylesheet" href="./cosmic-bright-v1.css" />
   <link rel="stylesheet" href="./portal-polish-v1.css" />
@@ -13,9 +13,9 @@
   <link rel="stylesheet" href="./portal-account-v2.css" />
   <link rel="stylesheet" href="./layout-visual-restore-v1.css" />
   <link rel="stylesheet" href="./cursor-reference-source-v1.css" />
-  <link rel="stylesheet" href="./usage-admin-v1.css" />
+  <link rel="stylesheet" href="./usage-admin-v1.css?v=20260816-2127" />
 </head>
-<body>
+<body class="usage-monitor-page">
   <div class="cosmos" aria-hidden="true">
     <div class="cosmos-sky"></div>
     <div class="cosmos-glow"></div>
@@ -45,7 +45,6 @@
       <span class="major-star major-star--cyan m3"></span>
       <span class="major-star major-star--rose m4"></span>
       <span class="major-star major-star--cyan m5"></span>
-
       <div class="upper-right-stars">
         <span class="hero-flare hero-flare-main"></span>
         <span class="hero-flare hero-flare-secondary"></span>
@@ -55,7 +54,6 @@
         <span class="hero-trail"></span>
       </div>
     </div>
-
     <div class="cosmos-vignette"></div>
   </div>
 
@@ -63,12 +61,12 @@
   <div class="cursor-follow" id="cursorFollow" aria-hidden="true"></div>
 
   <main class="release-shell usage-shell">
-    <header class="topbar fade">
+    <header class="topbar usage-topbar fade">
       <a class="brand" href="/" aria-label="返回 Smirel 首页">
         <span class="brand-mark">LS</span>
         <span class="brand-copy">
           <strong>Listing Studio</strong>
-          <small>Downloads</small>
+          <small>Owner Console</small>
         </span>
       </a>
 
@@ -78,78 +76,102 @@
           <a href="./#account">账户</a>
           <a href="./usage.html" aria-current="page">使用数据</a>
         </nav>
-        <div class="service-status"><i></i><span>Stable</span></div>
+        <div class="service-status"><i></i><span>Telemetry</span></div>
       </div>
     </header>
 
-    <section class="portal-title fade">
-      <div class="portal-title-copy">
-        <p class="eyebrow">OWNER · ACCOUNT TELEMETRY</p>
-        <h1>客户使用数据</h1>
-        <p>查看 Listing Studio 的在线状态、客户端版本和任务使用次数。这里不采集商品链接、商品内容、AI 内容或 Makro 字段数据。</p>
+    <section class="usage-commandbar fade">
+      <div class="usage-command-title">
+        <p class="kicker">OWNER · LIVE TELEMETRY</p>
+        <div class="usage-title-line">
+          <h1>Usage Monitor</h1>
+          <span class="usage-live-chip"><i></i>Live</span>
+        </div>
+        <p>客户在线、版本、设备与 Listing 任务使用情况。</p>
       </div>
-      <div class="portal-title-meta" aria-label="数据状态">
-        <span class="title-chip live">Owner</span>
-        <span class="title-chip">Live telemetry</span>
+
+      <div class="usage-command-actions">
+        <div class="usage-update-copy">
+          <span>LAST UPDATE</span>
+          <strong id="generatedAt">等待读取</strong>
+        </div>
+        <button id="refreshButton" class="usage-refresh" type="button">刷新</button>
       </div>
     </section>
 
-    <section class="release-card cards fade usage-panel">
-      <div class="release-head">
+    <section class="usage-status-strip fade" aria-live="polite">
+      <div class="usage-status-main">
+        <span class="usage-status-dot"></span>
+        <strong id="statusPanel" data-state="neutral">正在验证管理员账号…</strong>
+      </div>
+      <div class="usage-status-meta">
+        <span id="accountCountText">0 accounts</span>
+        <span id="windowText">—</span>
+      </div>
+    </section>
+
+    <section id="summaryGrid" class="usage-summary-grid fade" hidden>
+      <article class="usage-kpi-card usage-kpi-card--online">
+        <div class="usage-kpi-head"><span>当前在线</span><i class="usage-kpi-dot"></i></div>
+        <strong id="onlineCount">0</strong>
+        <small id="onlineRatio">—</small>
+      </article>
+      <article class="usage-kpi-card">
+        <div class="usage-kpi-head"><span>登记账号</span><span>ACC</span></div>
+        <strong id="accountCount">0</strong>
+        <small>enabled accounts</small>
+      </article>
+      <article class="usage-kpi-card">
+        <div class="usage-kpi-head"><span>程序启动</span><span>APP</span></div>
+        <strong id="launchCount">0</strong>
+        <small>累计 session</small>
+      </article>
+      <article class="usage-kpi-card">
+        <div class="usage-kpi-head"><span>活跃设备</span><span>DEV</span></div>
+        <strong id="activeDeviceCount">0</strong>
+        <small id="deviceCapacityText">—</small>
+      </article>
+      <article class="usage-kpi-card">
+        <div class="usage-kpi-head"><span>单商品完成</span><span>ONE</span></div>
+        <strong id="singleDoneCount">0</strong>
+        <small>listing execute</small>
+      </article>
+      <article class="usage-kpi-card">
+        <div class="usage-kpi-head"><span>批量完成</span><span>BAT</span></div>
+        <strong id="batchDoneCount">0</strong>
+        <small>batch execute</small>
+      </article>
+      <article class="usage-kpi-card usage-kpi-card--success">
+        <div class="usage-kpi-head"><span>任务成功率</span><span>OK</span></div>
+        <strong id="successRate">—</strong>
+        <small id="successRateMeta">暂无任务</small>
+      </article>
+      <article class="usage-kpi-card usage-kpi-card--failure">
+        <div class="usage-kpi-head"><span>失败事件</span><span>ERR</span></div>
+        <strong id="failureCount">0</strong>
+        <small>prepare + execute</small>
+      </article>
+    </section>
+
+    <section id="accountsSection" class="usage-accounts-section fade" hidden>
+      <header class="usage-section-head">
         <div>
-          <p class="kicker">USAGE OVERVIEW</p>
-          <h2 class="usage-section-title">账户使用概览</h2>
+          <p class="kicker">ACCOUNT ACTIVITY</p>
+          <h2>客户运行状态</h2>
         </div>
-        <button id="refreshButton" class="switch-account-button usage-refresh" type="button">刷新数据</button>
-      </div>
-
-      <div class="account-status-panel usage-status-panel">
-        <div class="account-status-line">
-          <span>数据状态</span>
-          <strong id="statusPanel" data-state="neutral">正在验证管理员账号…</strong>
-        </div>
-        <div class="account-status-line">
-          <span>更新时间</span>
-          <strong id="generatedAt" data-state="neutral">等待读取</strong>
-        </div>
-      </div>
-
-      <div id="summaryGrid" class="release-meta usage-summary" hidden>
-        <div class="meta-item"><span>当前在线</span><strong id="onlineCount">0</strong></div>
-        <div class="meta-item"><span>程序启动</span><strong id="launchCount">0</strong></div>
-        <div class="meta-item"><span>单商品执行完成</span><strong id="singleDoneCount">0</strong></div>
-        <div class="meta-item"><span>批量执行完成</span><strong id="batchDoneCount">0</strong></div>
-      </div>
-
-      <div id="usersTableWrap" class="usage-table-wrap" hidden>
-        <table class="usage-table">
-          <thead>
-            <tr>
-              <th>账号</th>
-              <th>状态</th>
-              <th>最后活跃</th>
-              <th>版本</th>
-              <th>启动</th>
-              <th>单商品准备</th>
-              <th>单商品执行</th>
-              <th>批量准备</th>
-              <th>批量执行</th>
-              <th>设备</th>
-            </tr>
-          </thead>
-          <tbody id="usersPanel"></tbody>
-        </table>
-      </div>
+        <span id="accountsHint">实时状态</span>
+      </header>
+      <div id="usersPanel" class="usage-user-grid"></div>
     </section>
 
-    <footer class="footer fade">
-      <span>© 2026 Listing Studio</span>
-      <span class="footer-status"><i></i>Owner telemetry</span>
+    <footer class="footer usage-footer fade">
+      <span>© 2026 Listing Studio · Owner telemetry</span>
+      <span>仅统计运行状态与任务计数，不采集商品内容</span>
     </footer>
   </main>
 
   <script src="./config-v6.js"></script>
-  <script type="module" src="./usage-admin-v1.js"></script>
+  <script type="module" src="./usage-admin-v1.js?v=20260816-2127"></script>
   <script src="./cursor-desktop-v2.js?v=20260813-2"></script>
 </body>
 </html>

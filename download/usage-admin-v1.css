@@ -79,8 +79,6 @@
 
 .usage-status-panel {
   margin-top: 4px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
 }
 
 .usage-status-panel .account-status-line {
@@ -297,10 +295,6 @@
   .usage-updated {
     min-width: 0;
     text-align: left;
-  }
-
-  .usage-status-panel {
-    grid-template-columns: 1fr;
   }
 
   .usage-summary-grid {

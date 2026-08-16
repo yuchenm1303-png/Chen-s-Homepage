@@ -2,6 +2,49 @@
   const projectCatalog = {
     zh: [
       {
+        id: "ai-ledger",
+        code: "AI",
+        colour: "gold",
+        category: "dev",
+        name: "AI Ledger",
+        subtitle: "原生 Android 多模型 AI 助手与视觉智能体",
+        status: "持续开发",
+        statusTone: "active",
+        type: "AI 助手 / Android 应用",
+        period: "2026.03 — 至今",
+        role: "产品设计 / Android 开发 / AI Agent 架构",
+        summary: "从 2026 年 3 月开始持续开发的原生 Android AI 助手。项目以自然聊天为入口，结合云端多模型、流式响应、工具调用、记忆与视觉智能体，让 AI 不只回答问题，也能在手机上理解界面并完成实际操作。",
+        architecture: [
+          "Kotlin + Jetpack Compose 构建原生 Android 客户端，统一管理聊天、模型、工具和应用状态",
+          "AiWorkerClient 对接 Cloudflare Worker，由云端负责多模型路由、流式输出与工具协议",
+          "视觉智能体结合 GUI Plus 与 AccessibilityService，形成观察、规划、执行和复核闭环",
+          "大玻璃 Shell 使用 OpenGL 渲染，其余卡片与浮层保持独立的 Compose 绘制链，兼顾视觉与性能"
+        ],
+        highlights: [
+          "实现多模型切换、联网控制、流式聊天、记忆和结构化工具调用",
+          "整合搜索、天气、汇率、行情、提醒、账本、设备控制等多类工具能力",
+          "加入悬浮智能体与屏幕视觉操作，让 AI 能跨应用理解并执行手机任务",
+          "持续优化 OpenGL 玻璃界面、聊天动画和移动端性能，同时保护完整交互效果"
+        ],
+        challenges: [
+          "需要把云端模型的开放式推理与 Android 端确定性执行严格解耦",
+          "长链路智能体任务要处理弹窗、键盘、加载、网络波动和模型输出漂移",
+          "复杂玻璃视觉、流式内容与动画并存时，需要持续控制 GPU 与重组开销"
+        ],
+        outputs: [
+          "可安装运行的原生 Android Compose AI 助手与自动 APK 构建流程",
+          "云端多模型聊天、工具调用与 Agent 协议链路",
+          "视觉智能体、悬浮 HUD、记忆与多类生活/数据工具的持续集成"
+        ],
+        stack: ["Kotlin", "Jetpack Compose", "OpenGL", "Cloudflare Workers", "Streaming", "AccessibilityService", "GUI Plus", "AI Agents"],
+        stages: [
+          ["聊天、多模型与工具基础能力", "done"],
+          ["视觉智能体、浮窗与 UI 系统", "active"],
+          ["跨应用稳定性与公开版本", "todo"]
+        ],
+        next: "继续提高视觉智能体与长任务链路的稳定性，完善工具生态和真机性能，并逐步整理可公开演示与发布的版本。"
+      },
+      {
         id: "computer-use",
         code: "CU",
         colour: "pink",
@@ -195,7 +238,7 @@
     zh: {
       heading: "PROJECTS.EXE / 项目管理器", path: "C:\\YUCHEN\\PROJECTS",
       all: "全部", dev: "应用开发", engineering: "工程与器件", research: "科研分析",
-      files: "4 个项目", active: "4 个持续推进", selected: "已选择",
+      files: "5 个项目", active: "5 个持续推进", selected: "已选择",
       overview: "项目概览", architecture: "系统架构", highlights: "关键工作",
       challenges: "技术难点", outputs: "阶段成果", stack: "技术栈",
       roadmap: "当前进度", next: "下一步", type: "类型", period: "周期",
@@ -206,7 +249,7 @@
     en: {
       heading: "PROJECTS.EXE / PROJECT MANAGER", path: "C:\\YUCHEN\\PROJECTS",
       all: "ALL", dev: "APP DEV", engineering: "ENGINEERING", research: "RESEARCH",
-      files: "4 PROJECTS", active: "4 IN PROGRESS", selected: "SELECTED",
+      files: "5 PROJECTS", active: "5 IN PROGRESS", selected: "SELECTED",
       overview: "OVERVIEW", architecture: "ARCHITECTURE", highlights: "KEY WORK",
       challenges: "CHALLENGES", outputs: "OUTPUTS", stack: "TECH STACK",
       roadmap: "PROGRESS", next: "NEXT STEP", type: "TYPE", period: "PERIOD",

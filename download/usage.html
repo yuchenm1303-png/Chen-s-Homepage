@@ -7,6 +7,12 @@
   <title>Listing Studio · Usage</title>
   <link rel="stylesheet" href="./styles-v3.css" />
   <link rel="stylesheet" href="./cosmic-bright-v1.css" />
+  <link rel="stylesheet" href="./portal-polish-v1.css" />
+  <link rel="stylesheet" href="./portal-polish-v2.css" />
+  <link rel="stylesheet" href="./portal-account-v1.css" />
+  <link rel="stylesheet" href="./portal-account-v2.css" />
+  <link rel="stylesheet" href="./layout-visual-restore-v1.css" />
+  <link rel="stylesheet" href="./cursor-reference-source-v1.css" />
   <link rel="stylesheet" href="./usage-admin-v1.css" />
 </head>
 <body>
@@ -15,38 +21,135 @@
     <div class="cosmos-glow"></div>
     <div class="cosmos-nebula cosmos-nebula-cyan"></div>
     <div class="cosmos-nebula cosmos-nebula-violet"></div>
+
+    <div class="parallax-layer parallax-layer-far">
+      <span class="small-star small-star--ivory s1"></span>
+      <span class="small-star small-star--cyan s2"></span>
+      <span class="small-star small-star--ivory s3"></span>
+      <span class="small-star small-star--rose s4"></span>
+      <span class="small-star small-star--ivory s5"></span>
+      <span class="small-star small-star--cyan s6"></span>
+      <span class="small-star small-star--ivory s7"></span>
+      <span class="small-star small-star--ivory s8"></span>
+      <span class="small-star small-star--cyan s9"></span>
+      <span class="small-star small-star--rose s10"></span>
+      <span class="small-star small-star--cyan s11"></span>
+      <span class="small-star small-star--ivory s12"></span>
+      <span class="small-star small-star--ivory s13"></span>
+      <span class="small-star small-star--cyan s14"></span>
+    </div>
+
+    <div class="parallax-layer parallax-layer-near">
+      <span class="major-star major-star--cyan m1"></span>
+      <span class="major-star major-star--ivory m2"></span>
+      <span class="major-star major-star--cyan m3"></span>
+      <span class="major-star major-star--rose m4"></span>
+      <span class="major-star major-star--cyan m5"></span>
+
+      <div class="upper-right-stars">
+        <span class="hero-flare hero-flare-main"></span>
+        <span class="hero-flare hero-flare-secondary"></span>
+        <span class="hero-dot hero-dot-a"></span>
+        <span class="hero-dot hero-dot-b"></span>
+        <span class="hero-dot hero-dot-c"></span>
+        <span class="hero-trail"></span>
+      </div>
+    </div>
+
     <div class="cosmos-vignette"></div>
   </div>
 
-  <main class="usage-shell">
-    <header class="usage-topbar">
-      <a class="usage-back" href="./">← 返回下载页</a>
-      <div class="usage-brand"><span>LS</span><strong>Usage Console</strong></div>
-      <button id="refreshButton" class="usage-button" type="button">刷新</button>
+  <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+  <div class="cursor-follow" id="cursorFollow" aria-hidden="true"></div>
+
+  <main class="release-shell usage-shell">
+    <header class="topbar fade">
+      <a class="brand" href="/" aria-label="返回 Smirel 首页">
+        <span class="brand-mark">LS</span>
+        <span class="brand-copy">
+          <strong>Listing Studio</strong>
+          <small>Downloads</small>
+        </span>
+      </a>
+
+      <div class="topbar-right">
+        <nav class="portal-nav" aria-label="页面导航">
+          <a href="./">下载</a>
+          <a href="./#account">账户</a>
+          <a href="./usage.html" aria-current="page">使用数据</a>
+        </nav>
+        <div class="service-status"><i></i><span>Stable</span></div>
+      </div>
     </header>
 
-    <section class="usage-hero">
-      <div>
-        <p class="usage-eyebrow">OWNER · ACCOUNT TELEMETRY</p>
+    <section class="portal-title fade">
+      <div class="portal-title-copy">
+        <p class="eyebrow">OWNER · ACCOUNT TELEMETRY</p>
         <h1>客户使用数据</h1>
-        <p>只统计程序在线状态、版本和任务次数，不采集商品链接、商品内容、AI 内容或 Makro 字段数据。</p>
+        <p>查看 Listing Studio 的在线状态、客户端版本和任务使用次数。这里不采集商品链接、商品内容、AI 内容或 Makro 字段数据。</p>
       </div>
-      <div class="usage-live"><i></i><span id="generatedAt">等待读取</span></div>
+      <div class="portal-title-meta" aria-label="数据状态">
+        <span class="title-chip live">Owner</span>
+        <span class="title-chip">Live telemetry</span>
+      </div>
     </section>
 
-    <section id="statusPanel" class="usage-status">正在验证管理员账号…</section>
+    <section class="release-card cards fade usage-panel">
+      <div class="release-head">
+        <div>
+          <p class="kicker">USAGE OVERVIEW</p>
+          <h2 class="usage-section-title">账户使用概览</h2>
+        </div>
+        <button id="refreshButton" class="switch-account-button usage-refresh" type="button">刷新数据</button>
+      </div>
 
-    <section id="summaryGrid" class="usage-summary" hidden>
-      <article><span>当前在线</span><strong id="onlineCount">0</strong></article>
-      <article><span>程序启动</span><strong id="launchCount">0</strong></article>
-      <article><span>单商品执行完成</span><strong id="singleDoneCount">0</strong></article>
-      <article><span>批量执行完成</span><strong id="batchDoneCount">0</strong></article>
+      <div class="account-status-panel usage-status-panel">
+        <div class="account-status-line">
+          <span>数据状态</span>
+          <strong id="statusPanel" data-state="neutral">正在验证管理员账号…</strong>
+        </div>
+        <div class="account-status-line">
+          <span>更新时间</span>
+          <strong id="generatedAt" data-state="neutral">等待读取</strong>
+        </div>
+      </div>
+
+      <div id="summaryGrid" class="release-meta usage-summary" hidden>
+        <div class="meta-item"><span>当前在线</span><strong id="onlineCount">0</strong></div>
+        <div class="meta-item"><span>程序启动</span><strong id="launchCount">0</strong></div>
+        <div class="meta-item"><span>单商品执行完成</span><strong id="singleDoneCount">0</strong></div>
+        <div class="meta-item"><span>批量执行完成</span><strong id="batchDoneCount">0</strong></div>
+      </div>
+
+      <div id="usersTableWrap" class="usage-table-wrap" hidden>
+        <table class="usage-table">
+          <thead>
+            <tr>
+              <th>账号</th>
+              <th>状态</th>
+              <th>最后活跃</th>
+              <th>版本</th>
+              <th>启动</th>
+              <th>单商品准备</th>
+              <th>单商品执行</th>
+              <th>批量准备</th>
+              <th>批量执行</th>
+              <th>设备</th>
+            </tr>
+          </thead>
+          <tbody id="usersPanel"></tbody>
+        </table>
+      </div>
     </section>
 
-    <section id="usersPanel" class="usage-users" hidden></section>
+    <footer class="footer fade">
+      <span>© 2026 Listing Studio</span>
+      <span class="footer-status"><i></i>Owner telemetry</span>
+    </footer>
   </main>
 
   <script src="./config-v6.js"></script>
   <script type="module" src="./usage-admin-v1.js"></script>
+  <script src="./cursor-desktop-v2.js?v=20260813-2"></script>
 </body>
 </html>

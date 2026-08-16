@@ -13,9 +13,9 @@
   <link rel="stylesheet" href="./portal-account-v2.css" />
   <link rel="stylesheet" href="./layout-visual-restore-v1.css" />
   <link rel="stylesheet" href="./cursor-reference-source-v1.css" />
-  <link rel="stylesheet" href="./usage-admin-v1.css?v=20260816-2127" />
+  <link rel="stylesheet" href="./usage-admin-v1.css?v=20260816-2134" />
 </head>
-<body class="usage-monitor-page">
+<body>
   <div class="cosmos" aria-hidden="true">
     <div class="cosmos-sky"></div>
     <div class="cosmos-glow"></div>
@@ -61,7 +61,7 @@
   <div class="cursor-follow" id="cursorFollow" aria-hidden="true"></div>
 
   <main class="release-shell usage-shell">
-    <header class="topbar usage-topbar fade">
+    <header class="topbar fade">
       <a class="brand" href="/" aria-label="返回 Smirel 首页">
         <span class="brand-mark">LS</span>
         <span class="brand-copy">
@@ -80,98 +80,94 @@
       </div>
     </header>
 
-    <section class="usage-commandbar fade">
-      <div class="usage-command-title">
-        <p class="kicker">OWNER · LIVE TELEMETRY</p>
-        <div class="usage-title-line">
-          <h1>Usage Monitor</h1>
-          <span class="usage-live-chip"><i></i>Live</span>
-        </div>
+    <section class="usage-heading fade">
+      <div>
+        <p class="eyebrow">OWNER · LIVE TELEMETRY</p>
+        <h1>Usage Monitor</h1>
         <p>客户在线、版本、设备与 Listing 任务使用情况。</p>
       </div>
-
-      <div class="usage-command-actions">
-        <div class="usage-update-copy">
+      <div class="usage-heading-actions">
+        <div class="usage-updated">
           <span>LAST UPDATE</span>
           <strong id="generatedAt">等待读取</strong>
         </div>
-        <button id="refreshButton" class="usage-refresh" type="button">刷新</button>
+        <button id="refreshButton" class="switch-account-button usage-refresh" type="button">刷新</button>
       </div>
     </section>
 
-    <section class="usage-status-strip fade" aria-live="polite">
-      <div class="usage-status-main">
-        <span class="usage-status-dot"></span>
+    <section class="account-status-panel usage-status-panel fade" aria-live="polite">
+      <div class="account-status-line">
+        <span>数据状态</span>
         <strong id="statusPanel" data-state="neutral">正在验证管理员账号…</strong>
       </div>
-      <div class="usage-status-meta">
-        <span id="accountCountText">0 accounts</span>
-        <span id="windowText">—</span>
+      <div class="account-status-line">
+        <span>在线判定</span>
+        <strong id="windowText" data-state="neutral">—</strong>
       </div>
     </section>
 
     <section id="summaryGrid" class="usage-summary-grid fade" hidden>
-      <article class="usage-kpi-card usage-kpi-card--online">
-        <div class="usage-kpi-head"><span>当前在线</span><i class="usage-kpi-dot"></i></div>
-        <strong id="onlineCount">0</strong>
-        <small id="onlineRatio">—</small>
+      <article class="utility-card cards usage-summary-card">
+        <span class="utility-overline">LIVE</span>
+        <h3 id="onlineCount">0</h3>
+        <p id="onlineRatio">当前在线</p>
       </article>
-      <article class="usage-kpi-card">
-        <div class="usage-kpi-head"><span>登记账号</span><span>ACC</span></div>
-        <strong id="accountCount">0</strong>
-        <small>enabled accounts</small>
+      <article class="utility-card cards usage-summary-card">
+        <span class="utility-overline">ACCOUNTS</span>
+        <h3 id="accountCount">0</h3>
+        <p>登记账号</p>
       </article>
-      <article class="usage-kpi-card">
-        <div class="usage-kpi-head"><span>程序启动</span><span>APP</span></div>
-        <strong id="launchCount">0</strong>
-        <small>累计 session</small>
+      <article class="utility-card cards usage-summary-card">
+        <span class="utility-overline">APP</span>
+        <h3 id="launchCount">0</h3>
+        <p>程序启动</p>
       </article>
-      <article class="usage-kpi-card">
-        <div class="usage-kpi-head"><span>活跃设备</span><span>DEV</span></div>
-        <strong id="activeDeviceCount">0</strong>
-        <small id="deviceCapacityText">—</small>
+      <article class="utility-card cards usage-summary-card">
+        <span class="utility-overline">DEVICES</span>
+        <h3 id="activeDeviceCount">0</h3>
+        <p id="deviceCapacityText">活跃设备</p>
       </article>
-      <article class="usage-kpi-card">
-        <div class="usage-kpi-head"><span>单商品完成</span><span>ONE</span></div>
-        <strong id="singleDoneCount">0</strong>
-        <small>listing execute</small>
+      <article class="utility-card cards usage-summary-card">
+        <span class="utility-overline">SINGLE</span>
+        <h3 id="singleDoneCount">0</h3>
+        <p>单商品执行完成</p>
       </article>
-      <article class="usage-kpi-card">
-        <div class="usage-kpi-head"><span>批量完成</span><span>BAT</span></div>
-        <strong id="batchDoneCount">0</strong>
-        <small>batch execute</small>
+      <article class="utility-card cards usage-summary-card">
+        <span class="utility-overline">BATCH</span>
+        <h3 id="batchDoneCount">0</h3>
+        <p>批量执行完成</p>
       </article>
-      <article class="usage-kpi-card usage-kpi-card--success">
-        <div class="usage-kpi-head"><span>任务成功率</span><span>OK</span></div>
-        <strong id="successRate">—</strong>
-        <small id="successRateMeta">暂无任务</small>
+      <article class="utility-card cards usage-summary-card">
+        <span class="utility-overline">SUCCESS</span>
+        <h3 id="successRate">—</h3>
+        <p id="successRateMeta">暂无任务</p>
       </article>
-      <article class="usage-kpi-card usage-kpi-card--failure">
-        <div class="usage-kpi-head"><span>失败事件</span><span>ERR</span></div>
-        <strong id="failureCount">0</strong>
-        <small>prepare + execute</small>
+      <article class="utility-card cards usage-summary-card">
+        <span class="utility-overline">FAILED</span>
+        <h3 id="failureCount">0</h3>
+        <p>失败事件</p>
       </article>
     </section>
 
     <section id="accountsSection" class="usage-accounts-section fade" hidden>
-      <header class="usage-section-head">
+      <div class="usage-section-head">
         <div>
           <p class="kicker">ACCOUNT ACTIVITY</p>
           <h2>客户运行状态</h2>
         </div>
         <span id="accountsHint">实时状态</span>
-      </header>
-      <div id="usersPanel" class="usage-user-grid"></div>
+      </div>
+      <div id="usersPanel" class="usage-account-grid"></div>
     </section>
 
-    <footer class="footer usage-footer fade">
+    <footer class="footer fade usage-footer">
       <span>© 2026 Listing Studio · Owner telemetry</span>
       <span>仅统计运行状态与任务计数，不采集商品内容</span>
     </footer>
   </main>
 
   <script src="./config-v6.js"></script>
-  <script type="module" src="./usage-admin-v1.js?v=20260816-2127"></script>
+  <script type="module" src="./usage-admin-v1.js?v=20260816-2134"></script>
   <script src="./cursor-desktop-v2.js?v=20260813-2"></script>
 </body>
 </html>

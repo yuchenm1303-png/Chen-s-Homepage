@@ -10,7 +10,6 @@ const refreshButton = document.getElementById("refreshButton");
 const onlineCount = document.getElementById("onlineCount");
 const onlineRatio = document.getElementById("onlineRatio");
 const accountCount = document.getElementById("accountCount");
-const accountCountText = document.getElementById("accountCountText");
 const windowText = document.getElementById("windowText");
 const launchCount = document.getElementById("launchCount");
 const activeDeviceCount = document.getElementById("activeDeviceCount");
@@ -31,10 +30,6 @@ function asNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
 function formatTime(value) {
   if (!value) return "—";
   const date = new Date(value);
@@ -46,19 +41,6 @@ function formatTime(value) {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: false
-  }).format(date);
-}
-
-function formatCompactTime(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
     hour12: false
   }).format(date);
 }
@@ -82,22 +64,26 @@ function totalsForUser(user) {
   return { completed, failed, attempts: completed + failed };
 }
 
-function createMiniStat(label, value, note = "") {
-  const item = document.createElement("div");
-  item.className = "usage-mini-stat";
+function createStatusLine(label, value, state = "neutral") {
+  const line = document.createElement("div");
+  line.className = "account-status-line";
+  const key = document.createElement("span");
+  key.textContent = label;
+  const data = document.createElement("strong");
+  data.textContent = String(value ?? "—");
+  data.dataset.state = state;
+  line.append(key, data);
+  return line;
+}
 
+function createMetaItem(label, value) {
+  const item = document.createElement("div");
+  item.className = "meta-item";
   const key = document.createElement("span");
   key.textContent = label;
   const data = document.createElement("strong");
   data.textContent = String(value ?? "—");
   item.append(key, data);
-
-  if (note) {
-    const small = document.createElement("small");
-    small.textContent = note;
-    item.append(small);
-  }
-
   return item;
 }
 
@@ -107,78 +93,59 @@ function completedFailedText(completed, failed) {
 
 function renderUser(user) {
   const card = document.createElement("article");
-  card.className = `usage-user-card${user.online ? " is-online" : ""}`;
+  card.className = "account-card cards usage-account-card";
 
   const totals = totalsForUser(user);
-  const health = totals.attempts > 0 ? (totals.completed / totals.attempts) * 100 : 0;
-  if (totals.failed > 0) card.classList.add("has-failures");
+  const success = totals.attempts ? `${((totals.completed / totals.attempts) * 100).toFixed(1)}%` : "—";
 
-  const header = document.createElement("div");
-  header.className = "usage-user-header";
+  const head = document.createElement("div");
+  head.className = "account-head";
 
   const identity = document.createElement("div");
-  identity.className = "usage-user-identity";
-  const name = document.createElement("strong");
+  const kicker = document.createElement("p");
+  kicker.className = "kicker";
+  kicker.textContent = "ACCOUNT";
+  const name = document.createElement("h2");
   name.textContent = user.display_name || user.email || "Unnamed user";
-  const email = document.createElement("span");
+  const email = document.createElement("p");
+  email.className = "usage-account-email";
   email.textContent = user.email || "—";
-  identity.append(name, email);
+  identity.append(kicker, name, email);
 
-  const version = document.createElement("div");
-  version.className = "usage-user-version";
-  const versionLabel = document.createElement("span");
-  versionLabel.textContent = "VERSION";
-  const versionValue = document.createElement("strong");
-  versionValue.textContent = user.latest_app_version || "—";
-  version.append(versionLabel, versionValue);
+  const presence = document.createElement("span");
+  presence.className = "secure-pill";
+  presence.textContent = user.online ? "ONLINE" : "OFFLINE";
+  head.append(identity, presence);
 
-  const presence = document.createElement("div");
-  presence.className = `usage-user-presence${user.online ? " online" : ""}`;
-  const presenceDot = document.createElement("i");
-  const presenceText = document.createElement("span");
-  presenceText.textContent = user.online ? "在线" : "离线";
-  presence.append(presenceDot, presenceText);
+  const statePanel = document.createElement("div");
+  statePanel.className = "account-status-panel";
+  statePanel.append(
+    createStatusLine("运行状态", user.online ? "在线" : "离线", user.online ? "ok" : "neutral"),
+    createStatusLine("客户端版本", user.latest_app_version || "—"),
+    createStatusLine("最后活跃", formatTime(user.last_seen_at)),
+    createStatusLine("任务成功率", success, totals.failed ? "warn" : "ok")
+  );
 
-  header.append(identity, version, presence);
-
-  const healthBlock = document.createElement("div");
-  healthBlock.className = "usage-user-health";
-  const healthHead = document.createElement("div");
-  healthHead.className = "usage-health-head";
-  const healthLabel = document.createElement("span");
-  healthLabel.textContent = "TASK SUCCESS";
-  const healthValue = document.createElement("strong");
-  healthValue.textContent = totals.attempts ? `${health.toFixed(1)}%` : "—";
-  healthHead.append(healthLabel, healthValue);
-
-  const healthTrack = document.createElement("div");
-  healthTrack.className = "usage-health-track";
-  const healthFill = document.createElement("div");
-  healthFill.className = "usage-health-fill";
-  healthFill.style.setProperty("--health", `${clamp(health, 0, 100)}%`);
-  healthTrack.append(healthFill);
-  healthBlock.append(healthHead, healthTrack);
-
-  const stats = document.createElement("div");
-  stats.className = "usage-user-stats";
-  stats.append(
-    createMiniStat("启动", asNumber(user.launch_count), "sessions"),
-    createMiniStat("单准备", completedFailedText(user.listing_prepare_completed, user.listing_prepare_failed), "完成 / 失败"),
-    createMiniStat("单执行", completedFailedText(user.listing_execute_completed, user.listing_execute_failed), "完成 / 失败"),
-    createMiniStat("批准备", completedFailedText(user.batch_prepare_completed, user.batch_prepare_failed), "完成 / 失败"),
-    createMiniStat("批执行", completedFailedText(user.batch_execute_completed, user.batch_execute_failed), "完成 / 失败"),
-    createMiniStat("设备", `${asNumber(user.active_devices)} / ${asNumber(user.max_devices)}`, "active / max")
+  const metrics = document.createElement("div");
+  metrics.className = "release-meta usage-account-metrics";
+  metrics.append(
+    createMetaItem("程序启动", asNumber(user.launch_count)),
+    createMetaItem("单商品准备", completedFailedText(user.listing_prepare_completed, user.listing_prepare_failed)),
+    createMetaItem("单商品执行", completedFailedText(user.listing_execute_completed, user.listing_execute_failed)),
+    createMetaItem("批量准备", completedFailedText(user.batch_prepare_completed, user.batch_prepare_failed)),
+    createMetaItem("批量执行", completedFailedText(user.batch_execute_completed, user.batch_execute_failed)),
+    createMetaItem("授权设备", `${asNumber(user.active_devices)} / ${asNumber(user.max_devices)}`)
   );
 
   const footer = document.createElement("div");
-  footer.className = "usage-user-footer";
-  const lastSeen = document.createElement("span");
-  lastSeen.textContent = `最后活跃 ${formatCompactTime(user.last_seen_at)}`;
-  const state = document.createElement("strong");
-  state.textContent = user.enabled ? "AUTHORIZED" : "DISABLED";
-  footer.append(lastSeen, state);
+  footer.className = "account-footer";
+  const telemetry = document.createElement("span");
+  telemetry.textContent = "Usage telemetry";
+  const authorization = document.createElement("span");
+  authorization.textContent = user.enabled ? "AUTHORIZED" : "DISABLED";
+  footer.append(telemetry, authorization);
 
-  card.append(header, healthBlock, stats, footer);
+  card.append(head, statePanel, metrics, footer);
   return card;
 }
 
@@ -191,11 +158,7 @@ function renderEmptyState() {
 
 function renderSnapshot(snapshot) {
   const users = Array.isArray(snapshot?.users) ? snapshot.users : [];
-  if (users.length) {
-    usersPanel.replaceChildren(...users.map(renderUser));
-  } else {
-    renderEmptyState();
-  }
+  usersPanel.replaceChildren(...(users.length ? users.map(renderUser) : [renderEmptyNode()]));
 
   const totalOnline = users.filter((user) => Boolean(user.online)).length;
   const launches = users.reduce((sum, user) => sum + asNumber(user.launch_count), 0);
@@ -214,38 +177,40 @@ function renderSnapshot(snapshot) {
     { completed: 0, failed: 0 }
   );
   const taskAttempts = taskTotals.completed + taskTotals.failed;
-  const globalSuccess = taskAttempts > 0 ? (taskTotals.completed / taskAttempts) * 100 : null;
+  const globalSuccess = taskAttempts ? `${((taskTotals.completed / taskAttempts) * 100).toFixed(1)}%` : "—";
 
   onlineCount.textContent = String(totalOnline);
-  onlineRatio.textContent = users.length ? `${((totalOnline / users.length) * 100).toFixed(0)}% of accounts` : "暂无账号";
+  onlineRatio.textContent = users.length ? `${totalOnline} / ${users.length} 个账号在线` : "暂无账号";
   accountCount.textContent = String(users.length);
-  accountCountText.textContent = `${users.length} accounts`;
   launchCount.textContent = String(launches);
   activeDeviceCount.textContent = String(activeDevices);
-  deviceCapacityText.textContent = `${activeDevices} / ${maxDevices || 0} capacity`;
+  deviceCapacityText.textContent = `${activeDevices} / ${maxDevices || 0} 已授权容量`;
   singleDoneCount.textContent = String(singleDone);
   batchDoneCount.textContent = String(batchDone);
-  successRate.textContent = globalSuccess === null ? "—" : `${globalSuccess.toFixed(1)}%`;
+  successRate.textContent = globalSuccess;
   successRateMeta.textContent = taskAttempts ? `${taskTotals.completed} 完成 · ${taskTotals.failed} 失败` : "暂无任务";
   failureCount.textContent = String(taskTotals.failed);
 
   const onlineWindow = asNumber(snapshot?.online_window_seconds);
-  windowText.textContent = onlineWindow ? `${onlineWindow}s online window` : "—";
+  windowText.textContent = onlineWindow ? `${onlineWindow} 秒` : "—";
   generatedAt.textContent = formatTime(snapshot?.generated_at);
   accountsHint.textContent = users.length ? `${totalOnline} 在线 · ${users.length - totalOnline} 离线` : "暂无账号";
 
   summaryGrid.hidden = false;
   accountsSection.hidden = false;
-  setStatus(
-    users.length ? `Telemetry 正常 · 已同步 ${users.length} 个已登记账号` : "Telemetry 正常 · 暂无使用记录",
-    "ok"
-  );
+  setStatus(users.length ? `Telemetry 正常 · 已同步 ${users.length} 个已登记账号` : "Telemetry 正常 · 暂无使用记录", "ok");
+}
+
+function renderEmptyNode() {
+  const empty = document.createElement("div");
+  empty.className = "usage-empty";
+  empty.textContent = "暂无 Usage Telemetry 数据";
+  return empty;
 }
 
 function hideData() {
   summaryGrid.hidden = true;
   accountsSection.hidden = true;
-  accountCountText.textContent = "0 accounts";
   windowText.textContent = "—";
 }
 

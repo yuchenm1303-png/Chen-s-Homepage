@@ -3,6 +3,7 @@ const auth = config.auth ?? {};
 
 const statusPanel = document.getElementById("statusPanel");
 const summaryGrid = document.getElementById("summaryGrid");
+const activitySection = document.getElementById("activitySection");
 const accountsSection = document.getElementById("accountsSection");
 const usersPanel = document.getElementById("usersPanel");
 const generatedAt = document.getElementById("generatedAt");
@@ -20,6 +21,14 @@ const successRate = document.getElementById("successRate");
 const successRateMeta = document.getElementById("successRateMeta");
 const failureCount = document.getElementById("failureCount");
 const accountsHint = document.getElementById("accountsHint");
+const activityMeta = document.getElementById("activityMeta");
+const activityWindowBadge = document.getElementById("activityWindowBadge");
+const globalPresenceRail = document.getElementById("globalPresenceRail");
+const globalPresenceAxis = document.getElementById("globalPresenceAxis");
+const globalTaskSpark = document.getElementById("globalTaskSpark");
+const globalTaskAxis = document.getElementById("globalTaskAxis");
+const presenceSummary = document.getElementById("presenceSummary");
+const throughputSummary = document.getElementById("throughputSummary");
 
 let supabase = null;
 let refreshing = false;
@@ -45,6 +54,17 @@ function formatTime(value) {
   }).format(date);
 }
 
+function formatHour(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).format(date);
+}
+
 function setStatus(text, state = "neutral") {
   statusPanel.textContent = text;
   statusPanel.dataset.state = state;
@@ -62,6 +82,56 @@ function totalsForUser(user) {
     asNumber(user.batch_prepare_failed) +
     asNumber(user.batch_execute_failed);
   return { completed, failed, attempts: completed + failed };
+}
+
+function activityForUser(user) {
+  if (!Array.isArray(user?.activity_24h)) return [];
+  return user.activity_24h.map((bucket) => ({
+    bucket_start: bucket?.bucket_start || null,
+    active: Boolean(bucket?.active),
+    launches: asNumber(bucket?.launches),
+    completed: asNumber(bucket?.completed),
+    failed: asNumber(bucket?.failed)
+  }));
+}
+
+function activityTotals(buckets) {
+  return buckets.reduce(
+    (acc, bucket) => {
+      if (bucket.active) acc.activeHours += 1;
+      acc.launches += asNumber(bucket.launches);
+      acc.completed += asNumber(bucket.completed);
+      acc.failed += asNumber(bucket.failed);
+      return acc;
+    },
+    { activeHours: 0, launches: 0, completed: 0, failed: 0 }
+  );
+}
+
+function aggregateActivity(users) {
+  const histories = users.map(activityForUser);
+  const bucketCount = histories.reduce((max, history) => Math.max(max, history.length), 0);
+  const result = [];
+  for (let index = 0; index < bucketCount; index += 1) {
+    const source = histories.find((history) => history[index]?.bucket_start)?.[index];
+    const bucket = {
+      bucket_start: source?.bucket_start || null,
+      active_count: 0,
+      launches: 0,
+      completed: 0,
+      failed: 0
+    };
+    histories.forEach((history) => {
+      const item = history[index];
+      if (!item) return;
+      if (item.active) bucket.active_count += 1;
+      bucket.launches += asNumber(item.launches);
+      bucket.completed += asNumber(item.completed);
+      bucket.failed += asNumber(item.failed);
+    });
+    result.push(bucket);
+  }
+  return result;
 }
 
 function createStatusLine(label, value, state = "neutral") {
@@ -89,6 +159,97 @@ function createMetaItem(label, value) {
 
 function completedFailedText(completed, failed) {
   return `${asNumber(completed)} / ${asNumber(failed)}`;
+}
+
+function renderAxis(target, buckets) {
+  target.replaceChildren();
+  if (!buckets.length) return;
+  const first = buckets[0]?.bucket_start;
+  const middle = buckets[Math.floor((buckets.length - 1) / 2)]?.bucket_start;
+  const last = buckets[buckets.length - 1]?.bucket_start;
+  [first, middle, last].forEach((value) => {
+    const label = document.createElement("span");
+    label.textContent = formatHour(value);
+    target.append(label);
+  });
+}
+
+function renderPresenceRail(target, buckets, { totalUsers = 1, global = false } = {}) {
+  const nodes = buckets.map((bucket, index) => {
+    const activeCount = global ? asNumber(bucket.active_count) : (bucket.active ? 1 : 0);
+    const active = activeCount > 0;
+    const failed = asNumber(bucket.failed) > 0;
+    const segment = document.createElement("span");
+    segment.className = `usage-presence-segment ${failed ? "is-failed" : active ? "is-active" : "is-idle"}`;
+    if (index === buckets.length - 1) segment.classList.add("is-current");
+    if (global && active) {
+      const ratio = totalUsers > 0 ? activeCount / totalUsers : 0;
+      segment.style.setProperty("--presence-opacity", String(Math.max(.4, Math.min(1, ratio))));
+    }
+    const stateText = failed ? "有失败事件" : active ? (global ? `${activeCount} 个账号活跃` : "客户端活跃") : "无活动";
+    segment.title = `${formatHour(bucket.bucket_start)} · ${stateText} · 启动 ${asNumber(bucket.launches)} · 完成 ${asNumber(bucket.completed)} · 失败 ${asNumber(bucket.failed)}`;
+    return segment;
+  });
+  target.replaceChildren(...nodes);
+}
+
+function renderThroughputChart(target, buckets) {
+  const maxValue = Math.max(1, ...buckets.map((bucket) => asNumber(bucket.completed) + asNumber(bucket.failed)));
+  const columns = buckets.map((bucket) => {
+    const completed = asNumber(bucket.completed);
+    const failed = asNumber(bucket.failed);
+    const column = document.createElement("div");
+    column.className = "usage-throughput-column";
+    column.title = `${formatHour(bucket.bucket_start)} · 完成 ${completed} · 失败 ${failed} · 启动 ${asNumber(bucket.launches)}`;
+
+    if (completed > 0) {
+      const success = document.createElement("span");
+      success.className = "usage-throughput-completed";
+      success.style.height = `${Math.max(4, (completed / maxValue) * 100)}%`;
+      column.append(success);
+    }
+    if (failed > 0) {
+      const failure = document.createElement("span");
+      failure.className = "usage-throughput-failed";
+      failure.style.height = `${Math.max(4, (failed / maxValue) * 100)}%`;
+      column.append(failure);
+    }
+    return column;
+  });
+  target.replaceChildren(...columns);
+}
+
+function createAccountMonitor(user) {
+  const buckets = activityForUser(user);
+  const totals = activityTotals(buckets);
+
+  const monitor = document.createElement("div");
+  monitor.className = "usage-account-monitor";
+
+  const head = document.createElement("div");
+  head.className = "usage-account-monitor-head";
+  const label = document.createElement("span");
+  label.textContent = "24H CLIENT ACTIVITY";
+  const summary = document.createElement("strong");
+  summary.textContent = `${totals.activeHours}h 活跃 · ${totals.completed} 完成 · ${totals.failed} 失败`;
+  head.append(label, summary);
+
+  const rail = document.createElement("div");
+  rail.className = "usage-presence-rail";
+  rail.setAttribute("aria-label", `${user.display_name || user.email || "客户"} 过去24小时在线活动`);
+  renderPresenceRail(rail, buckets);
+
+  const chart = document.createElement("div");
+  chart.className = "usage-throughput-chart usage-account-throughput";
+  chart.setAttribute("aria-label", `${user.display_name || user.email || "客户"} 过去24小时任务执行`);
+  renderThroughputChart(chart, buckets);
+
+  const axis = document.createElement("div");
+  axis.className = "usage-monitor-axis";
+  renderAxis(axis, buckets);
+
+  monitor.append(head, rail, chart, axis);
+  return monitor;
 }
 
 function renderUser(user) {
@@ -123,37 +284,58 @@ function renderUser(user) {
     createStatusLine("运行状态", user.online ? "在线" : "离线", user.online ? "ok" : "neutral"),
     createStatusLine("客户端版本", user.latest_app_version || "—"),
     createStatusLine("最后活跃", formatTime(user.last_seen_at)),
-    createStatusLine("任务成功率", success, totals.failed ? "warn" : "ok")
+    createStatusLine("任务成功率", success, totals.attempts ? (totals.failed ? "warn" : "ok") : "neutral")
   );
 
   const metrics = document.createElement("div");
   metrics.className = "release-meta usage-account-metrics";
   metrics.append(
     createMetaItem("程序启动", asNumber(user.launch_count)),
-    createMetaItem("单商品准备", completedFailedText(user.listing_prepare_completed, user.listing_prepare_failed)),
-    createMetaItem("单商品执行", completedFailedText(user.listing_execute_completed, user.listing_execute_failed)),
-    createMetaItem("批量准备", completedFailedText(user.batch_prepare_completed, user.batch_prepare_failed)),
-    createMetaItem("批量执行", completedFailedText(user.batch_execute_completed, user.batch_execute_failed)),
+    createMetaItem("单商品准备 完成/失败", completedFailedText(user.listing_prepare_completed, user.listing_prepare_failed)),
+    createMetaItem("单商品执行 完成/失败", completedFailedText(user.listing_execute_completed, user.listing_execute_failed)),
+    createMetaItem("批量准备 完成/失败", completedFailedText(user.batch_prepare_completed, user.batch_prepare_failed)),
+    createMetaItem("批量执行 完成/失败", completedFailedText(user.batch_execute_completed, user.batch_execute_failed)),
     createMetaItem("授权设备", `${asNumber(user.active_devices)} / ${asNumber(user.max_devices)}`)
   );
 
   const footer = document.createElement("div");
   footer.className = "account-footer";
   const telemetry = document.createElement("span");
-  telemetry.textContent = "Usage telemetry";
+  telemetry.textContent = "Usage telemetry · 24h history";
   const authorization = document.createElement("span");
   authorization.textContent = user.enabled ? "AUTHORIZED" : "DISABLED";
   footer.append(telemetry, authorization);
 
-  card.append(head, statePanel, metrics, footer);
+  card.append(head, createAccountMonitor(user), statePanel, metrics, footer);
   return card;
 }
 
-function renderEmptyState() {
-  const empty = document.createElement("div");
-  empty.className = "usage-empty";
-  empty.textContent = "暂无 Usage Telemetry 数据";
-  usersPanel.replaceChildren(empty);
+function renderGlobalActivity(snapshot, users) {
+  const buckets = aggregateActivity(users);
+  const hours = asNumber(snapshot?.activity_window_hours) || buckets.length || 24;
+  const activeUserCount = users.filter((user) => activityForUser(user).some((bucket) => bucket.active)).length;
+  const totals = buckets.reduce(
+    (acc, bucket) => {
+      acc.launches += asNumber(bucket.launches);
+      acc.completed += asNumber(bucket.completed);
+      acc.failed += asNumber(bucket.failed);
+      if (asNumber(bucket.active_count) > 0) acc.activeHours += 1;
+      acc.peakOnline = Math.max(acc.peakOnline, asNumber(bucket.active_count));
+      return acc;
+    },
+    { launches: 0, completed: 0, failed: 0, activeHours: 0, peakOnline: 0 }
+  );
+
+  activityWindowBadge.textContent = `${hours} HOURS`;
+  activityMeta.textContent = `${activeUserCount} 个账号在过去 ${hours} 小时出现真实心跳 · ${totals.launches} 次客户端启动`;
+  presenceSummary.textContent = `${totals.activeHours}/${hours} 小时有活动 · 峰值 ${totals.peakOnline} 在线`;
+  throughputSummary.textContent = `${totals.completed} 完成 · ${totals.failed} 失败`;
+
+  renderPresenceRail(globalPresenceRail, buckets, { totalUsers: users.length, global: true });
+  renderAxis(globalPresenceAxis, buckets);
+  renderThroughputChart(globalTaskSpark, buckets);
+  renderAxis(globalTaskAxis, buckets);
+  activitySection.hidden = false;
 }
 
 function renderSnapshot(snapshot) {
@@ -198,6 +380,7 @@ function renderSnapshot(snapshot) {
 
   summaryGrid.hidden = false;
   accountsSection.hidden = false;
+  renderGlobalActivity(snapshot, users);
   setStatus(users.length ? `Telemetry 正常 · 已同步 ${users.length} 个已登记账号` : "Telemetry 正常 · 暂无使用记录", "ok");
 }
 
@@ -210,6 +393,7 @@ function renderEmptyNode() {
 
 function hideData() {
   summaryGrid.hidden = true;
+  activitySection.hidden = true;
   accountsSection.hidden = true;
   windowText.textContent = "—";
 }

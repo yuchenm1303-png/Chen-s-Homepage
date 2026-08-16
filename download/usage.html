@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#91c7e3" />
+  <title>Listing Studio · Usage</title>
+  <link rel="stylesheet" href="./styles-v3.css" />
+  <link rel="stylesheet" href="./cosmic-bright-v1.css" />
+  <link rel="stylesheet" href="./usage-admin-v1.css" />
+</head>
+<body>
+  <div class="cosmos" aria-hidden="true">
+    <div class="cosmos-sky"></div>
+    <div class="cosmos-glow"></div>
+    <div class="cosmos-nebula cosmos-nebula-cyan"></div>
+    <div class="cosmos-nebula cosmos-nebula-violet"></div>
+    <div class="cosmos-vignette"></div>
+  </div>
+
+  <main class="usage-shell">
+    <header class="usage-topbar">
+      <a class="usage-back" href="./">← 返回下载页</a>
+      <div class="usage-brand"><span>LS</span><strong>Usage Console</strong></div>
+      <button id="refreshButton" class="usage-button" type="button">刷新</button>
+    </header>
+
+    <section class="usage-hero">
+      <div>
+        <p class="usage-eyebrow">OWNER · ACCOUNT TELEMETRY</p>
+        <h1>客户使用数据</h1>
+        <p>只统计程序在线状态、版本和任务次数，不采集商品链接、商品内容、AI 内容或 Makro 字段数据。</p>
+      </div>
+      <div class="usage-live"><i></i><span id="generatedAt">等待读取</span></div>
+    </section>
+
+    <section id="statusPanel" class="usage-status">正在验证管理员账号…</section>
+
+    <section id="summaryGrid" class="usage-summary" hidden>
+      <article><span>当前在线</span><strong id="onlineCount">0</strong></article>
+      <article><span>程序启动</span><strong id="launchCount">0</strong></article>
+      <article><span>单商品执行完成</span><strong id="singleDoneCount">0</strong></article>
+      <article><span>批量执行完成</span><strong id="batchDoneCount">0</strong></article>
+    </section>
+
+    <section id="usersPanel" class="usage-users" hidden></section>
+  </main>
+
+  <script src="./config-v6.js"></script>
+  <script type="module" src="./usage-admin-v1.js"></script>
+</body>
+</html>

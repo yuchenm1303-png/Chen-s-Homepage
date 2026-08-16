@@ -140,20 +140,14 @@ async function refresh() {
       return;
     }
 
-    const { data, error } = await supabase.rpc("get_listing_usage_admin_snapshot");
+    const { data, error } = await supabase.functions.invoke("portal-usage-admin", { body: {} });
     if (error) throw error;
     renderSnapshot(data ?? {});
   } catch (error) {
     console.error("usage dashboard refresh failed", error);
     summaryGrid.hidden = true;
     usersPanel.hidden = true;
-    const message = String(error?.message || "");
-    setStatus(
-      message.includes("not_authorized") || message.includes("permission")
-        ? "当前账号不是 Usage 管理员。"
-        : "暂时无法读取使用数据，请稍后刷新。",
-      "warn"
-    );
+    setStatus("当前账号不是 Usage 管理员，或使用数据服务暂时不可用。", "warn");
   } finally {
     refreshing = false;
     refreshButton.disabled = false;

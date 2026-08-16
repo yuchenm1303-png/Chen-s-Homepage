@@ -4,6 +4,7 @@ const auth = config.auth ?? {};
 const statusPanel = document.getElementById("statusPanel");
 const summaryGrid = document.getElementById("summaryGrid");
 const usersPanel = document.getElementById("usersPanel");
+const usersTableWrap = document.getElementById("usersTableWrap");
 const generatedAt = document.getElementById("generatedAt");
 const refreshButton = document.getElementById("refreshButton");
 const onlineCount = document.getElementById("onlineCount");
@@ -40,68 +41,53 @@ function setStatus(text, state = "neutral") {
   statusPanel.dataset.state = state;
 }
 
-function detail(label, value) {
-  const row = document.createElement("div");
-  row.className = "usage-detail";
-  const key = document.createElement("span");
-  key.textContent = label;
-  const data = document.createElement("strong");
-  data.textContent = String(value ?? "—");
-  row.append(key, data);
-  return row;
+function textCell(value, className = "") {
+  const cell = document.createElement("td");
+  if (className) cell.className = className;
+  cell.textContent = String(value ?? "—");
+  return cell;
 }
 
-function metric(label, completed, failed) {
-  const row = document.createElement("div");
-  row.className = "usage-metric";
-  const key = document.createElement("span");
-  key.textContent = label;
-  const data = document.createElement("strong");
-  data.textContent = `${asNumber(completed)} 完成 · ${asNumber(failed)} 失败`;
-  row.append(key, data);
-  return row;
+function lifecycleCell(completed, failed) {
+  const cell = document.createElement("td");
+  cell.className = "usage-count";
+  const done = document.createElement("span");
+  done.textContent = String(asNumber(completed));
+  const separator = document.createElement("small");
+  separator.textContent = ` / ${asNumber(failed)} 失败`;
+  cell.append(done, separator);
+  return cell;
 }
 
 function renderUser(user) {
-  const card = document.createElement("article");
-  card.className = "usage-user-card";
+  const row = document.createElement("tr");
 
-  const head = document.createElement("div");
-  head.className = "usage-user-head";
-  const identity = document.createElement("div");
+  const identity = document.createElement("td");
+  identity.className = "usage-account";
   const name = document.createElement("strong");
   name.textContent = user.display_name || user.email || "Unnamed user";
   const email = document.createElement("span");
   email.textContent = user.email || "—";
   identity.append(name, email);
 
-  const presence = document.createElement("span");
+  const presence = document.createElement("td");
   presence.className = user.online ? "usage-presence online" : "usage-presence";
   presence.textContent = user.online ? "● 在线" : "○ 离线";
-  head.append(identity, presence);
 
-  const meta = document.createElement("div");
-  meta.className = "usage-meta-grid";
-  meta.append(
-    detail("最后活跃", formatTime(user.last_seen_at)),
-    detail("首次统计", formatTime(user.first_used_at)),
-    detail("程序启动", asNumber(user.launch_count)),
-    detail("当前版本", user.latest_app_version || "—"),
-    detail("授权设备", `${asNumber(user.active_devices)} / ${asNumber(user.max_devices)}`),
-    detail("账号状态", user.enabled ? "已授权" : "已停用")
+  row.append(
+    identity,
+    presence,
+    textCell(formatTime(user.last_seen_at)),
+    textCell(user.latest_app_version || "—"),
+    textCell(asNumber(user.launch_count), "usage-count"),
+    lifecycleCell(user.listing_prepare_completed, user.listing_prepare_failed),
+    lifecycleCell(user.listing_execute_completed, user.listing_execute_failed),
+    lifecycleCell(user.batch_prepare_completed, user.batch_prepare_failed),
+    lifecycleCell(user.batch_execute_completed, user.batch_execute_failed),
+    textCell(`${asNumber(user.active_devices)} / ${asNumber(user.max_devices)}`, "usage-count")
   );
 
-  const metrics = document.createElement("div");
-  metrics.className = "usage-metrics";
-  metrics.append(
-    metric("单商品准备", user.listing_prepare_completed, user.listing_prepare_failed),
-    metric("单商品执行", user.listing_execute_completed, user.listing_execute_failed),
-    metric("批量准备", user.batch_prepare_completed, user.batch_prepare_failed),
-    metric("批量执行", user.batch_execute_completed, user.batch_execute_failed)
-  );
-
-  card.append(head, meta, metrics);
-  return card;
+  return row;
 }
 
 function renderSnapshot(snapshot) {
@@ -117,13 +103,20 @@ function renderSnapshot(snapshot) {
   launchCount.textContent = String(launches);
   singleDoneCount.textContent = String(singleDone);
   batchDoneCount.textContent = String(batchDone);
-  generatedAt.textContent = `数据时间 ${formatTime(snapshot?.generated_at)}`;
+  generatedAt.textContent = formatTime(snapshot?.generated_at);
   summaryGrid.hidden = false;
-  usersPanel.hidden = false;
+  usersTableWrap.hidden = !users.length;
   setStatus(
-    users.length ? `已读取 ${users.length} 个已登记账号 · 在线判定窗口 ${asNumber(snapshot?.online_window_seconds)} 秒` : "暂时还没有使用记录。",
+    users.length
+      ? `已读取 ${users.length} 个已登记账号 · 在线判定窗口 ${asNumber(snapshot?.online_window_seconds)} 秒`
+      : "暂时还没有使用记录。",
     "ok"
   );
+}
+
+function hideData() {
+  summaryGrid.hidden = true;
+  usersTableWrap.hidden = true;
 }
 
 async function refresh() {
@@ -134,8 +127,8 @@ async function refresh() {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) throw sessionError;
     if (!sessionData?.session) {
-      summaryGrid.hidden = true;
-      usersPanel.hidden = true;
+      hideData();
+      generatedAt.textContent = "—";
       setStatus("当前没有登录。请先返回下载页，用 Owner 账号登录后再打开这里。", "warn");
       return;
     }
@@ -145,8 +138,8 @@ async function refresh() {
     renderSnapshot(data ?? {});
   } catch (error) {
     console.error("usage dashboard refresh failed", error);
-    summaryGrid.hidden = true;
-    usersPanel.hidden = true;
+    hideData();
+    generatedAt.textContent = "—";
     setStatus("当前账号不是 Usage 管理员，或使用数据服务暂时不可用。", "warn");
   } finally {
     refreshing = false;

@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="./layout-visual-restore-v1.css" />
   <link rel="stylesheet" href="./cursor-reference-source-v1.css" />
   <link rel="stylesheet" href="./usage-admin-v1.css?v=20260817-1806" />
+  <link rel="stylesheet" href="./usage-ops-v1.css?v=20260817-2230" />
 </head>
 <body>
   <div class="cosmos" aria-hidden="true">
@@ -84,7 +85,7 @@
       <div>
         <p class="eyebrow">OWNER · LIVE TELEMETRY</p>
         <h1>Usage Monitor</h1>
-        <p>客户在线、版本、设备、Listing 使用情况与真实任务输入 / 输出审计。</p>
+        <p>客户在线、版本、设备、Listing 使用情况、系统性能、故障诊断与真实任务输入 / 输出审计。</p>
       </div>
       <div class="usage-heading-actions">
         <div class="usage-updated">
@@ -189,6 +190,22 @@
       </article>
     </section>
 
+    <section id="opsSection" class="usage-ops-section fade" hidden>
+      <div class="usage-section-head">
+        <div>
+          <p class="kicker">OPERATIONS HEALTH</p>
+          <h2>系统与任务性能</h2>
+        </div>
+        <span>CPU / RAM / Edge / UI Lag / AI / Task Latency / Version Health</span>
+      </div>
+      <div id="opsKpis" class="usage-ops-kpis"></div>
+      <div class="usage-ops-grid">
+        <article id="deviceHealthPanel" class="account-card cards usage-ops-panel"></article>
+        <article id="taskPerformancePanel" class="account-card cards usage-ops-panel"></article>
+        <article id="versionHealthPanel" class="account-card cards usage-ops-panel"></article>
+      </div>
+    </section>
+
     <section id="accountsSection" class="usage-accounts-section fade" hidden>
       <div class="usage-section-head">
         <div>
@@ -223,6 +240,17 @@
       <div id="taskAuditPanel" class="usage-task-audit-list"></div>
     </section>
 
+    <section id="diagnosticsSection" class="usage-diagnostics-section fade" hidden>
+      <div class="usage-section-head">
+        <div>
+          <p class="kicker">CRASH & DIAGNOSTICS</p>
+          <h2>故障诊断报告</h2>
+        </div>
+        <span id="diagnosticsHint">0 条</span>
+      </div>
+      <div id="diagnosticsPanel" class="usage-diagnostic-list"></div>
+    </section>
+
     <footer class="footer fade usage-footer">
       <span>© 2026 Listing Studio · Owner telemetry</span>
       <span>业务审计显示客户任务输入与结果；API Key、Token、密码、Cookie、认证密钥与原始文件二进制永不采集</span>
@@ -231,6 +259,7 @@
 
   <script src="./config-v6.js"></script>
   <script type="module" src="./usage-admin-v1.js?v=20260817-1806"></script>
+  <script type="module" src="./usage-ops-v1.js?v=20260817-2230"></script>
   <script src="./cursor-desktop-v2.js?v=20260813-2"></script>
 </body>
 </html>

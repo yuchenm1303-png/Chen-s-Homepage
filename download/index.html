@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="./layout-visual-restore-v1.css" />
   <link rel="stylesheet" href="./cursor-reference-source-v1.css" />
   <link rel="stylesheet" href="./session-boot-v1.css" />
+  <link rel="stylesheet" href="./release-history-v1.css?v=20260817-1" />
 </head>
 <body>
   <div class="cosmos" aria-hidden="true">
@@ -200,6 +201,12 @@
         <h3>更新日志</h3>
         <p>看看这一版改了什么。</p>
       </button>
+      <button class="utility-card cards" id="historyAction" type="button">
+        <span class="utility-icon">↺</span>
+        <span class="utility-overline">ARCHIVE</span>
+        <h3>历史版本</h3>
+        <p>下载以前发布的 Stable Windows 版本。</p>
+      </button>
       <button class="utility-card cards" id="systemAction" type="button">
         <span class="utility-icon">▣</span>
         <span class="utility-overline">SYSTEM</span>
@@ -238,6 +245,7 @@
   <script src="./portal-copy-v1.js?v=20260813-1"></script>
   <script type="module" src="./account-onboarding-v3.js"></script>
   <script type="module" src="./app-v7.js?v=20260813-2"></script>
+  <script type="module" src="./release-history-v1.js?v=20260817-1"></script>
   <script>
     (() => {
       const switchButton = document.getElementById("switchAccountButton");

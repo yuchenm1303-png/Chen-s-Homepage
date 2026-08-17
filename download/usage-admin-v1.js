@@ -29,10 +29,18 @@ const globalTaskSpark = document.getElementById("globalTaskSpark");
 const globalTaskAxis = document.getElementById("globalTaskAxis");
 const presenceSummary = document.getElementById("presenceSummary");
 const throughputSummary = document.getElementById("throughputSummary");
+const taskAuditSection = document.getElementById("taskAuditSection");
+const taskAuditPanel = document.getElementById("taskAuditPanel");
+const auditSearch = document.getElementById("auditSearch");
+const auditFilter = document.getElementById("auditFilter");
+const auditHint = document.getElementById("auditHint");
 
 let supabase = null;
 let refreshing = false;
 let autoRefresh = null;
+let currentAudits = [];
+let currentUsers = [];
+let currentAuditLimit = 0;
 
 function asNumber(value) {
   const parsed = Number(value ?? 0);
@@ -63,6 +71,19 @@ function formatHour(value) {
     minute: "2-digit",
     hour12: false
   }).format(date);
+}
+
+function formatDuration(startValue, endValue) {
+  const start = Date.parse(startValue || "");
+  const end = Date.parse(endValue || "");
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return "—";
+  const seconds = Math.round((end - start) / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  if (minutes < 60) return `${minutes}m ${rest}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
 }
 
 function setStatus(text, state = "neutral") {
@@ -338,6 +359,321 @@ function renderGlobalActivity(snapshot, users) {
   activitySection.hidden = false;
 }
 
+function auditUser(audit, usersById) {
+  return usersById.get(String(audit?.user_id || "")) || null;
+}
+
+function auditStatusLabel(status) {
+  const normalized = String(status || "").toLowerCase();
+  return ({
+    running: "RUNNING",
+    completed: "COMPLETED",
+    failed: "FAILED",
+    cancelled: "CANCELLED",
+    review: "REVIEW",
+    ready: "READY"
+  })[normalized] || normalized.toUpperCase() || "UNKNOWN";
+}
+
+function auditStatusState(status) {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized === "completed" || normalized === "ready") return "ok";
+  if (normalized === "failed" || normalized === "cancelled") return "warn";
+  return "neutral";
+}
+
+function auditTitle(audit) {
+  const input = audit?.input_data || {};
+  const result = audit?.result_data || {};
+  if (audit?.task_kind === "batch") {
+    const count = asNumber(input.item_count) || (Array.isArray(input.items) ? input.items.length : 0);
+    return `Batch · ${count} items`;
+  }
+  const url = String(audit?.product_url || input.supplier_url || result.product_url || "").trim();
+  if (!url) return "Single Listing";
+  try {
+    const parsed = new URL(url);
+    const tail = parsed.pathname.split("/").filter(Boolean).slice(-2).join("/");
+    return `${parsed.hostname}${tail ? ` · ${tail}` : ""}`;
+  } catch {
+    return url.slice(0, 90);
+  }
+}
+
+function createAuditTextBlock(label, value) {
+  const block = document.createElement("div");
+  block.className = "usage-audit-copy";
+  const title = document.createElement("span");
+  title.textContent = label;
+  const text = document.createElement("p");
+  text.textContent = String(value || "—");
+  block.append(title, text);
+  return block;
+}
+
+function createAuditSection(titleText) {
+  const section = document.createElement("section");
+  section.className = "usage-audit-detail-section";
+  const title = document.createElement("div");
+  title.className = "usage-audit-detail-title";
+  title.textContent = titleText;
+  section.append(title);
+  return section;
+}
+
+function createFileList(files) {
+  const wrap = document.createElement("div");
+  wrap.className = "usage-audit-file-list";
+  const items = Array.isArray(files) ? files : [];
+  if (!items.length) {
+    const empty = document.createElement("span");
+    empty.className = "usage-audit-empty-inline";
+    empty.textContent = "无上传资料";
+    wrap.append(empty);
+    return wrap;
+  }
+  items.forEach((file) => {
+    const chip = document.createElement("span");
+    chip.className = "secure-pill usage-audit-file-chip";
+    const size = asNumber(file?.size_bytes);
+    const sizeText = size >= 1024 * 1024 ? `${(size / (1024 * 1024)).toFixed(1)} MB` : size >= 1024 ? `${(size / 1024).toFixed(1)} KB` : `${size} B`;
+    chip.textContent = `${file?.name || "file"} · ${sizeText}`;
+    wrap.append(chip);
+  });
+  return wrap;
+}
+
+function createAuditTable(headers, rows) {
+  const scroller = document.createElement("div");
+  scroller.className = "usage-audit-table-scroll";
+  const table = document.createElement("table");
+  table.className = "usage-audit-table";
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  headers.forEach((header) => {
+    const th = document.createElement("th");
+    th.textContent = header;
+    headRow.append(th);
+  });
+  thead.append(headRow);
+  const tbody = document.createElement("tbody");
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    row.forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = String(value ?? "—");
+      tr.append(td);
+    });
+    tbody.append(tr);
+  });
+  table.append(thead, tbody);
+  scroller.append(table);
+  return scroller;
+}
+
+function createRawAudit(audit) {
+  const details = document.createElement("details");
+  details.className = "usage-audit-raw";
+  const summary = document.createElement("summary");
+  summary.textContent = "查看完整原始审计 JSON";
+  const pre = document.createElement("pre");
+  pre.textContent = JSON.stringify(audit, null, 2);
+  details.append(summary, pre);
+  return details;
+}
+
+function renderTaskAudit(audit, usersById) {
+  const user = auditUser(audit, usersById);
+  const input = audit?.input_data && typeof audit.input_data === "object" ? audit.input_data : {};
+  const result = audit?.result_data && typeof audit.result_data === "object" ? audit.result_data : {};
+
+  const card = document.createElement("details");
+  card.className = "account-card cards usage-task-card";
+
+  const summary = document.createElement("summary");
+  summary.className = "usage-task-summary";
+  const identity = document.createElement("div");
+  const kicker = document.createElement("p");
+  kicker.className = "kicker";
+  kicker.textContent = `${String(audit?.task_kind || "task").toUpperCase()} · ${String(audit?.phase || "—").toUpperCase()}`;
+  const title = document.createElement("h2");
+  title.textContent = auditTitle(audit);
+  const sub = document.createElement("p");
+  sub.className = "usage-account-email";
+  sub.textContent = `${user?.display_name || user?.email || audit?.user_id || "未知账号"} · ${formatTime(audit?.updated_at)}`;
+  identity.append(kicker, title, sub);
+
+  const pill = document.createElement("span");
+  pill.className = "secure-pill usage-task-status";
+  pill.dataset.state = auditStatusState(audit?.status);
+  pill.textContent = auditStatusLabel(audit?.status);
+  summary.append(identity, pill);
+  card.append(summary);
+
+  const body = document.createElement("div");
+  body.className = "usage-task-body";
+
+  const metrics = document.createElement("div");
+  metrics.className = "release-meta usage-task-metrics";
+  metrics.append(
+    createMetaItem("账号", user?.email || audit?.user_id || "—"),
+    createMetaItem("客户端版本", audit?.app_version || "—"),
+    createMetaItem("设备", String(audit?.device_id || "—").slice(0, 16)),
+    createMetaItem("开始", formatTime(audit?.started_at)),
+    createMetaItem("完成", formatTime(audit?.completed_at)),
+    createMetaItem("耗时", formatDuration(audit?.started_at, audit?.completed_at))
+  );
+  body.append(metrics);
+
+  const inputSection = createAuditSection("客户输入");
+  const inputPanel = document.createElement("div");
+  inputPanel.className = "account-status-panel usage-audit-status-panel";
+  if (audit?.task_kind === "batch") {
+    const items = Array.isArray(input.items) ? input.items : [];
+    inputPanel.append(createStatusLine("Batch 商品数", items.length || asNumber(input.item_count)));
+    inputSection.append(inputPanel);
+    if (items.length) {
+      inputSection.append(createAuditTable(
+        ["#", "启用", "Supplier URL", "销售规格 / 套装", "资料"],
+        items.map((item) => [
+          item?.row || "—",
+          item?.enabled ? "YES" : "NO",
+          item?.supplier_url || "—",
+          item?.listing_intent || "—",
+          Array.isArray(item?.customer_files) ? item.customer_files.map((file) => file?.name || "file").join(" · ") || "—" : "—"
+        ])
+      ));
+    }
+  } else {
+    inputPanel.append(
+      createStatusLine("Supplier URL", input.supplier_url || audit?.product_url || "—"),
+      createStatusLine("销售规格 / 套装", input.listing_intent || "—"),
+      createStatusLine("指定 Vertical", input.requested_vertical || "自动"),
+      createStatusLine("执行范围", input.execution_scope || "—")
+    );
+    inputSection.append(
+      inputPanel,
+      createAuditTextBlock("AI 引导", input.ai_guidance || "—"),
+      createAuditTextBlock("Model Name 流量词", input.model_name_keywords || "—")
+    );
+    const fileBlock = createAuditSection("客户资料文件");
+    fileBlock.append(createFileList(input.customer_files));
+    inputSection.append(fileBlock);
+  }
+  body.append(inputSection);
+
+  const resultSection = createAuditSection("任务结果");
+  const resultPanel = document.createElement("div");
+  resultPanel.className = "account-status-panel usage-audit-status-panel";
+  if (audit?.task_kind === "batch") {
+    const jobs = Array.isArray(result.jobs) ? result.jobs : [];
+    resultPanel.append(
+      createStatusLine("Batch 状态", result.batch_status || audit?.status || "—", auditStatusState(audit?.status)),
+      createStatusLine("Job 数量", jobs.length || asNumber(result.job_count))
+    );
+    resultSection.append(resultPanel);
+    if (jobs.length) {
+      resultSection.append(createAuditTable(
+        ["JOB", "状态", "进度", "Supplier URL", "Vertical", "Brand", "READY / BLOCKED", "Required blocked", "Images", "Detail / Error"],
+        jobs.map((job) => [
+          job?.job_id || "—",
+          job?.status || "—",
+          `${asNumber(job?.progress)}%`,
+          job?.product_url || "—",
+          job?.vertical || "—",
+          job?.brand || "—",
+          `${asNumber(job?.ready)} / ${asNumber(job?.blocked)}`,
+          asNumber(job?.required_blocked),
+          asNumber(job?.product_images),
+          job?.error || job?.stage_detail || "—"
+        ])
+      ));
+    }
+  } else {
+    resultPanel.append(
+      createStatusLine("Workflow", result.workflow_status || audit?.status || "—", auditStatusState(audit?.status)),
+      createStatusLine("Vertical", result.vertical || "—"),
+      createStatusLine("Brand", result.brand || "—"),
+      createStatusLine("READY / BLOCKED", `${asNumber(result.ready)} / ${asNumber(result.blocked)}`),
+      createStatusLine("MISSING / CONFLICT", `${asNumber(result.missing)} / ${asNumber(result.conflict)}`),
+      createStatusLine("Live Fields", asNumber(result.live_field_count))
+    );
+    resultSection.append(resultPanel);
+
+    const fields = Array.isArray(result.fields) ? result.fields : [];
+    if (fields.length) {
+      const fieldsSection = createAuditSection(`AI / Fill Plan 字段 · ${fields.length}`);
+      fieldsSection.append(createAuditTable(
+        ["字段", "AI结果", "AI状态", "最终状态", "Blocked reason", "来源"],
+        fields.map((field) => [
+          field?.field_name || field?.field_id || "—",
+          field?.ai_result || "—",
+          field?.ai_status || "—",
+          field?.final_status || "—",
+          field?.blocked_reason || "—",
+          field?.source || "—"
+        ])
+      ));
+      resultSection.append(fieldsSection);
+    }
+
+    const candidates = Array.isArray(result.web_candidates) ? result.web_candidates : [];
+    if (candidates.length) {
+      const webSection = createAuditSection(`Web Candidates · ${candidates.length}`);
+      webSection.append(createAuditTable(
+        ["Match", "Title", "URL", "Reason"],
+        candidates.map((item) => [item?.match || "—", item?.title || "—", item?.url || "—", item?.reason || "—"])
+      ));
+      resultSection.append(webSection);
+    }
+  }
+  body.append(resultSection);
+
+  if (audit?.error_text) {
+    const errorSection = createAuditSection("错误 / Review reason");
+    const error = document.createElement("pre");
+    error.className = "usage-audit-error";
+    error.textContent = String(audit.error_text);
+    errorSection.append(error);
+    body.append(errorSection);
+  }
+
+  body.append(createRawAudit(audit));
+  card.append(body);
+  return card;
+}
+
+function auditMatches(audit, usersById) {
+  const filter = String(auditFilter?.value || "all");
+  const status = String(audit?.status || "").toLowerCase();
+  const kind = String(audit?.task_kind || "").toLowerCase();
+  if (filter !== "all" && filter !== kind && filter !== status) return false;
+
+  const query = String(auditSearch?.value || "").trim().toLowerCase();
+  if (!query) return true;
+  const user = auditUser(audit, usersById);
+  const haystack = [
+    user?.email,
+    user?.display_name,
+    audit?.product_url,
+    audit?.app_version,
+    audit?.phase,
+    audit?.status,
+    JSON.stringify(audit?.input_data || {}),
+    JSON.stringify(audit?.result_data || {})
+  ].filter(Boolean).join(" ").toLowerCase();
+  return haystack.includes(query);
+}
+
+function renderTaskAudits() {
+  const usersById = new Map(currentUsers.map((user) => [String(user.user_id || ""), user]));
+  const visible = currentAudits.filter((audit) => auditMatches(audit, usersById));
+  taskAuditPanel.replaceChildren(...(visible.length ? visible.map((audit) => renderTaskAudit(audit, usersById)) : [renderAuditEmptyNode()]));
+  const suffix = currentAuditLimit ? ` · 最近最多 ${currentAuditLimit} 条` : "";
+  auditHint.textContent = `${visible.length} / ${currentAudits.length} 条${suffix}`;
+  taskAuditSection.hidden = false;
+}
+
 function renderSnapshot(snapshot) {
   const users = Array.isArray(snapshot?.users) ? snapshot.users : [];
   usersPanel.replaceChildren(...(users.length ? users.map(renderUser) : [renderEmptyNode()]));
@@ -378,10 +714,15 @@ function renderSnapshot(snapshot) {
   generatedAt.textContent = formatTime(snapshot?.generated_at);
   accountsHint.textContent = users.length ? `${totalOnline} 在线 · ${users.length - totalOnline} 离线` : "暂无账号";
 
+  currentUsers = users;
+  currentAudits = Array.isArray(snapshot?.task_audits) ? snapshot.task_audits : [];
+  currentAuditLimit = asNumber(snapshot?.task_audit_limit);
+
   summaryGrid.hidden = false;
   accountsSection.hidden = false;
   renderGlobalActivity(snapshot, users);
-  setStatus(users.length ? `Telemetry 正常 · 已同步 ${users.length} 个已登记账号` : "Telemetry 正常 · 暂无使用记录", "ok");
+  renderTaskAudits();
+  setStatus(users.length ? `Telemetry 正常 · 已同步 ${users.length} 个已登记账号 · ${currentAudits.length} 条任务审计` : `Telemetry 正常 · ${currentAudits.length} 条任务审计`, "ok");
 }
 
 function renderEmptyNode() {
@@ -391,10 +732,18 @@ function renderEmptyNode() {
   return empty;
 }
 
+function renderAuditEmptyNode() {
+  const empty = document.createElement("div");
+  empty.className = "usage-empty";
+  empty.textContent = currentAudits.length ? "当前筛选条件下没有任务" : "暂无任务审计数据；新版本客户端开始任务后会自动出现";
+  return empty;
+}
+
 function hideData() {
   summaryGrid.hidden = true;
   activitySection.hidden = true;
   accountsSection.hidden = true;
+  taskAuditSection.hidden = true;
   windowText.textContent = "—";
 }
 
@@ -442,6 +791,8 @@ async function init() {
   });
 
   refreshButton.addEventListener("click", () => void refresh());
+  auditFilter?.addEventListener("change", renderTaskAudits);
+  auditSearch?.addEventListener("input", renderTaskAudits);
   await refresh();
   autoRefresh = window.setInterval(() => void refresh(), 30_000);
 }

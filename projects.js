@@ -45,6 +45,52 @@
         next: "继续提高视觉智能体与长任务链路的稳定性，完善工具生态和真机性能，并逐步整理可公开演示与发布的版本。"
       },
       {
+        id: "listing-studio",
+        code: "LS",
+        colour: "cyan",
+        category: "dev",
+        name: "Listing Studio",
+        subtitle: "从供应商商品链接到 Makro Seller Center 草稿落盘的 AI 自动上架系统",
+        status: "端到端迭代",
+        statusTone: "active",
+        type: "AI Agent / 电商自动化 / Windows 应用",
+        period: "2026.08 — 至今",
+        role: "产品设计 / Python 开发 / AI Workflow / 浏览器自动化",
+        summary: "面向 Makro Marketplace Seller Center 开发的 AI 商品自动上架系统。用户只需提供一个 1688 或供应商商品链接，程序即可自动采集原始页面证据，调用两阶段 AI 完成字段理解与缺失项补全，生成只读 Fill Plan，再由受控 Microsoft Edge 会话执行类目、品牌、字段、商品图片、保存与回读验证。系统同时提供 Single / Batch 桌面工作台、失败恢复、Windows 打包更新与配套的下载授权、遥测和诊断链路，并始终保留 Send to QC 的人工最终控制。",
+        architecture: [
+          "以 Makro live schema 作为运行时字段契约，先读取当前 Seller Center 的真实字段、选项与约束，再生成本次商品的执行计划，避免依赖固定表单模板",
+          "独立 Source Edge 机械采集供应商页面的结构化参数、可见文本、JSON-LD、SKU / variant 原始片段、整页截图和商品大图，完整保留原始证据而不在采集层解释商品语义",
+          "第一阶段 Qwen Local Fill 直接输出 READY / CONFLICT / MISSING，只有 MISSING 才进入 Web Fill；联网阶段同时绑定 exact source URL、原始证据和已确认商品指纹，降低同型号异商品造成的错误补全",
+          "Fill Plan + Thin Hard Guards 将 AI 结果转换为可执行字段动作，Python 只负责来源、字段形状、数值范围、DOM 唯一定位、React readback、Save/reopen 和图片持久化等机械边界",
+          "PySide6 Listing Studio 管理 Single / Batch、Managed Makro Edge 持久登录、每任务 target ownership、运行日志与故障恢复；VeloPack、GitHub Actions 与 Supabase 负责 Windows 发布、更新及门户能力"
+        ],
+        highlights: [
+          "把新商品的主要人工输入压缩为一个供应商商品链接，准备阶段保持 Step 3 零写入，先得到可审阅的只读结果再开放真实执行",
+          "建立 raw evidence → Local Fill → MISSING-only Web → Fill Plan 的单向语义链，让 AI 负责商品理解，让 Python 只承担确定性的执行约束",
+          "实现 source bytes 与 semantic hot cache，同一商品紧接着复跑可复用完全相同的证据并减少重复模型调用，同时支持显式刷新读取最新网页",
+          "正式 GUI 支持单商品和批量任务共享同一持久化 Makro 登录会话，并通过独立标签页所有权、状态机和恢复机制避免任务串页、错写与浏览器重启后的脏状态",
+          "形成 Windows 安装包、自更新、发布流水线、Supabase 下载/授权/版本/使用遥测/诊断基础设施，并配套核心逻辑、GUI 合约、浏览器执行和更新链路的系统化测试"
+        ],
+        challenges: [
+          "Makro Seller Center 是动态 React 表单，字段、option、单位和保存状态会随 vertical 与页面状态变化，必须依赖 live schema 与真实 readback，而不能长期维护静态选择器表",
+          "供应商证据同时包含多语言文本、规格表、SKU / variant、包装与机身尺寸以及图片信息，需要让 AI 处理语义，又要严格防止联网搜索把相似型号或不同商品混入当前 listing",
+          "批量运行同时涉及浏览器登录、多个标签页、任务暂停恢复、缓存、异步 UI 与失败重试，因此每个任务的页面所有权、证据和执行状态都必须隔离",
+          "自动化必须提高完成率但不能越权：价格、库存、MOQ 等经营字段没有明确 seller data 就保持 blocked，Send to QC 永不由程序自动点击"
+        ],
+        outputs: [
+          "可运行的 Windows PySide6 Listing Studio，覆盖 Single / Batch 商品准备、字段审阅、实时日志与受控真实执行",
+          "Makro live schema、Source Capture、AI Resolver、Web Enrichment、Fill Plan、浏览器写入、Save/reopen 验证与 Product Photos persistence 的完整生产链",
+          "Windows 打包与 VeloPack 更新流程、Supabase 门户后端、运行遥测/诊断以及覆盖核心业务与 GUI 的自动化测试体系"
+        ],
+        stack: ["Python", "PySide6", "Microsoft Edge CDP", "Qwen 3.7", "DashScope", "Browser Automation", "Supabase", "VeloPack", "GitHub Actions"],
+        stages: [
+          ["单商品 AI Resolver、证据链与只读 Fill Plan", "done"],
+          ["正式 GUI、批量任务与浏览器持久化执行", "active"],
+          ["跨品类规模化验收与稳定发布体系", "todo"]
+        ],
+        next: "继续使用不同供应商链接与 Makro vertical 做真实端到端回归，收敛批量恢复、动态字段覆盖和发布更新边界，并逐步整理为可稳定交付和公开演示的正式版本。"
+      },
+      {
         id: "computer-use",
         code: "CU",
         colour: "pink",
@@ -238,7 +284,7 @@
     zh: {
       heading: "PROJECTS.EXE / 项目管理器", path: "C:\\YUCHEN\\PROJECTS",
       all: "全部", dev: "应用开发", engineering: "工程与器件", research: "科研分析",
-      files: "5 个项目", active: "5 个持续推进", selected: "已选择",
+      files: "6 个项目", active: "6 个持续推进", selected: "已选择",
       overview: "项目概览", architecture: "系统架构", highlights: "关键工作",
       challenges: "技术难点", outputs: "阶段成果", stack: "技术栈",
       roadmap: "当前进度", next: "下一步", type: "类型", period: "周期",
@@ -249,7 +295,7 @@
     en: {
       heading: "PROJECTS.EXE / PROJECT MANAGER", path: "C:\\YUCHEN\\PROJECTS",
       all: "ALL", dev: "APP DEV", engineering: "ENGINEERING", research: "RESEARCH",
-      files: "5 PROJECTS", active: "5 IN PROGRESS", selected: "SELECTED",
+      files: "6 PROJECTS", active: "6 IN PROGRESS", selected: "SELECTED",
       overview: "OVERVIEW", architecture: "ARCHITECTURE", highlights: "KEY WORK",
       challenges: "CHALLENGES", outputs: "OUTPUTS", stack: "TECH STACK",
       roadmap: "PROGRESS", next: "NEXT STEP", type: "TYPE", period: "PERIOD",

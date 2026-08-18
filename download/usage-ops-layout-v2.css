@@ -1,0 +1,70 @@
+/* Desktop operations layout contract.
+   The two primary telemetry panels share one stable row. Expanding device
+   details scrolls inside the panel instead of stretching the whole dashboard. */
+
+@media (min-width: 1261px) {
+  .usage-ops-grid {
+    --ops-primary-row-height: 330px;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-rows: var(--ops-primary-row-height) auto;
+    align-items: stretch;
+  }
+
+  #deviceHealthPanel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  #taskPerformancePanel {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  #versionHealthPanel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  #deviceHealthPanel,
+  #taskPerformancePanel {
+    min-height: var(--ops-primary-row-height);
+    height: var(--ops-primary-row-height);
+    max-height: var(--ops-primary-row-height);
+    align-self: stretch;
+  }
+
+  #deviceHealthPanel {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  #taskPerformancePanel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #taskPerformancePanel > .usage-ops-panel-head {
+    flex: 0 0 auto;
+  }
+
+  #taskPerformancePanel .usage-ops-table {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  #deviceHealthPanel .usage-diagnostic-json {
+    max-height: 190px;
+  }
+
+  .usage-ops-panel.cards:hover,
+  .usage-ops-panel.cards:active {
+    transform: none;
+  }
+}

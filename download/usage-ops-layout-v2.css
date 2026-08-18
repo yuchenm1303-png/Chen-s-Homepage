@@ -1,12 +1,12 @@
 /* Desktop operations layout contract.
-   The two primary telemetry panels share one stable row. Expanding device
-   details scrolls inside the panel instead of stretching the whole dashboard. */
+   The primary telemetry panels share one natural grid row. Overview cards do
+   not own vertical scrolling; page scrolling always remains available under
+   the pointer. Detailed content is opened in the shared modal. */
 
 @media (min-width: 1261px) {
   .usage-ops-grid {
-    --ops-primary-row-height: 330px;
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    grid-template-rows: var(--ops-primary-row-height) auto;
+    grid-template-rows: auto auto;
     align-items: stretch;
   }
 
@@ -27,23 +27,16 @@
 
   #deviceHealthPanel,
   #taskPerformancePanel {
-    min-height: var(--ops-primary-row-height);
-    height: var(--ops-primary-row-height);
-    max-height: var(--ops-primary-row-height);
+    min-height: 300px;
+    height: auto;
+    max-height: none;
     align-self: stretch;
-  }
-
-  #deviceHealthPanel {
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
+    overflow: visible;
   }
 
   #taskPerformancePanel {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
   }
 
   #taskPerformancePanel > .usage-ops-panel-head {
@@ -51,20 +44,27 @@
   }
 
   #taskPerformancePanel .usage-ops-table {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
     max-height: none;
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-  }
-
-  #deviceHealthPanel .usage-diagnostic-json {
-    max-height: 190px;
+    overflow: visible;
+    overscroll-behavior: auto;
+    scrollbar-gutter: auto;
   }
 
   .usage-ops-panel.cards:hover,
   .usage-ops-panel.cards:active {
     transform: none;
   }
+}
+
+/* Overview surfaces must never trap the mouse wheel. Only the shared detail
+   modal owns an internal vertical scroller while the document is locked. */
+#deviceHealthPanel,
+#taskPerformancePanel,
+#versionHealthPanel,
+.usage-ops-table,
+.usage-task-audit-list,
+.usage-diagnostic-list {
+  overscroll-behavior-y: auto;
 }

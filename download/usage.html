@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="./layout-visual-restore-v1.css" />
   <link rel="stylesheet" href="./cursor-reference-source-v1.css" />
   <link rel="stylesheet" href="./usage-admin-v1.css?v=20260817-1806" />
-  <link rel="stylesheet" href="./usage-ops-v1.css?v=20260817-2230" />
+  <link rel="stylesheet" href="./usage-ops-v1.css?v=20260818-0950" />
 </head>
 <body>
   <div class="cosmos" aria-hidden="true">
@@ -190,6 +190,17 @@
       </article>
     </section>
 
+    <section id="accountsSection" class="usage-accounts-section fade" hidden>
+      <div class="usage-section-head">
+        <div>
+          <p class="kicker">ACCOUNT ACTIVITY</p>
+          <h2>客户运行状态</h2>
+        </div>
+        <span id="accountsHint">实时状态</span>
+      </div>
+      <div id="usersPanel" class="usage-account-grid"></div>
+    </section>
+
     <section id="opsSection" class="usage-ops-section fade" hidden>
       <div class="usage-section-head">
         <div>
@@ -204,17 +215,6 @@
         <article id="taskPerformancePanel" class="account-card cards usage-ops-panel"></article>
         <article id="versionHealthPanel" class="account-card cards usage-ops-panel"></article>
       </div>
-    </section>
-
-    <section id="accountsSection" class="usage-accounts-section fade" hidden>
-      <div class="usage-section-head">
-        <div>
-          <p class="kicker">ACCOUNT ACTIVITY</p>
-          <h2>客户运行状态</h2>
-        </div>
-        <span id="accountsHint">实时状态</span>
-      </div>
-      <div id="usersPanel" class="usage-account-grid"></div>
     </section>
 
     <section id="taskAuditSection" class="usage-accounts-section usage-task-audit-section fade" hidden>

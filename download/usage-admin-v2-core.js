@@ -512,14 +512,14 @@ function createAuditSection(titleText) {
   return section;
 }
 
-function createFileList(files) {
+function createFileList(files, emptyText = "未采集到文件元数据") {
   const wrap = document.createElement("div");
   wrap.className = "usage-audit-file-list";
   const items = Array.isArray(files) ? files : [];
   if (!items.length) {
     const empty = document.createElement("span");
     empty.className = "usage-audit-empty-inline";
-    empty.textContent = "无上传资料";
+    empty.textContent = emptyText;
     wrap.append(empty);
     return wrap;
   }
@@ -527,11 +527,98 @@ function createFileList(files) {
     const chip = document.createElement("span");
     chip.className = "secure-pill usage-audit-file-chip";
     const size = asNumber(file?.size_bytes);
-    const sizeText = size >= 1024 * 1024 ? `${(size / (1024 * 1024)).toFixed(1)} MB` : size >= 1024 ? `${(size / 1024).toFixed(1)} KB` : `${size} B`;
+    const hasSize = Number.isFinite(Number(file?.size_bytes)) && Number(file?.size_bytes) > 0;
+    const sizeText = hasSize
+      ? (size >= 1024 * 1024 ? `${(size / (1024 * 1024)).toFixed(1)} MB` : size >= 1024 ? `${(size / 1024).toFixed(1)} KB` : `${size} B`)
+      : "大小未采集";
     chip.textContent = `${file?.name || "file"} · ${sizeText}`;
     wrap.append(chip);
   });
   return wrap;
+}
+
+function optionalNumber(source, key) {
+  if (!source || typeof source !== "object" || !Object.prototype.hasOwnProperty.call(source, key)) return null;
+  const parsed = Number(source[key]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function basenameFromPath(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text.split(/[\\/]/).filter(Boolean).pop() || "";
+}
+
+function materialUsageEvidence(audit, input, result) {
+  const selectedFiles = Array.isArray(input?.customer_files) ? input.customer_files : [];
+  const executorReport = result?.executor_report && typeof result.executor_report === "object" ? result.executor_report : {};
+  const photoUpload = executorReport?.photo_upload && typeof executorReport.photo_upload === "object" ? executorReport.photo_upload : null;
+  const reportItems = Array.isArray(photoUpload?.items) ? photoUpload.items : [];
+  const reportFiles = reportItems.map((item) => ({
+    name: String(item?.name || basenameFromPath(item?.path) || `image-${asNumber(item?.index) || "?"}`),
+    extension: String(item?.extension || ""),
+    size_bytes: Number.isFinite(Number(item?.size_bytes)) ? Number(item.size_bytes) : 0
+  }));
+  const files = selectedFiles.length ? selectedFiles : reportFiles;
+
+  const requested = optionalNumber(photoUpload, "requested");
+  const attempted = optionalNumber(photoUpload, "attempted");
+  const staged = optionalNumber(photoUpload, "staged");
+  const persisted = optionalNumber(photoUpload, "persisted");
+  const finalCount = optionalNumber(photoUpload, "final_count");
+  const alreadyPersisted = optionalNumber(photoUpload, "already_persisted");
+  const hasExecutionEvidence = Boolean(photoUpload && Object.keys(photoUpload).length);
+  const confirmedSaved = Math.max(persisted ?? 0, finalCount ?? 0, alreadyPersisted ?? 0);
+  const detected = Math.max(requested ?? 0, attempted ?? 0, staged ?? 0, reportItems.length, selectedFiles.length);
+  const legacyBatch = input?.audit_scope === "batch_link_legacy" || Boolean(audit?._legacy_parent_audit_id);
+
+  let label = "未采集到资料状态（不能判定客户未上传）";
+  let state = "neutral";
+  if (confirmedSaved > 0) {
+    const target = Math.max(requested ?? 0, attempted ?? 0, confirmedSaved);
+    label = `已实际使用并保存 ${confirmedSaved}${target ? ` / ${target}` : ""} 张商品图片`;
+    state = "ok";
+  } else if (detected > 0) {
+    label = hasExecutionEvidence
+      ? `已检测到 ${detected} 张商品图片，尚未确认持久化结果`
+      : `已采集 ${selectedFiles.length} 个客户资料文件`;
+    state = "ok";
+  } else if (hasExecutionEvidence && requested === 0 && attempted === 0 && !legacyBatch) {
+    label = "执行报告确认本次没有使用商品图片";
+  }
+
+  return {
+    files,
+    label,
+    state,
+    selectedCount: selectedFiles.length,
+    hasExecutionEvidence,
+    requested,
+    attempted,
+    persisted,
+    finalCount,
+    confirmedSaved,
+    emptyText: hasExecutionEvidence
+      ? "执行报告没有可展示的文件名元数据"
+      : "未采集到文件元数据（不等于客户未上传）"
+  };
+}
+
+function appendMaterialEvidence(section, audit, input, result) {
+  const evidence = materialUsageEvidence(audit, input, result);
+  const panel = document.createElement("div");
+  panel.className = "account-status-panel usage-audit-status-panel";
+  const selectedText = evidence.selectedCount > 0 ? `${evidence.selectedCount} 个文件` : "未采集到可靠选择记录";
+  const executionText = evidence.hasExecutionEvidence
+    ? `${evidence.attempted ?? evidence.requested ?? 0} 尝试 · ${evidence.confirmedSaved} 已保存`
+    : "未采集到执行侧图片证据";
+  panel.append(
+    createStatusLine("资料判定", evidence.label, evidence.state),
+    createStatusLine("GUI 选择记录", selectedText),
+    createStatusLine("执行侧图片", executionText, evidence.confirmedSaved > 0 ? "ok" : "neutral")
+  );
+  section.append(panel, createFileList(evidence.files, evidence.emptyText));
+  return evidence;
 }
 
 function createAuditTable(headers, rows) {
@@ -687,9 +774,6 @@ function renderTaskAudit(audit, usersById) {
       createStatusLine("销售规格 / 套装", input.listing_intent || "—")
     );
     inputSection.append(inputPanel);
-    const fileBlock = createAuditSection("客户资料文件");
-    fileBlock.append(createFileList(input.customer_files));
-    inputSection.append(fileBlock);
   } else {
     inputPanel.append(
       createStatusLine("Supplier URL", input.supplier_url || audit?.product_url || "—"),
@@ -698,10 +782,10 @@ function renderTaskAudit(audit, usersById) {
       createStatusLine("执行范围", input.execution_scope || "—")
     );
     inputSection.append(inputPanel, createAuditTextBlock("AI 引导", input.ai_guidance || "—"), createAuditTextBlock("Model Name 流量词", input.model_name_keywords || "—"));
-    const fileBlock = createAuditSection("客户资料文件");
-    fileBlock.append(createFileList(input.customer_files));
-    inputSection.append(fileBlock);
   }
+  const materialBlock = createAuditSection("客户资料与实际图片");
+  const materialEvidence = appendMaterialEvidence(materialBlock, audit, input, result);
+  inputSection.append(materialBlock);
   body.append(inputSection);
 
   const resultSection = createAuditSection("任务结果");
@@ -717,7 +801,7 @@ function renderTaskAudit(audit, usersById) {
       createStatusLine("READY / BLOCKED", `${asNumber(result.ready)} / ${asNumber(result.blocked)}`),
       createStatusLine("MISSING / CONFLICT", `${asNumber(result.missing)} / ${asNumber(result.conflict)}`),
       createStatusLine("Required blocked", asNumber(result.required_blocked)),
-      createStatusLine("Images", asNumber(result.product_images)),
+      createStatusLine("实际图片", materialEvidence.label, materialEvidence.state),
       createStatusLine("Makro target", result.makro_target_id || "—"),
       createStatusLine("Run ID", result.run_id || "—"),
       createStatusLine("当前阶段", result.stage_detail || "—")
@@ -729,7 +813,8 @@ function renderTaskAudit(audit, usersById) {
       createStatusLine("Brand", result.brand || "—"),
       createStatusLine("READY / BLOCKED", `${asNumber(result.ready)} / ${asNumber(result.blocked)}`),
       createStatusLine("MISSING / CONFLICT", `${asNumber(result.missing)} / ${asNumber(result.conflict)}`),
-      createStatusLine("Live Fields", asNumber(result.live_field_count))
+      createStatusLine("Live Fields", asNumber(result.live_field_count)),
+      createStatusLine("实际图片", materialEvidence.label, materialEvidence.state)
     );
   }
   resultSection.append(resultPanel);

@@ -1,7 +1,10 @@
 /* Desktop operations layout contract.
    The primary telemetry panels share one natural grid row. Overview cards do
    not own vertical scrolling; page scrolling always remains available under
-   the pointer. Detailed content is opened in the shared modal. */
+   the pointer. Detailed content is opened in the shared modal.
+
+   Card motion is intentionally not overridden here. All .cards keep the
+   portal-wide hover/press interaction defined in styles-v3.css. */
 
 @media (min-width: 1261px) {
   .usage-ops-grid {
@@ -51,11 +54,6 @@
     overscroll-behavior: auto;
     scrollbar-gutter: auto;
   }
-
-  .usage-ops-panel.cards:hover,
-  .usage-ops-panel.cards:active {
-    transform: none;
-  }
 }
 
 /* Overview surfaces must never trap the mouse wheel. Only the shared detail
@@ -67,4 +65,24 @@
 .usage-task-audit-list,
 .usage-diagnostic-list {
   overscroll-behavior-y: auto;
+}
+
+/* Detail launchers inside monitor cards are not .cards themselves, so give
+   them the same lightweight hover/press feedback without changing layout. */
+#deviceHealthPanel > .usage-diagnostic-item > summary,
+#diagnosticsPanel > .usage-diagnostic-item > summary,
+.usage-task-card > .usage-task-summary {
+  transition: background-color .2s ease, opacity .2s ease;
+}
+
+#deviceHealthPanel > .usage-diagnostic-item > summary:hover,
+#diagnosticsPanel > .usage-diagnostic-item > summary:hover,
+.usage-task-card > .usage-task-summary:hover {
+  background-color: rgba(255, 255, 255, .035);
+}
+
+#deviceHealthPanel > .usage-diagnostic-item > summary:active,
+#diagnosticsPanel > .usage-diagnostic-item > summary:active,
+.usage-task-card > .usage-task-summary:active {
+  opacity: .88;
 }

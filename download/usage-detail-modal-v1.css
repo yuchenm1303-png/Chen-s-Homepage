@@ -1,0 +1,66 @@
+html.usage-detail-modal-open,
+html.usage-detail-modal-open body {
+  overflow: hidden;
+}
+
+.usage-detail-modal .modal-card {
+  width: min(1180px, calc(100vw - 44px));
+  max-height: calc(100vh - 56px);
+  padding: 26px 28px 30px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.usage-detail-modal .modal-body {
+  margin-top: 16px;
+}
+
+.usage-detail-modal .usage-modal-clone {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.usage-detail-modal .usage-modal-clone.usage-task-body {
+  padding: 0;
+}
+
+.usage-detail-modal .usage-modal-clone.usage-diagnostic-body {
+  padding: 0;
+  border-top: 0;
+}
+
+.usage-detail-modal .usage-task-metrics,
+.usage-detail-modal .usage-diagnostic-meta {
+  margin-top: 0;
+}
+
+.usage-detail-modal .usage-audit-table-scroll,
+.usage-detail-modal .usage-diagnostic-json {
+  max-height: 56vh;
+}
+
+/* Portal cards are launchers only. Their detail body never expands in-page. */
+.usage-task-card[open] > .usage-task-body,
+#deviceHealthPanel > .usage-diagnostic-item[open] > .usage-diagnostic-body,
+#diagnosticsPanel > .usage-diagnostic-item[open] > .usage-diagnostic-body {
+  display: none !important;
+}
+
+.usage-task-card[open] {
+  grid-column: auto;
+}
+
+.usage-task-card > summary,
+#deviceHealthPanel > .usage-diagnostic-item > summary,
+#diagnosticsPanel > .usage-diagnostic-item > summary {
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .usage-detail-modal .modal-card {
+    width: min(100% - 22px, 1180px);
+    max-height: calc(100vh - 24px);
+    padding: 22px 18px 24px;
+  }
+}

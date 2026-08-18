@@ -482,6 +482,76 @@ function createRawAudit(audit) {
   return details;
 }
 
+function createDiagnosticDetails(label, value, { json = false } = {}) {
+  const details = document.createElement("details");
+  details.className = "usage-audit-raw";
+  const summary = document.createElement("summary");
+  summary.textContent = label;
+  const pre = document.createElement("pre");
+  pre.textContent = json ? JSON.stringify(value ?? {}, null, 2) : String(value || "—");
+  details.append(summary, pre);
+  return details;
+}
+
+function createFailureDiagnosticSection(diagnostic, label = "运行故障诊断") {
+  const section = createAuditSection(label);
+  const panel = document.createElement("div");
+  panel.className = "account-status-panel usage-audit-status-panel";
+  const activeStages = Array.isArray(diagnostic?.active_stages) ? diagnostic.active_stages.join(" → ") : "";
+  panel.append(
+    createStatusLine("失败阶段", diagnostic?.failed_stage || "—", "warn"),
+    createStatusLine("异常类型", diagnostic?.error_type || "—", "warn"),
+    createStatusLine("UI Phase", diagnostic?.ui_phase || "—"),
+    createStatusLine("Workflow", diagnostic?.workflow_mode || "—"),
+    createStatusLine("Run ID", diagnostic?.run_id || "—"),
+    createStatusLine("失败耗时", diagnostic?.elapsed_seconds ? `${asNumber(diagnostic.elapsed_seconds).toFixed(3)}s` : "—"),
+    createStatusLine("Active Stages", activeStages || "—"),
+    createStatusLine("结构化现场", diagnostic?.diagnostic_source_available ? "AVAILABLE" : "FALLBACK", diagnostic?.diagnostic_source_available ? "ok" : "warn")
+  );
+  section.append(panel, createAuditTextBlock("错误信息", diagnostic?.error_message || "—"));
+
+  const stages = Array.isArray(diagnostic?.stage_summary) ? diagnostic.stage_summary : [];
+  if (stages.length) {
+    section.append(createAuditTable(
+      ["Stage", "Event", "UI Phase", "Elapsed", "Detail"],
+      stages.map((item) => [
+        item?.stage || "—",
+        item?.event || "—",
+        item?.ui_phase || "—",
+        asNumber(item?.elapsed_seconds) ? `${asNumber(item.elapsed_seconds).toFixed(3)}s` : "—",
+        item?.detail || "—"
+      ])
+    ));
+  }
+
+  if (diagnostic?.traceback) {
+    section.append(createDiagnosticDetails("查看完整 Traceback", diagnostic.traceback));
+  }
+  if (Array.isArray(diagnostic?.timeline) && diagnostic.timeline.length) {
+    section.append(createDiagnosticDetails(`查看 WORKFLOW_DIAG 时间线 · ${diagnostic.timeline.length} events`, diagnostic.timeline, { json: true }));
+  }
+  if (diagnostic?.failed_event && typeof diagnostic.failed_event === "object") {
+    section.append(createDiagnosticDetails("查看 FAILED Event", diagnostic.failed_event, { json: true }));
+  }
+  if (diagnostic?.manifest && typeof diagnostic.manifest === "object" && Object.keys(diagnostic.manifest).length) {
+    section.append(createDiagnosticDetails("查看 Run Manifest", diagnostic.manifest, { json: true }));
+  }
+  return section;
+}
+
+function appendFailureDiagnostics(body, result) {
+  const single = result?.failure_diagnostic;
+  if (single && typeof single === "object" && !Array.isArray(single)) {
+    body.append(createFailureDiagnosticSection(single));
+  }
+  const batch = Array.isArray(result?.failure_diagnostics) ? result.failure_diagnostics : [];
+  batch.forEach((diagnostic, index) => {
+    if (!diagnostic || typeof diagnostic !== "object") return;
+    const job = diagnostic?.job_id ? ` · ${diagnostic.job_id}` : ` · #${index + 1}`;
+    body.append(createFailureDiagnosticSection(diagnostic, `Job 运行故障诊断${job}`));
+  });
+}
+
 function renderTaskAudit(audit, usersById) {
   const user = auditUser(audit, usersById);
   const input = audit?.input_data && typeof audit.input_data === "object" ? audit.input_data : {};
@@ -628,6 +698,7 @@ function renderTaskAudit(audit, usersById) {
     }
   }
   body.append(resultSection);
+  appendFailureDiagnostics(body, result);
 
   if (audit?.error_text) {
     const errorSection = createAuditSection("错误 / Review reason");

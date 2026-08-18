@@ -134,9 +134,9 @@
         <p>单商品执行完成</p>
       </article>
       <article class="utility-card cards usage-summary-card">
-        <span class="utility-overline">BATCH</span>
+        <span class="utility-overline">BATCH LINKS</span>
         <h3 id="batchDoneCount">0</h3>
-        <p>批量执行完成</p>
+        <p>批量商品完成</p>
       </article>
       <article class="utility-card cards usage-summary-card">
         <span class="utility-overline">SUCCESS</span>
@@ -146,7 +146,7 @@
       <article class="utility-card cards usage-summary-card">
         <span class="utility-overline">FAILED</span>
         <h3 id="failureCount">0</h3>
-        <p>失败事件</p>
+        <p>失败商品任务</p>
       </article>
     </section>
 
@@ -220,15 +220,15 @@
     <section id="taskAuditSection" class="usage-accounts-section usage-task-audit-section fade" hidden>
       <div class="usage-section-head usage-task-audit-head">
         <div>
-          <p class="kicker">BUSINESS AUDIT</p>
-          <h2>最近任务审计</h2>
+          <p class="kicker">PRODUCT TASK AUDIT</p>
+          <h2>最近商品任务</h2>
         </div>
         <div class="usage-audit-tools">
-          <input id="auditSearch" class="usage-audit-search" type="search" placeholder="搜索账号 / 链接 / Vertical / Brand" autocomplete="off" />
+          <input id="auditSearch" class="usage-audit-search" type="search" placeholder="搜索账号 / 链接 / Job / Vertical / Brand" autocomplete="off" />
           <select id="auditFilter" class="usage-audit-filter" aria-label="任务审计筛选">
             <option value="all">全部任务</option>
             <option value="single">Single</option>
-            <option value="batch">Batch</option>
+            <option value="batch">Batch links</option>
             <option value="running">运行中</option>
             <option value="failed">失败</option>
             <option value="completed">完成</option>
@@ -253,12 +253,12 @@
 
     <footer class="footer fade usage-footer">
       <span>© 2026 Listing Studio · Owner telemetry</span>
-      <span>业务审计显示客户任务输入与结果；API Key、Token、密码、Cookie、认证密钥与原始文件二进制永不采集</span>
+      <span>每个 Supplier URL 独立审计；API Key、Token、密码、Cookie、认证密钥与原始文件二进制永不采集</span>
     </footer>
   </main>
 
   <script src="./config-v6.js"></script>
-  <script type="module" src="./usage-admin-v1.js?v=20260818-1018"></script>
+  <script type="module" src="./usage-admin-v2.js?v=20260818-1218"></script>
   <script type="module" src="./usage-ops-v1.js?v=20260817-2230"></script>
   <script src="./cursor-desktop-v2.js?v=20260813-2"></script>
 </body>

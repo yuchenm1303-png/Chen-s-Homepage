@@ -1,4 +1,36 @@
-const modalLayer = document.getElementById("usageDetailModal");
+function ensureStylesheet(id, href) {
+  if (document.getElementById(id)) return;
+  const link = document.createElement("link");
+  link.id = id;
+  link.rel = "stylesheet";
+  link.href = href;
+  document.head.append(link);
+}
+
+function ensureModal() {
+  let layer = document.getElementById("usageDetailModal");
+  if (layer) return layer;
+
+  layer = document.createElement("div");
+  layer.className = "modal-layer usage-detail-modal";
+  layer.id = "usageDetailModal";
+  layer.hidden = true;
+  layer.innerHTML = `
+    <div class="modal-mask" id="usageDetailModalMask"></div>
+    <article class="modal-card cards" role="dialog" aria-modal="true" aria-labelledby="usageDetailModalTitle">
+      <button class="modal-close" id="usageDetailModalClose" type="button" aria-label="关闭">×</button>
+      <p class="modal-kicker" id="usageDetailModalKicker">DETAIL</p>
+      <h2 id="usageDetailModalTitle">详情</h2>
+      <div class="modal-body" id="usageDetailModalBody"></div>
+    </article>`;
+  document.body.append(layer);
+  return layer;
+}
+
+ensureStylesheet("usageTaskListStyles", "./usage-task-list-v1.css?v=20260818-1234");
+ensureStylesheet("usageDetailModalStyles", "./usage-detail-modal-v1.css?v=20260818-1308");
+
+const modalLayer = ensureModal();
 const modalMask = document.getElementById("usageDetailModalMask");
 const modalClose = document.getElementById("usageDetailModalClose");
 const modalKicker = document.getElementById("usageDetailModalKicker");

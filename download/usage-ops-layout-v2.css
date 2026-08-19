@@ -17,6 +17,149 @@
   padding-top: 12px;
 }
 
+/* Task history is an overview surface, not an endless page-length table.
+   Dates are the primary navigation unit; each day expands independently while
+   the history itself stays inside one bounded, scrollable window. */
+.usage-task-performance-window {
+  max-height: 360px;
+  margin-top: 8px;
+  padding-right: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.usage-task-performance-window::-webkit-scrollbar {
+  width: 7px;
+}
+
+.usage-task-performance-window::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.usage-task-performance-window::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .14);
+}
+
+.usage-task-performance-window::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, .23);
+}
+
+.usage-task-day-group {
+  border-bottom: 1px solid rgba(255, 255, 255, .07);
+}
+
+.usage-task-day-group:last-child {
+  border-bottom: 0;
+}
+
+.usage-task-day-summary {
+  list-style: none;
+  min-height: 48px;
+  padding: 9px 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color .18s ease;
+}
+
+.usage-task-day-summary::-webkit-details-marker {
+  display: none;
+}
+
+.usage-task-day-summary:hover {
+  background: rgba(255, 255, 255, .035);
+}
+
+.usage-task-day-summary::after {
+  content: "›";
+  color: var(--soft);
+  font-size: .82rem;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform .16s ease;
+}
+
+.usage-task-day-group[open] > .usage-task-day-summary::after {
+  transform: rotate(90deg);
+}
+
+.usage-task-day-title {
+  min-width: 0;
+}
+
+.usage-task-day-title strong {
+  display: block;
+  overflow: hidden;
+  color: rgba(246, 251, 255, .94);
+  font-size: .65rem;
+  font-weight: 640;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-task-day-title small {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--soft);
+  font-size: .49rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-task-day-stats {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.usage-task-day-stats span {
+  min-height: 19px;
+  padding: 3px 7px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .035);
+  color: var(--soft);
+  font-size: .47rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.usage-task-day-stats .is-success {
+  color: #83efc7;
+}
+
+.usage-task-day-stats .is-review {
+  color: #b9d7ff;
+}
+
+.usage-task-day-stats .is-failed {
+  color: #ffd49a;
+}
+
+#taskPerformancePanel .usage-task-day-table {
+  max-height: none;
+  margin-top: 0;
+  padding: 0 6px 6px;
+  overflow: visible;
+  scrollbar-gutter: auto;
+}
+
+#taskPerformancePanel .usage-task-day-table .usage-ops-row.is-head {
+  position: static;
+}
+
 @media (min-width: 1261px) {
   .usage-ops-grid {
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
@@ -65,10 +208,19 @@
     overscroll-behavior: auto;
     scrollbar-gutter: auto;
   }
+
+  #taskPerformancePanel .usage-task-performance-window {
+    flex: 0 1 auto;
+    max-height: 360px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
 }
 
-/* Overview surfaces must never trap the mouse wheel. Only the shared detail
-   modal owns an internal vertical scroller while the document is locked. */
+/* Overview surfaces must never trap the mouse wheel unless the surface is an
+   explicit bounded history window. The task-performance window above is the
+   only operations overview that intentionally owns vertical scrolling. */
 #deviceHealthPanel,
 #taskPerformancePanel,
 #versionHealthPanel,
@@ -96,4 +248,19 @@
 #diagnosticsPanel > .usage-diagnostic-item > summary:active,
 .usage-task-card > .usage-task-summary:active {
   opacity: .88;
+}
+
+@media (max-width: 680px) {
+  .usage-task-performance-window {
+    max-height: 320px;
+  }
+
+  .usage-task-day-summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .usage-task-day-stats {
+    display: none;
+  }
 }

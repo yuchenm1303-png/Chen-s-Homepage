@@ -1,10 +1,21 @@
-/* Desktop operations layout contract.
-   The primary telemetry panels share one natural grid row. Overview cards do
-   not own vertical scrolling; page scrolling always remains available under
-   the pointer. Detailed content is opened in the shared modal.
+/* Owner monitor layout contract.
+   Telemetry surfaces size to their content unless a panel explicitly owns a
+   minimum operational working area. The generic .account-card height belongs
+   to the account/download portal and must not force empty monitor canvases.
 
    Card motion is intentionally not overridden here. All .cards keep the
    portal-wide hover/press interaction defined in styles-v3.css. */
+
+.usage-activity-card,
+.usage-daily-heatmap-card {
+  min-height: 0;
+  height: auto;
+}
+
+.usage-activity-card .usage-monitor-legend {
+  margin-top: 14px;
+  padding-top: 12px;
+}
 
 @media (min-width: 1261px) {
   .usage-ops-grid {

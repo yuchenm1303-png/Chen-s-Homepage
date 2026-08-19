@@ -39,15 +39,16 @@ function ensureStyle() {
       line-height: 1.45;
     }
     .usage-daily-heatmap-scroll {
-      margin-top: 14px;
+      margin-top: 16px;
       overflow-x: auto;
       overflow-y: hidden;
-      padding-bottom: 4px;
+      padding: 2px 10px 6px;
       scrollbar-width: thin;
     }
     .usage-daily-heatmap-frame {
       width: max-content;
-      min-width: 100%;
+      min-width: 0;
+      margin-inline: auto;
       display: grid;
       grid-template-columns: 28px auto;
       grid-template-rows: 18px auto;
@@ -114,7 +115,9 @@ function ensureStyle() {
       pointer-events: none;
     }
     .usage-daily-heatmap-footer {
-      margin-top: 11px;
+      width: min(100%, 830px);
+      margin: 12px auto 0;
+      padding: 0 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -143,10 +146,16 @@ function ensureStyle() {
       border-radius: 2px;
       box-shadow: inset 0 0 0 1px rgba(255, 191, 126, .95);
     }
+    @media (max-width: 920px) {
+      .usage-daily-heatmap-scroll { padding-inline: 0; }
+      .usage-daily-heatmap-frame { margin-inline: 0; }
+      .usage-daily-heatmap-footer { width: 100%; padding-inline: 0; }
+    }
     @media (max-width: 680px) {
       .usage-daily-heatmap-card { padding: 15px; }
       .usage-daily-heatmap-head { display: block; }
       .usage-daily-heatmap-head .secure-pill { margin-top: 9px; }
+      .usage-daily-heatmap-footer { align-items: flex-start; flex-direction: column; gap: 8px; }
     }
   `;
   document.head.append(style);

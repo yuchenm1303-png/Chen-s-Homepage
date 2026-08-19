@@ -238,10 +238,59 @@ function renderTaskPerformance(snapshot) {
   const names = userNameMap(snapshot);
   taskPerformancePanel.replaceChildren();
 
+  const zone = "Asia/Shanghai";
+  const dayParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit"
+  });
+  const dayLabel = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", weekday: "short"
+  });
+  const clockLabel = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: zone, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+  });
+
+  function auditStamp(audit) {
+    const raw = audit?.completed_at || audit?.updated_at || audit?.started_at || audit?.created_at || "";
+    const stamp = Date.parse(raw);
+    return Number.isFinite(stamp) ? stamp : 0;
+  }
+
+  function dateKey(audit) {
+    const stamp = auditStamp(audit);
+    if (!stamp) return "unknown";
+    const parts = dayParts.formatToParts(new Date(stamp));
+    const year = parts.find((part) => part.type === "year")?.value || "0000";
+    const month = parts.find((part) => part.type === "month")?.value || "00";
+    const day = parts.find((part) => part.type === "day")?.value || "00";
+    return `${year}-${month}-${day}`;
+  }
+
+  function dateTitle(group) {
+    const stamp = group.items.reduce((latest, audit) => Math.max(latest, auditStamp(audit)), 0);
+    return stamp ? dayLabel.format(new Date(stamp)) : "日期未知";
+  }
+
+  function timeTitle(audit) {
+    const stamp = auditStamp(audit);
+    return stamp ? clockLabel.format(new Date(stamp)) : "—";
+  }
+
+  const groups = new Map();
+  for (const audit of audits) {
+    const key = dateKey(audit);
+    if (!groups.has(key)) groups.set(key, { key, items: [] });
+    groups.get(key).items.push(audit);
+  }
+  const days = [...groups.values()].sort((left, right) => {
+    const a = left.items.reduce((latest, audit) => Math.max(latest, auditStamp(audit)), 0);
+    const b = right.items.reduce((latest, audit) => Math.max(latest, auditStamp(audit)), 0);
+    return b - a;
+  });
+
   const head = el("div", "usage-ops-panel-head");
   const title = el("div");
   title.append(el("p", "kicker", "TASK PERFORMANCE"), el("h3", "", "任务耗时与 AI 调用"));
-  head.append(title, el("span", "", `${audits.length} recent tasks`));
+  head.append(title, el("span", "", `${audits.length} tasks · ${days.length} days`));
   taskPerformancePanel.append(head);
 
   if (!audits.length) {
@@ -249,28 +298,62 @@ function renderTaskPerformance(snapshot) {
     return;
   }
 
-  const table = el("div", "usage-ops-table");
-  const header = el("div", "usage-ops-row is-head");
-  ["任务", "总耗时", "AI Calls", "Cache", "Cold/Hot", "Execute"].forEach((text) => header.append(el("div", "usage-ops-cell", text)));
-  table.append(header);
+  const window = el("div", "usage-task-performance-window");
 
-  for (const audit of audits.slice(0, 80)) {
-    const stats = phaseStats(audit);
-    const row = el("div", "usage-ops-row");
-    const first = el("div", "usage-ops-cell");
-    first.append(el("strong", "", `${audit.task_kind === "batch" ? "Batch" : "Single"} · ${names.get(String(audit.user_id || "")) || String(audit.user_id || "").slice(0, 8)}`));
-    first.append(el("small", "", `${audit.status || "—"} · v${audit.app_version || "—"} · ${fmtTime(audit.updated_at)}`));
-    row.append(
-      first,
-      el("div", "usage-ops-cell", fmtDuration(durationOf(audit))),
-      el("div", "usage-ops-cell", String(stats.modelCalls)),
-      el("div", "usage-ops-cell", stats.batches ? `${stats.cacheHits}/${stats.batches}` : String(stats.cacheHits)),
-      el("div", "usage-ops-cell", `${fmtDuration(stats.coldSeconds)} / ${fmtDuration(stats.hotSeconds)}`),
-      el("div", "usage-ops-cell", fmtDuration(stats.executeSeconds))
+  days.forEach((group, index) => {
+    const completed = group.items.filter((audit) => ["completed", "ready"].includes(String(audit?.status || "").toLowerCase())).length;
+    const failed = group.items.filter((audit) => ["failed", "cancelled"].includes(String(audit?.status || "").toLowerCase())).length;
+    const review = group.items.filter((audit) => String(audit?.status || "").toLowerCase() === "review").length;
+    const calls = group.items.reduce((sum, audit) => sum + phaseStats(audit).modelCalls, 0);
+    const durations = group.items.map(durationOf).filter(Boolean);
+    const avgDuration = durations.length ? durations.reduce((sum, value) => sum + value, 0) / durations.length : 0;
+
+    const details = el("details", "usage-task-day-group");
+    if (index === 0) details.open = true;
+
+    const summary = el("summary", "usage-task-day-summary");
+    const identity = el("div", "usage-task-day-title");
+    identity.append(
+      el("strong", "", dateTitle(group)),
+      el("small", "", `${group.items.length} 个商品任务 · 平均 ${fmtDuration(avgDuration)} · ${calls} AI Calls`)
     );
-    table.append(row);
-  }
-  taskPerformancePanel.append(table);
+    const stats = el("div", "usage-task-day-stats");
+    stats.append(el("span", "is-success", `${completed} 成功`));
+    if (review) stats.append(el("span", "is-review", `${review} 复核`));
+    if (failed) stats.append(el("span", "is-failed", `${failed} 失败`));
+    summary.append(identity, stats);
+    details.append(summary);
+
+    const table = el("div", "usage-ops-table usage-task-day-table");
+    const header = el("div", "usage-ops-row is-head");
+    ["任务", "总耗时", "AI Calls", "Cache", "Cold/Hot", "Execute"].forEach((text) => header.append(el("div", "usage-ops-cell", text)));
+    table.append(header);
+
+    group.items
+      .slice()
+      .sort((a, b) => auditStamp(b) - auditStamp(a))
+      .forEach((audit) => {
+        const phase = phaseStats(audit);
+        const row = el("div", "usage-ops-row");
+        const first = el("div", "usage-ops-cell");
+        first.append(el("strong", "", `${audit.task_kind === "batch" ? "Batch" : "Single"} · ${names.get(String(audit.user_id || "")) || String(audit.user_id || "").slice(0, 8)}`));
+        first.append(el("small", "", `${audit.status || "—"} · v${audit.app_version || "—"} · ${timeTitle(audit)}`));
+        row.append(
+          first,
+          el("div", "usage-ops-cell", fmtDuration(durationOf(audit))),
+          el("div", "usage-ops-cell", String(phase.modelCalls)),
+          el("div", "usage-ops-cell", phase.batches ? `${phase.cacheHits}/${phase.batches}` : String(phase.cacheHits)),
+          el("div", "usage-ops-cell", `${fmtDuration(phase.coldSeconds)} / ${fmtDuration(phase.hotSeconds)}`),
+          el("div", "usage-ops-cell", fmtDuration(phase.executeSeconds))
+        );
+        table.append(row);
+      });
+
+    details.append(table);
+    window.append(details);
+  });
+
+  taskPerformancePanel.append(window);
 }
 
 function renderVersionHealth(snapshot) {

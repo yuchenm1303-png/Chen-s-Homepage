@@ -81,45 +81,48 @@ function copyPayloadForButton(button) {
   return normalizedText(host.textContent);
 }
 
+function textWithoutCopyUi(node) {
+  if (!node) return "";
+  const clone = node.cloneNode(true);
+  clone.querySelectorAll?.(`.${COPY_UI_CLASS}`).forEach((item) => item.remove());
+  return normalizedText(clone.textContent);
+}
+
 function collectTaskError(body) {
   if (!body) return "";
   const chunks = [];
 
   const metrics = body.querySelector(".usage-task-metrics");
-  if (metrics) chunks.push(`[任务上下文]\n${normalizedText(metrics.textContent)}`);
+  if (metrics) chunks.push(`[任务上下文]\n${textWithoutCopyUi(metrics)}`);
 
   const inputSection = [...body.querySelectorAll(":scope > .usage-audit-detail-section")].find((section) =>
     normalizedText(section.querySelector(":scope > .usage-audit-detail-title")?.textContent) === "客户输入"
   );
-  if (inputSection) chunks.push(`[客户输入]\n${normalizedText(inputSection.textContent)}`);
+  if (inputSection) chunks.push(`[客户输入]\n${textWithoutCopyUi(inputSection)}`);
 
   for (const block of body.querySelectorAll(".usage-audit-copy")) {
-    const label = normalizedText(block.querySelector(":scope > span")?.textContent).toLowerCase();
+    const labelNode = block.querySelector(":scope > span");
+    const label = normalizedText(labelNode?.textContent);
     if (!/(错误|error|review|异常|失败)/i.test(label)) continue;
     const value = normalizedText(block.querySelector(":scope > p")?.textContent);
-    if (value) chunks.push(`[${normalizedText(block.querySelector(":scope > span")?.textContent) || "错误"}]\n${value}`);
+    if (value) chunks.push(`[${label || "错误"}]\n${value}`);
   }
 
   for (const section of body.querySelectorAll(".usage-audit-detail-section")) {
     const title = normalizedText(section.querySelector(":scope > .usage-audit-detail-title")?.textContent);
     if (!/(故障诊断|failure|diagnostic)/i.test(title)) continue;
-    const clone = section.cloneNode(true);
-    clone.querySelectorAll(`.${COPY_UI_CLASS}`).forEach((node) => node.remove());
-    chunks.push(`[${title || "运行故障诊断"}]\n${normalizedText(clone.textContent)}`);
+    chunks.push(`[${title || "运行故障诊断"}]\n${textWithoutCopyUi(section)}`);
   }
 
   for (const details of body.querySelectorAll(".usage-audit-raw")) {
-    const label = normalizedText(details.querySelector(":scope > summary")?.childNodes?.[0]?.textContent || details.querySelector(":scope > summary")?.textContent);
+    const summary = details.querySelector(":scope > summary");
+    const label = normalizedText(summary?.childNodes?.[0]?.textContent || summary?.textContent);
     if (!/(traceback|workflow_diag|failed event|run manifest|原始审计|错误|error|失败)/i.test(label)) continue;
     const value = normalizedText(details.querySelector(":scope > pre")?.textContent);
     if (value) chunks.push(`[${label || "诊断详情"}]\n${value}`);
   }
 
-  if (!chunks.length) {
-    const clone = body.cloneNode(true);
-    clone.querySelectorAll(`.${COPY_UI_CLASS}`).forEach((node) => node.remove());
-    return normalizedText(clone.textContent);
-  }
+  if (!chunks.length) return textWithoutCopyUi(body);
   return chunks.join("\n\n");
 }
 
@@ -153,10 +156,12 @@ function enhanceTaskCard(card) {
 
 function enhanceTextBlock(block) {
   if (!(block instanceof HTMLElement) || block.dataset.copyEnhanced === "1") return;
+  const label = normalizedText(block.querySelector(":scope > span")?.textContent);
+  if (!/(错误|error|review|异常|失败)/i.test(label)) return;
   const value = block.querySelector(":scope > p");
   if (!value || !normalizedText(value.textContent)) return;
   block.classList.add("usage-copyable-block");
-  block.append(copyButton({ label: "复制", mode: "text", selector: ":scope > p", ariaLabel: "复制此信息" }));
+  block.append(copyButton({ label: "复制", mode: "text", selector: ":scope > p", ariaLabel: `复制${label || "错误信息"}` }));
   block.dataset.copyEnhanced = "1";
 }
 

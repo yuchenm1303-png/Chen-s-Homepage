@@ -1,0 +1,109 @@
+.usage-copy-button {
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 999px;
+  outline: none;
+  background: rgba(15, 34, 52, .38);
+  color: var(--muted);
+  font: inherit;
+  font-size: .52rem;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: .03em;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, color .18s ease, transform .18s ease;
+}
+
+.usage-copy-button:hover {
+  border-color: rgba(143, 226, 238, .38);
+  background: rgba(43, 92, 111, .38);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.usage-copy-button:active {
+  transform: translateY(0) scale(.97);
+}
+
+.usage-copy-button:focus-visible {
+  box-shadow: 0 0 0 2px rgba(143, 226, 238, .2);
+}
+
+.usage-copy-button[data-copy-state="ok"] {
+  border-color: rgba(123, 231, 187, .38);
+  color: #8ce9c8;
+}
+
+.usage-copy-button[data-copy-state="error"] {
+  border-color: rgba(255, 190, 142, .34);
+  color: #ffd09b;
+}
+
+.usage-error-copy-toolbar {
+  min-height: 36px;
+  margin-top: 12px;
+  padding: 6px 8px 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(255, 186, 133, .14);
+  border-radius: 10px;
+  background: rgba(83, 39, 30, .12);
+}
+
+.usage-error-copy-toolbar > span {
+  color: var(--soft);
+  font-size: .49rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+
+.usage-copyable-block {
+  position: relative;
+  padding-right: 78px;
+}
+
+.usage-copyable-block > .usage-copy-button {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+}
+
+.usage-copy-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.usage-copy-summary > .usage-copy-button {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.usage-diagnostic-body > .usage-error-copy-toolbar:first-child {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.usage-modal-clone > .usage-error-copy-toolbar:first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 680px) {
+  .usage-copyable-block {
+    padding-right: 70px;
+  }
+
+  .usage-copy-button {
+    min-height: 25px;
+    padding: 0 8px;
+    font-size: .5rem;
+  }
+
+  .usage-error-copy-toolbar {
+    min-height: 34px;
+  }
+}

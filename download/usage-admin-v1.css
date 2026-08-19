@@ -381,76 +381,139 @@
   white-space: nowrap;
 }
 
+/* Client activity is the visual primary surface of each account card. */
 .usage-account-monitor {
-  margin-top: 12px;
-  padding-top: 11px;
-  border-top: 1px solid rgba(255, 255, 255, .09);
+  margin-top: 14px;
+  padding: 13px 14px 11px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(9, 28, 46, .18), rgba(8, 20, 36, .08));
+}
+
+.usage-account-monitor-head span {
+  color: rgba(226, 241, 250, .58);
+  font-size: .57rem;
+  font-weight: 620;
+}
+
+.usage-account-monitor-head strong {
+  color: rgba(240, 248, 253, .82);
+  font-size: .67rem;
+  font-weight: 620;
 }
 
 .usage-account-monitor .usage-presence-rail {
-  margin-top: 8px;
+  margin-top: 11px;
   gap: 3px;
 }
 
 .usage-account-monitor .usage-presence-segment {
-  height: 10px;
-  border-radius: 2px;
+  height: 12px;
+  border-radius: 3px;
 }
 
 .usage-account-throughput {
-  height: 31px;
-  margin-top: 8px;
-  gap: 3px;
+  height: 92px;
+  margin-top: 10px;
+  padding-top: 8px;
+  gap: 4px;
+  background: repeating-linear-gradient(
+    to top,
+    rgba(255, 255, 255, .045) 0,
+    rgba(255, 255, 255, .045) 1px,
+    transparent 1px,
+    transparent 30px
+  );
+}
+
+.usage-account-throughput .usage-throughput-completed,
+.usage-account-throughput .usage-throughput-failed {
+  border-radius: 3px 3px 0 0;
 }
 
 .usage-account-monitor .usage-monitor-axis {
-  margin-top: 4px;
-  font-size: .45rem;
+  margin-top: 6px;
+  color: rgba(227, 240, 249, .42);
+  font-size: .47rem;
 }
 
+/* Status is supporting metadata, not the main canvas. */
 .usage-account-card .account-status-panel {
-  margin-top: 11px;
+  margin-top: 7px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .usage-account-card .account-status-line {
-  min-height: 30px;
-  padding-top: 5px;
-  padding-bottom: 5px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 8px 9px;
+  display: block;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(5, 17, 31, .13);
 }
 
-.usage-account-card .account-status-line span,
+.usage-account-card .account-status-line span {
+  display: block;
+  overflow: hidden;
+  color: rgba(227, 239, 247, .38);
+  font-size: .48rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .usage-account-card .account-status-line strong {
-  font-size: .6rem;
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  color: rgba(240, 248, 253, .72);
+  font-size: .61rem;
+  font-weight: 590;
+  line-height: 1.2;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .usage-account-metrics {
-  margin-top: 9px;
+  margin-top: 6px;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
 }
 
 .usage-account-metrics .meta-item {
   min-width: 0;
-  padding: 9px 10px;
+  padding: 7px 8px;
+  background: rgba(4, 15, 28, .11);
 }
 
 .usage-account-metrics .meta-item span {
-  font-size: .51rem;
+  font-size: .47rem;
 }
 
 .usage-account-metrics .meta-item strong {
-  margin-top: 5px;
+  margin-top: 4px;
   overflow: hidden;
-  font-size: .67rem;
+  font-size: .63rem;
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .usage-account-card .account-footer {
-  margin-top: 10px;
-  padding-top: 10px;
-  font-size: .56rem;
+  margin-top: 8px;
+  padding-top: 8px;
+  font-size: .53rem;
 }
 
 .usage-empty {
@@ -857,6 +920,18 @@
   .usage-presence-rail,
   .usage-throughput-chart {
     gap: 2px;
+  }
+
+  .usage-account-monitor {
+    padding: 12px;
+  }
+
+  .usage-account-throughput {
+    height: 78px;
+  }
+
+  .usage-account-card .account-status-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .usage-account-metrics,

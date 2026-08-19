@@ -1,4 +1,4 @@
-const SELECTOR = ".usage-throughput-column, .usage-presence-segment";
+const SELECTOR = ".usage-throughput-column, .usage-presence-segment, .usage-daily-cell";
 const STYLE_ID = "usage-chart-tooltip-style";
 
 function ensureStyle() {
@@ -83,13 +83,13 @@ function createTooltip() {
 function labelFor(raw) {
   const label = String(raw || "").trim();
   if (label === "启动") return "客户端启动";
-  if (label === "完成") return "成功商品任务";
+  if (label === "完成" || label === "成功") return "成功商品任务";
   if (label === "失败") return "失败商品任务";
   return label || "详情";
 }
 
 function kindFor(label) {
-  if (label === "完成") return "success";
+  if (label === "完成" || label === "成功") return "success";
   if (label === "失败") return "failure";
   return "neutral";
 }

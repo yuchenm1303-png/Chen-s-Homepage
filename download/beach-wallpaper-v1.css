@@ -1,0 +1,72 @@
+:root {
+  --beach-parallax-y: 0px;
+}
+
+.cosmos {
+  background: #21313c !important;
+}
+
+.beach-wallpaper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: calc(100% + min(46vh, 520px));
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: #21313c;
+  background-image: var(--beach-image);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: var(--beach-position, 50% 0%);
+  opacity: 0;
+  transform: translate3d(0, var(--beach-parallax-y), 0) scale(1.015);
+  transform-origin: 50% 0;
+  transition: opacity .42s ease;
+  will-change: transform;
+}
+
+.beach-wallpaper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(4, 10, 16, var(--beach-veil-top, .24)), rgba(4, 10, 16, var(--beach-veil-bottom, .42))),
+    radial-gradient(ellipse at 50% 34%, transparent 24%, rgba(3, 8, 14, .22) 100%);
+}
+
+.beach-wallpaper.is-ready {
+  opacity: 1;
+}
+
+.cosmos.beach-wallpaper-active > .cosmos-sky,
+.cosmos.beach-wallpaper-active > .cosmos-glow,
+.cosmos.beach-wallpaper-active > .cosmos-nebula,
+.cosmos.beach-wallpaper-active > .cosmos-vignette,
+.cosmos.beach-wallpaper-active > .parallax-layer {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  animation: none !important;
+}
+
+@media (max-width: 760px) {
+  .beach-wallpaper {
+    height: calc(100% + min(38vh, 320px));
+    background-position: var(--beach-position-mobile, var(--beach-position, 50% 0%));
+    transform: translate3d(0, var(--beach-parallax-y), 0) scale(1.025);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --beach-parallax-y: 0px;
+  }
+
+  .beach-wallpaper {
+    transform: scale(1.015);
+    transition: none;
+    will-change: auto;
+  }
+}

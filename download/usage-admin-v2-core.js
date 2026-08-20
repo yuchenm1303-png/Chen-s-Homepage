@@ -53,13 +53,7 @@ function formatTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
   }).format(date);
 }
 
@@ -67,11 +61,7 @@ function formatHour(value) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  }).format(date);
+  return new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
 }
 
 function formatDuration(startValue, endValue) {
@@ -104,16 +94,13 @@ function activityForUser(user) {
 }
 
 function activityTotals(buckets) {
-  return buckets.reduce(
-    (acc, bucket) => {
-      if (bucket.active) acc.activeHours += 1;
-      acc.launches += asNumber(bucket.launches);
-      acc.completed += asNumber(bucket.completed);
-      acc.failed += asNumber(bucket.failed);
-      return acc;
-    },
-    { activeHours: 0, launches: 0, completed: 0, failed: 0 }
-  );
+  return buckets.reduce((acc, bucket) => {
+    if (bucket.active) acc.activeHours += 1;
+    acc.launches += asNumber(bucket.launches);
+    acc.completed += asNumber(bucket.completed);
+    acc.failed += asNumber(bucket.failed);
+    return acc;
+  }, { activeHours: 0, launches: 0, completed: 0, failed: 0 });
 }
 
 function aggregateActivity(users) {
@@ -122,13 +109,7 @@ function aggregateActivity(users) {
   const result = [];
   for (let index = 0; index < bucketCount; index += 1) {
     const source = histories.find((history) => history[index]?.bucket_start)?.[index];
-    const bucket = {
-      bucket_start: source?.bucket_start || null,
-      active_count: 0,
-      launches: 0,
-      completed: 0,
-      failed: 0
-    };
+    const bucket = { bucket_start: source?.bucket_start || null, active_count: 0, launches: 0, completed: 0, failed: 0 };
     histories.forEach((history) => {
       const item = history[index];
       if (!item) return;
@@ -168,10 +149,8 @@ function createMetaItem(label, value) {
 function renderAxis(target, buckets) {
   target.replaceChildren();
   if (!buckets.length) return;
-  const first = buckets[0]?.bucket_start;
-  const middle = buckets[Math.floor((buckets.length - 1) / 2)]?.bucket_start;
-  const last = buckets[buckets.length - 1]?.bucket_start;
-  [first, middle, last].forEach((value) => {
+  const values = [buckets[0]?.bucket_start, buckets[Math.floor((buckets.length - 1) / 2)]?.bucket_start, buckets[buckets.length - 1]?.bucket_start];
+  values.forEach((value) => {
     const label = document.createElement("span");
     label.textContent = formatHour(value);
     target.append(label);
@@ -247,115 +226,6 @@ function createAccountMonitor(user) {
   renderAxis(axis, buckets);
   monitor.append(head, rail, chart, axis);
   return monitor;
-}
-
-function jobAuditStatus(phase, jobStatus, fallback) {
-  const status = String(jobStatus || "").toUpperCase();
-  if (String(phase || "").toLowerCase() === "batch_execute") {
-    if (status === "DONE") return "completed";
-    if (status === "REVIEW") return "review";
-    if (status === "FAILED") return "failed";
-    if (status === "STOPPED") return "cancelled";
-    return String(fallback || "running").toLowerCase();
-  }
-  if (status === "READY") return "ready";
-  if (status === "REVIEW") return "review";
-  if (status === "FAILED") return "failed";
-  if (status === "STOPPED") return "cancelled";
-  return String(fallback || "running").toLowerCase();
-}
-
-function auditMinute(value) {
-  const stamp = Date.parse(value || "");
-  return Number.isFinite(stamp) ? Math.floor(stamp / 60000) : 0;
-}
-
-function nativeBatchLink(audit) {
-  return audit?.task_kind === "batch" && (
-    audit?.input_data?.audit_scope === "batch_link" ||
-    audit?.result_data?.audit_scope === "batch_link" ||
-    Boolean(audit?.input_data?.job_id && audit?.product_url)
-  );
-}
-
-function batchDedupeKey(audit) {
-  return [
-    audit?.user_id || "",
-    audit?.device_id || "",
-    String(audit?.product_url || audit?.input_data?.supplier_url || "").trim(),
-    String(audit?.phase || "").toLowerCase(),
-    auditMinute(audit?.started_at)
-  ].join("|");
-}
-
-function explodeLegacyBatchAudit(audit) {
-  const input = audit?.input_data && typeof audit.input_data === "object" ? audit.input_data : {};
-  const result = audit?.result_data && typeof audit.result_data === "object" ? audit.result_data : {};
-  const items = Array.isArray(input.items) ? input.items : [];
-  const jobs = Array.isArray(result.jobs) ? result.jobs : [];
-  const count = Math.max(jobs.length, items.length, asNumber(input.item_count), asNumber(result.job_count));
-  if (!count) return [audit];
-  const diagnostics = Array.isArray(result.failure_diagnostics) ? result.failure_diagnostics : [];
-  const output = [];
-  for (let index = 0; index < count; index += 1) {
-    const job = jobs[index] && typeof jobs[index] === "object" ? jobs[index] : {};
-    const jobUrl = String(job.product_url || "").trim();
-    const item = items.find((candidate) => jobUrl && String(candidate?.supplier_url || "").trim() === jobUrl) || items[index] || {};
-    const jobId = String(job.job_id || `JOB-${String(index + 1).padStart(3, "0")}`);
-    const diagnostic = diagnostics.find((candidate) => String(candidate?.job_id || "") === jobId) || null;
-    const productUrl = jobUrl || String(item?.supplier_url || "").trim();
-    const status = jobAuditStatus(audit?.phase, job?.status, audit?.status);
-    output.push({
-      ...audit,
-      id: `${audit?.id || "legacy-batch"}:${jobId}`,
-      status,
-      product_url: productUrl,
-      input_data: {
-        audit_scope: "batch_link_legacy",
-        batch_id: input.batch_id || result.batch_id || audit?.id || "",
-        job_id: jobId,
-        batch_index: index + 1,
-        batch_size: count,
-        supplier_url: productUrl,
-        listing_intent: item?.listing_intent || "",
-        customer_files: Array.isArray(item?.customer_files) ? item.customer_files : [],
-        model_config: input?.model_config || {}
-      },
-      result_data: {
-        ...job,
-        audit_scope: "batch_link_legacy",
-        batch_id: result.batch_id || input.batch_id || audit?.id || "",
-        job_id: jobId,
-        batch_index: index + 1,
-        batch_size: count,
-        job_status: job?.status || "",
-        product_url: productUrl,
-        failure_diagnostic: diagnostic || undefined
-      },
-      error_text: job?.error || audit?.error_text || "",
-      _legacy_parent_audit_id: audit?.id || ""
-    });
-  }
-  return output;
-}
-
-function normalizeTaskAudits(rawAudits) {
-  const raw = Array.isArray(rawAudits) ? rawAudits : [];
-  const nativeKeys = new Set(
-    raw.filter(nativeBatchLink).map(batchDedupeKey)
-  );
-  const normalized = [];
-  raw.forEach((audit) => {
-    if (audit?.task_kind !== "batch" || nativeBatchLink(audit)) {
-      normalized.push(audit);
-      return;
-    }
-    explodeLegacyBatchAudit(audit).forEach((child) => {
-      if (nativeKeys.has(batchDedupeKey(child))) return;
-      normalized.push(child);
-    });
-  });
-  return normalized.sort((a, b) => Date.parse(b?.updated_at || b?.created_at || 0) - Date.parse(a?.updated_at || a?.created_at || 0));
 }
 
 function auditStats(audits) {
@@ -589,19 +459,8 @@ function materialUsageEvidence(audit, input, result) {
   }
 
   return {
-    files,
-    label,
-    state,
-    selectedCount: selectedFiles.length,
-    hasExecutionEvidence,
-    requested,
-    attempted,
-    persisted,
-    finalCount,
-    confirmedSaved,
-    emptyText: hasExecutionEvidence
-      ? "执行报告没有可展示的文件名元数据"
-      : "未采集到文件元数据（不等于客户未上传）"
+    files, label, state, selectedCount: selectedFiles.length, hasExecutionEvidence, requested, attempted, persisted, finalCount, confirmedSaved,
+    emptyText: hasExecutionEvidence ? "执行报告没有可展示的文件名元数据" : "未采集到文件元数据（不等于客户未上传）"
   };
 }
 
@@ -729,12 +588,16 @@ function renderTaskAudit(audit, usersById) {
   const result = audit?.result_data && typeof audit.result_data === "object" ? audit.result_data : {};
   const card = document.createElement("details");
   card.className = "account-card cards usage-task-card";
+  card.dataset.auditId = String(audit?.id || "");
+  card.dataset.sourceAuditId = String(audit?.source_audit_id || audit?.id || "").split(":")[0];
+  card.dataset.hydrated = audit?.summary_only ? "false" : "true";
+
   const summary = document.createElement("summary");
   summary.className = "usage-task-summary";
   const identity = document.createElement("div");
   const kicker = document.createElement("p");
   kicker.className = "kicker";
-  const scope = audit?.task_kind === "batch" ? `BATCH LINK · ${input.job_id || result.job_id || "JOB"}` : "SINGLE";
+  const scope = audit?.task_kind === "batch" ? `BATCH LINK${input.job_id || result.job_id ? ` · ${input.job_id || result.job_id}` : ""}` : "SINGLE";
   kicker.textContent = `${scope} · ${String(audit?.phase || "—").toUpperCase()}`;
   const title = document.createElement("h2");
   title.textContent = auditTitle(audit);
@@ -762,6 +625,15 @@ function renderTaskAudit(audit, usersById) {
     createMetaItem("耗时", formatDuration(audit?.started_at, audit?.completed_at))
   );
   body.append(metrics);
+
+  if (audit?.summary_only) {
+    const loadingNote = document.createElement("div");
+    loadingNote.className = "usage-empty";
+    loadingNote.textContent = "打开详情时读取这一条完整任务审计";
+    body.append(loadingNote);
+    card.append(body);
+    return card;
+  }
 
   const inputSection = createAuditSection("客户输入");
   const inputPanel = document.createElement("div");
@@ -834,6 +706,38 @@ function renderTaskAudit(audit, usersById) {
   return card;
 }
 
+async function hydrateTaskAuditCard(card) {
+  if (!(card instanceof HTMLDetailsElement) || !card.matches(".usage-task-card")) return card;
+  if (card.dataset.hydrated === "true") return card;
+  if (!supabase) throw new Error("usage_client_unavailable");
+
+  const auditId = String(card.dataset.auditId || "");
+  const sourceAuditId = String(card.dataset.sourceAuditId || auditId).split(":")[0];
+  if (!sourceAuditId) throw new Error("task_audit_id_missing");
+  if (card.dataset.loading === "true") return card;
+
+  card.dataset.loading = "true";
+  try {
+    const { data, error } = await supabase.functions.invoke("portal-usage-admin", {
+      body: { scope: "task_detail", audit_id: auditId, source_audit_id: sourceAuditId }
+    });
+    if (error || !data?.task_audit) throw error || new Error("task_detail_missing");
+
+    const usersById = new Map(currentUsers.map((user) => [String(user.user_id || ""), user]));
+    const hydrated = renderTaskAudit(data.task_audit, usersById);
+    const hydratedBody = hydrated.querySelector(":scope > .usage-task-body");
+    const currentBody = card.querySelector(":scope > .usage-task-body");
+    if (!hydratedBody || !currentBody) throw new Error("task_detail_render_failed");
+    currentBody.replaceWith(hydratedBody);
+    card.dataset.hydrated = "true";
+    return card;
+  } finally {
+    card.dataset.loading = "false";
+  }
+}
+
+window.UsageMonitorTaskDetail = Object.freeze({ hydrate: hydrateTaskAuditCard });
+
 function auditMatches(audit, usersById) {
   const filter = String(auditFilter?.value || "all");
   const status = String(audit?.status || "").toLowerCase();
@@ -842,18 +746,7 @@ function auditMatches(audit, usersById) {
   const query = String(auditSearch?.value || "").trim().toLowerCase();
   if (!query) return true;
   const user = auditUser(audit, usersById);
-  const haystack = [
-    user?.email,
-    user?.display_name,
-    audit?.product_url,
-    audit?.app_version,
-    audit?.phase,
-    audit?.status,
-    audit?.input_data?.job_id,
-    audit?.input_data?.batch_id,
-    JSON.stringify(audit?.input_data || {}),
-    JSON.stringify(audit?.result_data || {})
-  ].filter(Boolean).join(" ").toLowerCase();
+  const haystack = [user?.email, user?.display_name, audit?.product_url, audit?.app_version, audit?.phase, audit?.status].filter(Boolean).join(" ").toLowerCase();
   return haystack.includes(query);
 }
 
@@ -861,15 +754,15 @@ function renderTaskAudits() {
   const usersById = new Map(currentUsers.map((user) => [String(user.user_id || ""), user]));
   const visible = currentAudits.filter((audit) => auditMatches(audit, usersById));
   taskAuditPanel.replaceChildren(...(visible.length ? visible.map((audit) => renderTaskAudit(audit, usersById)) : [renderAuditEmptyNode()]));
-  const suffix = currentAuditLimit ? ` · 后端最近最多 ${currentAuditLimit} 条原始审计` : "";
-  auditHint.textContent = `${visible.length} / ${currentAudits.length} 个独立商品任务${suffix}`;
+  const suffix = currentAuditLimit ? ` · 最近最多 ${currentAuditLimit} 条轻量摘要` : "";
+  auditHint.textContent = `${visible.length} / ${currentAudits.length} 个商品任务${suffix}`;
   taskAuditSection.hidden = false;
 }
 
 function renderSnapshot(snapshot) {
   const users = Array.isArray(snapshot?.users) ? snapshot.users : [];
   currentUsers = users;
-  currentAudits = normalizeTaskAudits(snapshot?.task_audits);
+  currentAudits = Array.isArray(snapshot?.task_audits) ? snapshot.task_audits : [];
   currentAuditLimit = asNumber(snapshot?.task_audit_limit);
   usersPanel.replaceChildren(...(users.length ? users.map(renderUser) : [renderEmptyNode()]));
 
@@ -902,7 +795,7 @@ function renderSnapshot(snapshot) {
   renderGlobalActivity(snapshot, users);
   renderTaskAudits();
   hasRenderedData = true;
-  setStatus(users.length ? `Telemetry 正常 · ${users.length} 个账号 · ${currentAudits.length} 个独立商品任务` : `Telemetry 正常 · ${currentAudits.length} 个独立商品任务`, "ok");
+  setStatus(users.length ? `Telemetry 正常 · ${users.length} 个账号 · ${currentAudits.length} 个商品任务摘要` : `Telemetry 正常 · ${currentAudits.length} 个商品任务摘要`, "ok");
 }
 
 function renderEmptyNode() {

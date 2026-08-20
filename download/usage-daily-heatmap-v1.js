@@ -366,7 +366,7 @@ async function refreshHeatmap() {
     }
     const { data: sessionData, error: sessionError } = await client.auth.getSession();
     if (sessionError || !sessionData?.session) return;
-    const { data, error } = await client.functions.invoke("portal-usage-admin", { body: {} });
+    const { data, error } = await client.functions.invoke("portal-usage-admin", { body: { scope: "heatmap" } });
     if (error) throw error;
     renderHeatmap(data?.daily_activity || {});
   } catch (error) {

@@ -1,22 +1,21 @@
 (() => {
   const STYLE_ID = "beach-wallpaper-v1-style";
-  const STYLE_URL = "./beach-wallpaper-v1.css?v=20260820-1752";
-  const PARALLAX_SPEED = 0.14;
+  const STYLE_URL = "./beach-wallpaper-v1.css?v=20260820-1816";
 
   const WALLPAPERS = [
     {
       id: "day",
       parts: ["./wallpaper-day-v1.part-a", "./wallpaper-day-v1.part-b"],
-      position: "54% 0%",
-      mobilePosition: "54% 0%",
+      positionX: "54%",
+      mobilePositionX: "54%",
       veilTop: ".30",
       veilBottom: ".47"
     },
     {
       id: "dusk",
       src: "./wallpaper-dusk-v1.webp",
-      position: "58% 0%",
-      mobilePosition: "58% 0%",
+      positionX: "58%",
+      mobilePositionX: "58%",
       veilTop: ".19",
       veilBottom: ".34"
     }
@@ -124,22 +123,26 @@
     layer.className = "beach-wallpaper";
     layer.dataset.wallpaper = selected.id;
     layer.style.setProperty("--beach-image", `url("${resolved.src}")`);
-    layer.style.setProperty("--beach-position", selected.position);
-    layer.style.setProperty("--beach-position-mobile", selected.mobilePosition);
+    layer.style.setProperty("--beach-position-x", selected.positionX);
+    layer.style.setProperty("--beach-position-mobile-x", selected.mobilePositionX);
     layer.style.setProperty("--beach-veil-top", selected.veilTop);
     layer.style.setProperty("--beach-veil-bottom", selected.veilBottom);
     cosmos.prepend(layer);
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const root = document.documentElement;
     let frame = 0;
 
     const renderParallax = () => {
       frame = 0;
-      const overscan = Math.max(0, layer.offsetHeight - window.innerHeight);
-      const offset = reducedMotion.matches
-        ? 0
-        : -Math.min(overscan, Math.max(0, window.scrollY) * PARALLAX_SPEED);
-      layer.style.setProperty("--beach-parallax-y", `${offset.toFixed(1)}px`);
+      if (reducedMotion.matches) {
+        layer.style.setProperty("--beach-pan-y", "0%");
+        return;
+      }
+
+      const maxScroll = Math.max(1, root.scrollHeight - window.innerHeight);
+      const progress = Math.min(1, Math.max(0, window.scrollY / maxScroll));
+      layer.style.setProperty("--beach-pan-y", `${(progress * 100).toFixed(3)}%`);
     };
 
     const scheduleParallax = () => {
@@ -150,6 +153,12 @@
     window.addEventListener("scroll", scheduleParallax, { passive: true });
     window.addEventListener("resize", scheduleParallax, { passive: true });
     reducedMotion.addEventListener?.("change", scheduleParallax);
+
+    const resizeObserver = "ResizeObserver" in window
+      ? new ResizeObserver(scheduleParallax)
+      : null;
+    resizeObserver?.observe(document.body);
+
     renderParallax();
 
     window.requestAnimationFrame(() => {
@@ -157,9 +166,10 @@
       layer.classList.add("is-ready");
     });
 
-    if (resolved.revoke) {
-      window.addEventListener("pagehide", () => URL.revokeObjectURL(resolved.src), { once: true });
-    }
+    window.addEventListener("pagehide", () => {
+      resizeObserver?.disconnect();
+      if (resolved.revoke) URL.revokeObjectURL(resolved.src);
+    }, { once: true });
   }
 
   if (document.readyState === "loading") {

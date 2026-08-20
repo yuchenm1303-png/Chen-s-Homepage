@@ -109,132 +109,57 @@
     </section>
 
     <section id="summaryGrid" class="usage-summary-grid fade" hidden>
-      <article class="utility-card cards usage-summary-card">
-        <span class="utility-overline">LIVE</span>
-        <h3 id="onlineCount">0</h3>
-        <p id="onlineRatio">当前在线</p>
-      </article>
-      <article class="utility-card cards usage-summary-card">
-        <span class="utility-overline">ACCOUNTS</span>
-        <h3 id="accountCount">0</h3>
-        <p>登记账号</p>
-      </article>
-      <article class="utility-card cards usage-summary-card">
-        <span class="utility-overline">APP</span>
-        <h3 id="launchCount">0</h3>
-        <p>程序启动</p>
-      </article>
-      <article class="utility-card cards usage-summary-card">
-        <span class="utility-overline">DEVICES</span>
-        <h3 id="activeDeviceCount">0</h3>
-        <p id="deviceCapacityText">活跃设备</p>
-      </article>
-      <article class="utility-card cards usage-summary-card">
-        <span class="utility-overline">SINGLE</span>
-        <h3 id="singleDoneCount">0</h3>
-        <p>单商品执行完成</p>
-      </article>
-      <article class="utility-card cards usage-summary-card">
-        <span class="utility-overline">BATCH LINKS</span>
-        <h3 id="batchDoneCount">0</h3>
-        <p>批量商品完成</p>
-      </article>
-      <article class="utility-card cards usage-summary-card">
-        <span class="utility-overline">SUCCESS</span>
-        <h3 id="successRate">—</h3>
-        <p id="successRateMeta">暂无任务</p>
-      </article>
-      <article class="utility-card cards usage-summary-card">
-        <span class="utility-overline">FAILED</span>
-        <h3 id="failureCount">0</h3>
-        <p>失败商品任务</p>
-      </article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">LIVE</span><h3 id="onlineCount">0</h3><p id="onlineRatio">当前在线</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">ACCOUNTS</span><h3 id="accountCount">0</h3><p>登记账号</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">APP</span><h3 id="launchCount">0</h3><p>程序启动</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">DEVICES</span><h3 id="activeDeviceCount">0</h3><p id="deviceCapacityText">活跃设备</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">SINGLE</span><h3 id="singleDoneCount">0</h3><p>单商品执行完成</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">BATCH LINKS</span><h3 id="batchDoneCount">0</h3><p>批量商品完成</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">SUCCESS</span><h3 id="successRate">—</h3><p id="successRateMeta">暂无任务</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">FAILED</span><h3 id="failureCount">0</h3><p>失败商品任务</p></article>
     </section>
 
     <section id="activitySection" class="usage-activity-section fade" hidden>
       <article class="account-card cards usage-activity-card">
         <div class="account-head usage-activity-head">
-          <div>
-            <p class="kicker">24H ACTIVITY</p>
-            <h2>使用脉冲</h2>
-            <p class="usage-account-email" id="activityMeta">过去 24 小时真实客户端心跳与任务执行记录</p>
-          </div>
+          <div><p class="kicker">24H ACTIVITY</p><h2>使用脉冲</h2><p class="usage-account-email" id="activityMeta">过去 24 小时真实客户端心跳与任务执行记录</p></div>
           <span class="secure-pill" id="activityWindowBadge">24 HOURS</span>
         </div>
-
         <div class="usage-monitor-grid">
           <div class="usage-monitor-panel">
-            <div class="usage-monitor-panel-head">
-              <span>在线覆盖</span>
-              <strong id="presenceSummary">—</strong>
-            </div>
+            <div class="usage-monitor-panel-head"><span>在线覆盖</span><strong id="presenceSummary">—</strong></div>
             <div id="globalPresenceRail" class="usage-presence-rail" aria-label="过去24小时在线覆盖"></div>
             <div id="globalPresenceAxis" class="usage-monitor-axis" aria-hidden="true"></div>
           </div>
-
           <div class="usage-monitor-panel">
-            <div class="usage-monitor-panel-head">
-              <span>执行吞吐</span>
-              <strong id="throughputSummary">—</strong>
-            </div>
+            <div class="usage-monitor-panel-head"><span>执行吞吐</span><strong id="throughputSummary">—</strong></div>
             <div id="globalTaskSpark" class="usage-throughput-chart" aria-label="过去24小时任务执行吞吐"></div>
             <div id="globalTaskAxis" class="usage-monitor-axis" aria-hidden="true"></div>
           </div>
         </div>
-
         <div class="account-footer usage-monitor-legend">
-          <span><i class="usage-legend-dot is-active"></i>在线</span>
-          <span><i class="usage-legend-dot is-idle"></i>无活动</span>
-          <span><i class="usage-legend-dot is-failed"></i>存在失败</span>
-          <span>柱高 = 当小时执行完成 / 失败量</span>
+          <span><i class="usage-legend-dot is-active"></i>在线</span><span><i class="usage-legend-dot is-idle"></i>无活动</span><span><i class="usage-legend-dot is-failed"></i>存在失败</span><span>柱高 = 当小时执行完成 / 失败量</span>
         </div>
       </article>
     </section>
 
     <section id="accountsSection" class="usage-accounts-section fade" hidden>
-      <div class="usage-section-head">
-        <div>
-          <p class="kicker">ACCOUNT ACTIVITY</p>
-          <h2>客户运行状态</h2>
-        </div>
-        <span id="accountsHint">实时状态</span>
-      </div>
+      <div class="usage-section-head"><div><p class="kicker">ACCOUNT ACTIVITY</p><h2>客户运行状态</h2></div><span id="accountsHint">实时状态</span></div>
       <div id="usersPanel" class="usage-account-grid"></div>
     </section>
 
     <section id="opsSection" class="usage-ops-section fade" hidden>
-      <div class="usage-section-head">
-        <div>
-          <p class="kicker">OPERATIONS HEALTH</p>
-          <h2>系统与任务性能</h2>
-        </div>
-        <span>CPU / RAM / Edge / UI Lag / AI / Task Latency / Version Health</span>
-      </div>
+      <div class="usage-section-head"><div><p class="kicker">OPERATIONS HEALTH</p><h2>系统与任务性能</h2></div><span>CPU / RAM / Edge / UI Lag / AI / Task Latency / Version Health</span></div>
       <div id="opsKpis" class="usage-ops-kpis"></div>
-      <div class="usage-ops-grid">
-        <article id="deviceHealthPanel" class="account-card cards usage-ops-panel"></article>
-        <article id="taskPerformancePanel" class="account-card cards usage-ops-panel"></article>
-        <article id="versionHealthPanel" class="account-card cards usage-ops-panel"></article>
-      </div>
+      <div class="usage-ops-grid"><article id="deviceHealthPanel" class="account-card cards usage-ops-panel"></article><article id="taskPerformancePanel" class="account-card cards usage-ops-panel"></article><article id="versionHealthPanel" class="account-card cards usage-ops-panel"></article></div>
     </section>
 
     <section id="taskAuditSection" class="usage-accounts-section usage-task-audit-section fade" hidden>
       <div class="usage-section-head usage-task-audit-head">
-        <div>
-          <p class="kicker">PRODUCT TASK AUDIT</p>
-          <h2>最近商品任务</h2>
-        </div>
+        <div><p class="kicker">PRODUCT TASK AUDIT</p><h2>最近商品任务</h2></div>
         <div class="usage-audit-tools">
           <input id="auditSearch" class="usage-audit-search" type="search" placeholder="搜索账号 / 链接 / Job / Vertical / Brand" autocomplete="off" />
-          <select id="auditFilter" class="usage-audit-filter" aria-label="任务审计筛选">
-            <option value="all">全部任务</option>
-            <option value="single">Single</option>
-            <option value="batch">Batch links</option>
-            <option value="running">运行中</option>
-            <option value="failed">失败</option>
-            <option value="completed">完成</option>
-            <option value="ready">准备完成</option>
-          </select>
+          <select id="auditFilter" class="usage-audit-filter" aria-label="任务审计筛选"><option value="all">全部任务</option><option value="single">Single</option><option value="batch">Batch links</option><option value="running">运行中</option><option value="failed">失败</option><option value="completed">完成</option><option value="ready">准备完成</option></select>
           <span id="auditHint">暂无审计数据</span>
         </div>
       </div>
@@ -242,13 +167,7 @@
     </section>
 
     <section id="diagnosticsSection" class="usage-diagnostics-section fade" hidden>
-      <div class="usage-section-head">
-        <div>
-          <p class="kicker">CRASH & DIAGNOSTICS</p>
-          <h2>故障诊断报告</h2>
-        </div>
-        <span id="diagnosticsHint">0 条</span>
-      </div>
+      <div class="usage-section-head"><div><p class="kicker">CRASH & DIAGNOSTICS</p><h2>故障诊断报告</h2></div><span id="diagnosticsHint">0 条</span></div>
       <div id="diagnosticsPanel" class="usage-diagnostic-list"></div>
     </section>
 
@@ -259,8 +178,8 @@
   </main>
 
   <script src="./config-v6.js"></script>
-  <script type="module" src="./usage-admin-v2.js?v=20260819-1307"></script>
-  <script type="module" src="./usage-ops-v1.js?v=20260819-1304"></script>
+  <script type="module" src="./usage-admin-v2.js?v=20260820-1600"></script>
+  <script type="module" src="./usage-ops-v1.js?v=20260820-1600"></script>
   <script src="./cursor-desktop-v2.js?v=20260813-2"></script>
 </body>
 </html>

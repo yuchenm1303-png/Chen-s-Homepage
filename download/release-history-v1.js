@@ -82,13 +82,13 @@ async function getSupabase() {
 
 async function downloadVersion(item, button) {
   if (!authConfig.downloadFunctionUrl) {
-    showToast("下载服务尚未配置");
+    showToast("下载服务不可用");
     return;
   }
 
   button.disabled = true;
   const originalText = button.textContent;
-  button.textContent = "生成中…";
+  button.textContent = "处理中…";
 
   try {
     const client = await getSupabase();
@@ -96,7 +96,7 @@ async function downloadVersion(item, button) {
     if (error) throw error;
     const session = data?.session;
     if (!session?.access_token) {
-      showToast("请先登录后下载历史版本");
+      showToast("请先登录");
       return;
     }
 
@@ -114,23 +114,23 @@ async function downloadVersion(item, button) {
     });
 
     if (!response.ok) {
-      if (response.status === 401) showToast("登录状态已失效，请重新登录");
-      else if (response.status === 403) showToast("当前账户没有有效下载权限");
-      else if (response.status === 404 || response.status === 409) showToast("这个历史版本当前不可下载");
-      else showToast("暂时无法生成历史版本下载链接");
+      if (response.status === 401) showToast("登录状态已失效");
+      else if (response.status === 403) showToast("当前账户无有效下载权限");
+      else if (response.status === 404 || response.status === 409) showToast("该版本当前不可下载");
+      else showToast("下载服务暂不可用");
       return;
     }
 
     const payload = await response.json();
     const url = String(payload?.url || "").trim();
     if (!url) {
-      showToast("这个历史版本没有可用安装包");
+      showToast("该版本无可用安装包");
       return;
     }
     window.location.assign(url);
   } catch (error) {
     console.error("historical release download failed", error);
-    showToast("暂时无法下载历史版本");
+    showToast("下载服务暂不可用");
   } finally {
     button.disabled = false;
     button.textContent = originalText;
@@ -142,13 +142,13 @@ function renderHistory(history) {
 
   const summary = document.createElement("p");
   summary.className = "modal-summary";
-  summary.textContent = "这里列出仍保留正式 Windows 安装包的历史 Stable 版本。需要回退或兼容测试时可以直接下载。";
+  summary.textContent = "已保留安装包的 Windows 正式版本。";
   modalBody.appendChild(summary);
 
   if (!history.length) {
     const empty = document.createElement("p");
     empty.className = "spec-note";
-    empty.textContent = "暂时没有可下载的历史版本。";
+    empty.textContent = "暂无可下载的历史版本。";
     modalBody.appendChild(empty);
     return;
   }
@@ -185,7 +185,7 @@ function renderHistory(history) {
 
   const note = document.createElement("p");
   note.className = "spec-note release-history-note";
-  note.textContent = "历史版本不会替代当前 Stable 推荐版本；除非需要回退排查，通常建议使用最新版。";
+  note.textContent = "默认推荐当前 Stable 版本。历史版本用于回退与兼容性验证。";
   modalBody.appendChild(note);
 }
 
@@ -197,7 +197,7 @@ async function openHistory() {
 
   const loading = document.createElement("p");
   loading.className = "modal-summary";
-  loading.textContent = "正在读取历史 Stable 版本…";
+  loading.textContent = "正在加载版本记录…";
   modalBody.appendChild(loading);
   modalLayer.hidden = false;
 
@@ -208,7 +208,7 @@ async function openHistory() {
     modalBody.replaceChildren();
     const failed = document.createElement("p");
     failed.className = "modal-summary";
-    failed.textContent = "暂时无法读取历史版本，请稍后重试。";
+    failed.textContent = "版本记录暂不可用。";
     modalBody.appendChild(failed);
   }
 }

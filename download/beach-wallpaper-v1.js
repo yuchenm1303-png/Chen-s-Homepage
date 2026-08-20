@@ -5,7 +5,7 @@
   const WALLPAPERS = [
     {
       id: "day",
-      parts: ["./wallpaper-day-v1.part-a", "./wallpaper-day-v1.part-b"],
+      src: "./wallpaper-day-hq-v2.webp",
       positionX: "54%",
       mobilePositionX: "54%",
       veilTop: ".30",
@@ -13,7 +13,7 @@
     },
     {
       id: "dusk",
-      src: "./wallpaper-dusk-v1.webp",
+      src: "./wallpaper-dusk-hq-v2.webp",
       positionX: "58%",
       mobilePositionX: "58%",
       veilTop: ".19",
@@ -54,42 +54,14 @@
     });
   }
 
-  async function resolveSource(choice) {
-    if (choice.src) return { src: choice.src, revoke: false };
-
-    const responses = await Promise.all(
-      choice.parts.map((url) => fetch(url, { cache: "force-cache" }))
-    );
-    if (responses.some((response) => !response.ok)) {
-      throw new Error(`wallpaper parts unavailable: ${choice.id}`);
-    }
-
-    const buffers = await Promise.all(responses.map((response) => response.arrayBuffer()));
-    return {
-      src: URL.createObjectURL(new Blob(buffers, { type: "image/webp" })),
-      revoke: true
-    };
-  }
-
   function preloadImage(src) {
     return new Promise((resolve, reject) => {
       const image = new Image();
       image.decoding = "async";
-      image.onload = resolve;
+      image.onload = () => resolve(src);
       image.onerror = reject;
       image.src = src;
     });
-  }
-
-  async function loadChoice(choice) {
-    const resolved = await resolveSource(choice);
-    try {
-      await preloadImage(resolved.src);
-      return resolved;
-    } catch (error) {
-      if (resolved.revoke) URL.revokeObjectURL(resolved.src);
-      throw error;
-    }
   }
 
   async function mountWallpaper() {
@@ -107,22 +79,21 @@
     const choices = [WALLPAPERS[firstIndex], WALLPAPERS[(firstIndex + 1) % WALLPAPERS.length]];
 
     let selected = null;
-    let resolved = null;
     for (const choice of choices) {
       try {
-        resolved = await loadChoice(choice);
+        await preloadImage(choice.src);
         selected = choice;
         break;
       } catch (error) {
         console.warn(`[wallpaper] unable to load ${choice.id}`, error);
       }
     }
-    if (!selected || !resolved) return;
+    if (!selected) return;
 
     const layer = document.createElement("div");
     layer.className = "beach-wallpaper";
     layer.dataset.wallpaper = selected.id;
-    layer.style.setProperty("--beach-image", `url("${resolved.src}")`);
+    layer.style.setProperty("--beach-image", `url("${selected.src}")`);
     layer.style.setProperty("--beach-position-x", selected.positionX);
     layer.style.setProperty("--beach-position-mobile-x", selected.mobilePositionX);
     layer.style.setProperty("--beach-veil-top", selected.veilTop);
@@ -168,7 +139,6 @@
 
     window.addEventListener("pagehide", () => {
       resizeObserver?.disconnect();
-      if (resolved.revoke) URL.revokeObjectURL(resolved.src);
     }, { once: true });
   }
 

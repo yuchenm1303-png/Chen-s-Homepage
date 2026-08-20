@@ -1,5 +1,5 @@
 :root {
-  --beach-parallax-y: 0px;
+  --beach-pan-y: 0%;
 }
 
 .cosmos {
@@ -8,23 +8,18 @@
 
 .beach-wallpaper {
   position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: calc(100% + min(46vh, 520px));
+  inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
   background-color: #21313c;
   background-image: var(--beach-image);
   background-repeat: no-repeat;
-  background-size: cover;
-  background-position: var(--beach-position, 50% 0%);
+  background-size: 100% auto;
+  background-position: var(--beach-position-x, 50%) var(--beach-pan-y, 0%);
   opacity: 0;
-  transform: translate3d(0, var(--beach-parallax-y), 0) scale(1.015);
-  transform-origin: 50% 0;
   transition: opacity .42s ease;
-  will-change: transform;
+  will-change: background-position;
 }
 
 .beach-wallpaper::after {
@@ -51,21 +46,19 @@
   animation: none !important;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 480px) {
   .beach-wallpaper {
-    height: calc(100% + min(38vh, 320px));
-    background-position: var(--beach-position-mobile, var(--beach-position, 50% 0%));
-    transform: translate3d(0, var(--beach-parallax-y), 0) scale(1.025);
+    background-size: auto 118%;
+    background-position-x: var(--beach-position-mobile-x, var(--beach-position-x, 50%));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --beach-parallax-y: 0px;
+    --beach-pan-y: 0%;
   }
 
   .beach-wallpaper {
-    transform: scale(1.015);
     transition: none;
     will-change: auto;
   }

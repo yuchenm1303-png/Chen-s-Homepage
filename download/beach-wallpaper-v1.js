@@ -1,10 +1,10 @@
 (() => {
   const STYLE_ID = "beach-wallpaper-v1-style";
-  const STYLE_URL = "./beach-wallpaper-v1.css?v=20260820-2125";
+  const STYLE_URL = "./beach-wallpaper-v1.css?v=20260820-2305";
 
   const WALLPAPERS = [
-    { id: "day", src: "./wallpaper-day-hq-v2.webp", positionX: "54%", mobilePositionX: "54%", veilTop: ".30", veilBottom: ".47" },
-    { id: "dusk", src: "./wallpaper-dusk-hq-v2.webp", positionX: "58%", mobilePositionX: "58%", veilTop: ".19", veilBottom: ".34" }
+    { id: "day", src: "./wallpaper-day-hq-v2.webp?v=20260820-2305", positionX: "54%", mobilePositionX: "54%", veilTop: ".30", veilBottom: ".47" },
+    { id: "dusk", src: "./wallpaper-dusk-hq-v2.webp?v=20260820-2305", positionX: "58%", mobilePositionX: "58%", veilTop: ".19", veilBottom: ".34" }
   ];
 
   function randomIndex(length) {
@@ -43,6 +43,7 @@
   async function mountWallpaper() {
     const cosmos = document.querySelector(".cosmos");
     if (!cosmos || cosmos.querySelector(".beach-wallpaper")) return;
+
     await ensureStylesheet();
 
     const start = randomIndex(WALLPAPERS.length);
@@ -56,6 +57,7 @@
         break;
       } catch {}
     }
+
     if (!selected) return;
 
     const layer = document.createElement("div");
@@ -72,6 +74,7 @@
       const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
       layer.style.setProperty("--beach-pan-y", `${(scrollY / max * 100).toFixed(3)}%`);
     };
+
     addEventListener("scroll", update, { passive: true });
     addEventListener("resize", update, { passive: true });
     update();

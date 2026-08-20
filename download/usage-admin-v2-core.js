@@ -41,6 +41,7 @@ let autoRefresh = null;
 let currentAudits = [];
 let currentUsers = [];
 let currentAuditLimit = 0;
+let hasRenderedData = false;
 
 function asNumber(value) {
   const parsed = Number(value ?? 0);
@@ -900,6 +901,7 @@ function renderSnapshot(snapshot) {
   accountsSection.hidden = false;
   renderGlobalActivity(snapshot, users);
   renderTaskAudits();
+  hasRenderedData = true;
   setStatus(users.length ? `Telemetry 正常 · ${users.length} 个账号 · ${currentAudits.length} 个独立商品任务` : `Telemetry 正常 · ${currentAudits.length} 个独立商品任务`, "ok");
 }
 
@@ -923,6 +925,7 @@ function hideData() {
   accountsSection.hidden = true;
   taskAuditSection.hidden = true;
   windowText.textContent = "—";
+  hasRenderedData = false;
 }
 
 async function refresh() {
@@ -938,14 +941,18 @@ async function refresh() {
       setStatus("当前没有登录。请先返回下载页，用 Owner 账号登录后再打开这里。", "warn");
       return;
     }
-    const { data, error } = await supabase.functions.invoke("portal-usage-admin", { body: {} });
+    const { data, error } = await supabase.functions.invoke("portal-usage-admin", { body: { scope: "core" } });
     if (error) throw error;
     renderSnapshot(data ?? {});
   } catch (error) {
     console.error("usage dashboard refresh failed", error);
-    hideData();
-    generatedAt.textContent = "—";
-    setStatus("当前账号不是 Usage 管理员，或使用数据服务暂时不可用。", "warn");
+    if (!hasRenderedData) {
+      hideData();
+      generatedAt.textContent = "—";
+      setStatus("Usage 数据服务暂时不可用。", "warn");
+    } else {
+      setStatus("本次刷新失败 · 当前保留上次成功数据", "warn");
+    }
   } finally {
     refreshing = false;
     refreshButton.disabled = false;

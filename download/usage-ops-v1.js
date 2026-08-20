@@ -492,7 +492,7 @@ async function refresh() {
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData?.session) return;
-    const { data, error } = await supabase.functions.invoke("portal-usage-admin", { body: {} });
+    const { data, error } = await supabase.functions.invoke("portal-usage-admin", { body: { scope: "ops" } });
     if (error) throw error;
     render(data || {});
   } catch (error) {
@@ -509,7 +509,7 @@ async function init() {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
   });
   await refresh();
-  timer = window.setInterval(() => void refresh(), 30_000);
+  timer = window.setInterval(() => void refresh(), 60_000);
 }
 
 window.addEventListener("pagehide", () => {

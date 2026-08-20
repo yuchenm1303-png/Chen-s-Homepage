@@ -1,4 +1,4 @@
-const PUBLIC_COPY_VERSION = "20260820-1630";
+const PUBLIC_COPY_VERSION = "20260820-1645";
 
 const exactCopy = new Map([
   ["Listing Studio · Usage Monitor", "Listing Studio · Service Monitor"],
@@ -34,7 +34,6 @@ const exactCopy = new Map([
   ["故障诊断报告", "诊断记录"],
   ["© 2026 Listing Studio · Owner telemetry", "© 2026 Listing Studio · Service Monitor"],
   ["每个 Supplier URL 独立审计；API Key、Token、密码、Cookie、认证密钥与原始文件二进制永不采集", "运行数据仅用于服务状态、版本分析与故障定位。"],
-
   ["Telemetry 正常", "服务正常"],
   ["Usage Telemetry 数据", "服务数据"],
   ["暂无 Usage Telemetry 数据", "暂无服务数据"],
@@ -43,7 +42,6 @@ const exactCopy = new Map([
   ["本次刷新失败 · 当前保留上次成功数据", "刷新失败 · 已保留最近一次有效数据"],
   ["Usage telemetry · per supplier link", "Task activity"],
   ["AUTHORIZED", "ACTIVE"],
-  ["DISABLED", "DISABLED"],
   ["24H CLIENT ACTIVITY", "24H ACTIVITY"],
   ["客户端活跃", "活动"],
   ["无活动", "无记录"],
@@ -57,7 +55,6 @@ const exactCopy = new Map([
   ["个独立商品任务", "个任务"],
   ["后端最近最多", "最近最多"],
   ["条原始审计", "条记录"],
-
   ["客户输入", "任务输入"],
   ["客户资料与实际图片", "商品资料与图片"],
   ["资料判定", "资料状态"],
@@ -69,9 +66,7 @@ const exactCopy = new Map([
   ["AI / Fill Plan 字段", "字段处理结果"],
   ["AI结果", "解析结果"],
   ["AI状态", "处理状态"],
-  ["最终状态", "最终状态"],
   ["Blocked reason", "限制原因"],
-  ["来源", "来源"],
   ["Web Candidates", "External Matches"],
   ["查看 Executor Report", "查看执行记录"],
   ["运行故障诊断", "故障诊断"],
@@ -82,7 +77,6 @@ const exactCopy = new Map([
   ["查看 Run Manifest", "查看运行记录"],
   ["查看完整原始审计 JSON", "查看原始任务记录"],
   ["错误 / Review reason", "错误 / 复核原因"],
-  ["实际图片", "图片处理"],
   ["未采集到资料状态（不能判定客户未上传）", "无可用资料状态"],
   ["未采集到可靠选择记录", "无文件选择记录"],
   ["未采集到执行侧图片证据", "无图片处理记录"],
@@ -90,69 +84,47 @@ const exactCopy = new Map([
   ["未采集到文件元数据（不等于客户未上传）", "无可展示的文件信息"],
   ["执行报告确认本次没有使用商品图片", "本次任务未使用商品图片"],
   ["大小未采集", "大小未知"],
-
-  ["CLIENT HEALTH", "CLIENT HEALTH"],
   ["设备与客户端性能", "客户端健康"],
   ["等待新版客户端采样", "暂无客户端健康数据"],
   ["暂无 System Health 样本；包含该功能的新客户端启动约 8 秒后开始出现。", "暂无客户端健康数据。客户端运行后将自动更新。"],
-  ["系统 CPU", "系统 CPU"],
   ["应用 CPU", "客户端 CPU"],
   ["应用内存", "客户端内存"],
-  ["峰值内存", "峰值内存"],
-  ["系统内存", "系统内存"],
   ["UI Event Loop Lag", "界面响应延迟"],
   ["Telemetry RTT", "服务延迟"],
-  ["磁盘", "磁盘"],
-  ["运行时长", "运行时长"],
-  ["窗口", "窗口状态"],
-  ["任务", "任务状态"],
   ["24H 应用 CPU", "24H 客户端 CPU"],
   ["24H UI Event Loop Lag", "24H 界面响应延迟"],
   ["完整最新 System Health Sample", "最新客户端健康记录"],
-  ["TASK PERFORMANCE", "TASK PERFORMANCE"],
   ["任务耗时与 AI 调用", "任务处理性能"],
   ["暂无新版任务审计数据。", "暂无任务性能数据。"],
   ["个商品任务", "个任务"],
   ["AI Calls", "Requests"],
   ["AI CALLS", "REQUESTS"],
   ["AI CACHE", "CACHE"],
-  ["cache hits", "cache hits"],
   ["最近任务耗时 P95", "近期任务耗时 P95"],
-  ["VERSION HEALTH", "VERSION HEALTH"],
   ["版本稳定性", "版本状态"],
   ["task + crash correlation", "task / diagnostic correlation"],
-  ["账户", "账户"],
   ["Crash", "Diagnostics"],
   ["已上传诊断报告", "诊断记录"],
-  ["active devices", "active devices"],
   ["最新设备平均", "当前设备平均"],
   ["暂无版本任务数据。", "暂无版本数据。"],
   ["暂无已上传 Crash / Diagnostic 报告。", "暂无诊断记录。"],
   ["CRASH / DIAG", "DIAGNOSTIC"],
-  ["启动阶段", "启动阶段"],
   ["完整诊断", "诊断详情"],
-
   ["复制完整错误", "复制错误信息"],
   ["复制该任务的完整错误与诊断上下文", "复制该任务的错误与诊断信息"],
   ["复制完整诊断", "复制诊断信息"],
   ["复制完整 Crash / Diagnostic 报告", "复制诊断信息"],
   ["DIAGNOSTIC REPORT", "DIAGNOSTIC"],
   ["ERROR CONTEXT", "ERROR DETAILS"],
-  ["已复制", "已复制"],
-  ["复制失败", "复制失败"],
-
   ["365D DAILY ACTIVITY", "365D ACTIVITY"],
   ["年度使用热力图", "年度活动"],
   ["正在读取每天的商品任务记录…", "正在加载年度活动数据…"],
   ["每个 Batch Supplier Link 独立计数", "按商品链接独立计数"],
   ["商品任务", "任务"],
   ["活跃客户", "活跃账户"],
-  ["过去", "过去"],
   ["个活跃日", "个活跃日"],
-  ["个独立商品任务", "个任务"],
   ["每日热力图暂时无法读取", "年度活动数据暂不可用"],
   ["暂无每日记录", "暂无年度活动数据"],
-
   ["DETAIL", "DETAILS"],
   ["详情", "详细信息"]
 ]);
@@ -184,6 +156,7 @@ const phraseCopy = [
 function rewriteText(value) {
   const raw = String(value ?? "");
   const trimmed = raw.trim();
+  if (!trimmed) return raw;
   let next = exactCopy.get(trimmed) ?? trimmed;
   for (const [pattern, replacement] of phraseCopy) next = next.replace(pattern, replacement);
   if (next === trimmed) return raw;
@@ -192,7 +165,9 @@ function rewriteText(value) {
 
 function rewriteTextNode(node) {
   if (!(node instanceof Text)) return;
-  node.nodeValue = rewriteText(node.nodeValue);
+  const current = node.nodeValue || "";
+  const next = rewriteText(current);
+  if (next !== current) node.nodeValue = next;
 }
 
 function rewriteAttributes(element) {

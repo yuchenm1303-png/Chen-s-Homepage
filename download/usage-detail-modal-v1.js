@@ -89,7 +89,15 @@ function openDetailModal(details, trigger) {
   modalClose?.focus({ preventScroll: true });
 }
 
-document.addEventListener("click", (event) => {
+async function hydrateIfNeeded(details) {
+  if (!details.matches(".usage-task-card")) return;
+  if (details.dataset.hydrated === "true") return;
+  const loader = window.UsageMonitorTaskDetail?.hydrate;
+  if (typeof loader !== "function") throw new Error("task_detail_loader_unavailable");
+  await loader(details);
+}
+
+document.addEventListener("click", async (event) => {
   const summary = event.target instanceof Element ? event.target.closest("summary") : null;
   if (!summary) return;
   const details = summary.parentElement;
@@ -97,7 +105,25 @@ document.addEventListener("click", (event) => {
 
   event.preventDefault();
   event.stopPropagation();
-  openDetailModal(details, summary);
+
+  if (details.matches(".usage-task-card") && details.dataset.loading === "true") return;
+  try {
+    await hydrateIfNeeded(details);
+    openDetailModal(details, summary);
+  } catch (error) {
+    console.error("usage task detail hydration failed", error);
+    details.open = false;
+    lastTrigger = summary instanceof HTMLElement ? summary : null;
+    modalKicker.textContent = "TASK DETAIL";
+    modalTitle.textContent = summary.querySelector("h2, h3")?.textContent?.trim() || "任务详情";
+    const message = document.createElement("div");
+    message.className = "usage-empty";
+    message.textContent = "该任务详情暂时无法读取，任务列表和监控数据不受影响。";
+    modalBody.replaceChildren(message);
+    modalLayer.hidden = false;
+    document.documentElement.classList.add("usage-detail-modal-open");
+    modalClose?.focus({ preventScroll: true });
+  }
 }, true);
 
 modalClose?.addEventListener("click", closeDetailModal);

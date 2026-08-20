@@ -15,8 +15,7 @@
   background-color: #21313c;
   background-image: var(--beach-image);
   background-repeat: no-repeat;
-  /* 高清壁纸优先保持原始细节，避免 cover 无限放大 */
-  background-size: min(100% auto, 2560px auto);
+  background-size: 100% auto;
   background-position: var(--beach-position-x, 50%) var(--beach-pan-y, 0%);
   opacity: 0;
   transition: opacity .42s ease;
@@ -47,13 +46,8 @@
   animation: none !important;
 }
 
-@media (max-width: 1024px) {
-  .beach-wallpaper {
-    background-size: auto 100%;
-  }
-}
-
-@media (max-width: 480px) {
+/* Very tall phone screens need extra vertical overscan so parallax still has travel. */
+@media (max-aspect-ratio: 9 / 16) {
   .beach-wallpaper {
     background-size: auto 118%;
     background-position-x: var(--beach-position-mobile-x, var(--beach-position-x, 50%));

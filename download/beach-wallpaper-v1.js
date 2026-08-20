@@ -1,24 +1,10 @@
 (() => {
   const STYLE_ID = "beach-wallpaper-v1-style";
-  const STYLE_URL = "./beach-wallpaper-v1.css?v=20260820-1816";
+  const STYLE_URL = "./beach-wallpaper-v1.css?v=20260820-2125";
 
   const WALLPAPERS = [
-    {
-      id: "day",
-      src: "./wallpaper-day-hq-v2.webp",
-      positionX: "54%",
-      mobilePositionX: "54%",
-      veilTop: ".30",
-      veilBottom: ".47"
-    },
-    {
-      id: "dusk",
-      src: "./wallpaper-dusk-hq-v2.webp",
-      positionX: "58%",
-      mobilePositionX: "58%",
-      veilTop: ".19",
-      veilBottom: ".34"
-    }
+    { id: "day", src: "./wallpaper-day-hq-v2.webp", positionX: "54%", mobilePositionX: "54%", veilTop: ".30", veilBottom: ".47" },
+    { id: "dusk", src: "./wallpaper-dusk-hq-v2.webp", positionX: "58%", mobilePositionX: "58%", veilTop: ".19", veilBottom: ".34" }
   ];
 
   function randomIndex(length) {
@@ -32,24 +18,14 @@
 
   function ensureStylesheet() {
     const existing = document.getElementById(STYLE_ID);
-    if (existing) {
-      if (existing.dataset.loaded === "true") return Promise.resolve();
-      return new Promise((resolve, reject) => {
-        existing.addEventListener("load", resolve, { once: true });
-        existing.addEventListener("error", reject, { once: true });
-      });
-    }
-
+    if (existing) return Promise.resolve();
     return new Promise((resolve, reject) => {
       const link = document.createElement("link");
       link.id = STYLE_ID;
       link.rel = "stylesheet";
       link.href = STYLE_URL;
-      link.addEventListener("load", () => {
-        link.dataset.loaded = "true";
-        resolve();
-      }, { once: true });
-      link.addEventListener("error", reject, { once: true });
+      link.onload = resolve;
+      link.onerror = reject;
       document.head.appendChild(link);
     });
   }
@@ -67,26 +43,18 @@
   async function mountWallpaper() {
     const cosmos = document.querySelector(".cosmos");
     if (!cosmos || cosmos.querySelector(".beach-wallpaper")) return;
+    await ensureStylesheet();
 
-    try {
-      await ensureStylesheet();
-    } catch (error) {
-      console.warn("[wallpaper] stylesheet unavailable", error);
-      return;
-    }
+    const start = randomIndex(WALLPAPERS.length);
+    const choices = [WALLPAPERS[start], WALLPAPERS[(start + 1) % WALLPAPERS.length]];
+    let selected;
 
-    const firstIndex = randomIndex(WALLPAPERS.length);
-    const choices = [WALLPAPERS[firstIndex], WALLPAPERS[(firstIndex + 1) % WALLPAPERS.length]];
-
-    let selected = null;
-    for (const choice of choices) {
+    for (const item of choices) {
       try {
-        await preloadImage(choice.src);
-        selected = choice;
+        await preloadImage(item.src);
+        selected = item;
         break;
-      } catch (error) {
-        console.warn(`[wallpaper] unable to load ${choice.id}`, error);
-      }
+      } catch {}
     }
     if (!selected) return;
 
@@ -100,51 +68,21 @@
     layer.style.setProperty("--beach-veil-bottom", selected.veilBottom);
     cosmos.prepend(layer);
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const root = document.documentElement;
-    let frame = 0;
-
-    const renderParallax = () => {
-      frame = 0;
-      if (reducedMotion.matches) {
-        layer.style.setProperty("--beach-pan-y", "0%");
-        return;
-      }
-
-      const maxScroll = Math.max(1, root.scrollHeight - window.innerHeight);
-      const progress = Math.min(1, Math.max(0, window.scrollY / maxScroll));
-      layer.style.setProperty("--beach-pan-y", `${(progress * 100).toFixed(3)}%`);
+    const update = () => {
+      const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+      layer.style.setProperty("--beach-pan-y", `${(scrollY / max * 100).toFixed(3)}%`);
     };
+    addEventListener("scroll", update, { passive: true });
+    addEventListener("resize", update, { passive: true });
+    update();
 
-    const scheduleParallax = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(renderParallax);
-    };
-
-    window.addEventListener("scroll", scheduleParallax, { passive: true });
-    window.addEventListener("resize", scheduleParallax, { passive: true });
-    reducedMotion.addEventListener?.("change", scheduleParallax);
-
-    const resizeObserver = "ResizeObserver" in window
-      ? new ResizeObserver(scheduleParallax)
-      : null;
-    resizeObserver?.observe(document.body);
-
-    renderParallax();
-
-    window.requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
       cosmos.classList.add("beach-wallpaper-active");
       layer.classList.add("is-ready");
     });
-
-    window.addEventListener("pagehide", () => {
-      resizeObserver?.disconnect();
-    }, { once: true });
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => void mountWallpaper(), { once: true });
-  } else {
-    void mountWallpaper();
-  }
+  document.readyState === "loading"
+    ? document.addEventListener("DOMContentLoaded", mountWallpaper, { once: true })
+    : mountWallpaper();
 })();

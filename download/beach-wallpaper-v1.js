@@ -1,5 +1,5 @@
 (() => {
-  const ASSET_VERSION = "20260821-1120";
+  const ASSET_VERSION = "20260821-1210";
   const STYLE_ID = "beach-wallpaper-v1-style";
   const STYLE_URL = `./beach-wallpaper-v1.css?v=${ASSET_VERSION}`;
 
@@ -112,6 +112,7 @@
     update();
 
     window.requestAnimationFrame(() => {
+      document.body.classList.add("beach-wallpaper-active");
       cosmos.classList.add("beach-wallpaper-active");
       layer.classList.add("is-ready");
     });

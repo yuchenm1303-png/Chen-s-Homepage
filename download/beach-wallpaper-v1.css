@@ -16,6 +16,36 @@
   transform: none;
 }
 
+/*
+ * Keep beach-mode glass surfaces on the same backdrop sampling path. The
+ * default scale(1) promotes every card to its own compositor layer, which can
+ * make Chromium display only the translucent fill without the blur. A stronger
+ * blur is intentional here because the beach photography contains much finer
+ * texture than the original gradient background.
+ */
+body.beach-wallpaper-active .cards {
+  background-color: rgba(4, 18, 30, .42);
+  -webkit-backdrop-filter: blur(22px) saturate(120%);
+  backdrop-filter: blur(22px) saturate(120%);
+  transform: none;
+}
+
+body.beach-wallpaper-active .cards:hover {
+  transform: scale(1.01);
+}
+
+body.beach-wallpaper-active .utility-card:hover {
+  transform: scale(1.02);
+}
+
+body.beach-wallpaper-active .cards:active {
+  transform: scale(.98);
+}
+
+body.beach-wallpaper-active .utility-card:active {
+  transform: scale(1);
+}
+
 .beach-wallpaper {
   position: absolute;
   inset: 0;

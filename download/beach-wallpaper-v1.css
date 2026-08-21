@@ -6,6 +6,16 @@
   background: #21313c !important;
 }
 
+/*
+ * The cosmic background normally owns a promoted compositor layer. That
+ * isolates the photographic wallpaper from the cards' backdrop-filter in
+ * Chromium, so the cards stay translucent but cannot blur the image behind
+ * them. Remove that isolation only while the beach wallpaper is active.
+ */
+.cosmos.beach-wallpaper-active {
+  transform: none;
+}
+
 .beach-wallpaper {
   position: absolute;
   inset: 0;

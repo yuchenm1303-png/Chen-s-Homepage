@@ -1,35 +1,15 @@
 (() => {
-  const ASSET_VERSION = "20260821-1210";
+  const ASSET_VERSION = "20260821-1545";
   const STYLE_ID = "beach-wallpaper-v1-style";
   const STYLE_URL = `./beach-wallpaper-v1.css?v=${ASSET_VERSION}`;
-
-  const WALLPAPERS = [
-    {
-      id: "day",
-      src: `./wallpaper-day-hq-v2.webp?v=${ASSET_VERSION}`,
-      positionX: "54%",
-      mobilePositionX: "54%",
-      veilTop: ".30",
-      veilBottom: ".47"
-    },
-    {
-      id: "dusk",
-      src: `./wallpaper-dusk-hq-v2.webp?v=${ASSET_VERSION}`,
-      positionX: "58%",
-      mobilePositionX: "58%",
-      veilTop: ".19",
-      veilBottom: ".34"
-    }
-  ];
-
-  function randomIndex(length) {
-    if (globalThis.crypto?.getRandomValues) {
-      const value = new Uint32Array(1);
-      globalThis.crypto.getRandomValues(value);
-      return Math.floor((value[0] / 0x100000000) * length);
-    }
-    return Math.floor(Math.random() * length);
-  }
+  const WALLPAPER = {
+    id: "rain-anime",
+    src: `./wallpaper-rain-anime-v1.png?v=${ASSET_VERSION}`,
+    positionX: "54%",
+    mobilePositionX: "57%",
+    veilTop: ".17",
+    veilBottom: ".28"
+  };
 
   function ensureStylesheet() {
     const existing = document.getElementById(STYLE_ID);
@@ -68,48 +48,22 @@
       return;
     }
 
-    const start = randomIndex(WALLPAPERS.length);
-    const choices = [WALLPAPERS[start], WALLPAPERS[(start + 1) % WALLPAPERS.length]];
-    let selected = null;
-
-    for (const item of choices) {
-      try {
-        await preloadImage(item.src);
-        selected = item;
-        break;
-      } catch (error) {
-        console.warn(`[wallpaper] failed to load ${item.id}`, error);
-      }
+    try {
+      await preloadImage(WALLPAPER.src);
+    } catch (error) {
+      console.warn(`[wallpaper] failed to load ${WALLPAPER.id}`, error);
+      return;
     }
-
-    if (!selected) return;
 
     const layer = document.createElement("div");
     layer.className = "beach-wallpaper";
-    layer.dataset.wallpaper = selected.id;
-    layer.style.setProperty("--beach-image", `url("${selected.src}")`);
-    layer.style.setProperty("--beach-position-x", selected.positionX);
-    layer.style.setProperty("--beach-position-mobile-x", selected.mobilePositionX);
-    layer.style.setProperty("--beach-veil-top", selected.veilTop);
-    layer.style.setProperty("--beach-veil-bottom", selected.veilBottom);
+    layer.dataset.wallpaper = WALLPAPER.id;
+    layer.style.setProperty("--beach-image", `url("${WALLPAPER.src}")`);
+    layer.style.setProperty("--beach-position-x", WALLPAPER.positionX);
+    layer.style.setProperty("--beach-position-mobile-x", WALLPAPER.mobilePositionX);
+    layer.style.setProperty("--beach-veil-top", WALLPAPER.veilTop);
+    layer.style.setProperty("--beach-veil-bottom", WALLPAPER.veilBottom);
     cosmos.prepend(layer);
-
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-      const progress = Math.min(1, Math.max(0, window.scrollY / maxScroll));
-      layer.style.setProperty("--beach-pan-y", `${(progress * 100).toFixed(3)}%`);
-    };
-
-    const scheduleUpdate = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(update);
-    };
-
-    window.addEventListener("scroll", scheduleUpdate, { passive: true });
-    window.addEventListener("resize", scheduleUpdate, { passive: true });
-    update();
 
     window.requestAnimationFrame(() => {
       document.body.classList.add("beach-wallpaper-active");

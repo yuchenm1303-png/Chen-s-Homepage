@@ -1,7 +1,3 @@
-:root {
-  --beach-pan-y: 0%;
-}
-
 .cosmos {
   background: #21313c !important;
 }
@@ -55,11 +51,10 @@ body.beach-wallpaper-active .utility-card:active {
   background-color: #21313c;
   background-image: var(--beach-image);
   background-repeat: no-repeat;
-  background-size: 100% auto;
-  background-position: var(--beach-position-x, 50%) var(--beach-pan-y, 0%);
+  background-size: cover;
+  background-position: var(--beach-position-x, 50%) center;
   opacity: 0;
   transition: opacity .42s ease;
-  will-change: background-position;
 }
 
 .beach-wallpaper::after {
@@ -86,21 +81,14 @@ body.beach-wallpaper-active .utility-card:active {
   animation: none !important;
 }
 
-/* Very tall phone screens need extra vertical overscan so parallax still has travel. */
 @media (max-aspect-ratio: 9 / 16) {
   .beach-wallpaper {
-    background-size: auto 118%;
     background-position-x: var(--beach-position-mobile-x, var(--beach-position-x, 50%));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root {
-    --beach-pan-y: 0%;
-  }
-
   .beach-wallpaper {
     transition: none;
-    will-change: auto;
   }
 }

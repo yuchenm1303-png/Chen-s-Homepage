@@ -6,6 +6,14 @@
   justify-content: flex-start;
 }
 
+/* Keep the monitor's existing fade-in, but do not retain its opacity
+   compositor after the animation. Monitor cards sit inside these wrappers;
+   a retained wrapper layer prevents their backdrop-filter from sampling the
+   photographic wallpaper. */
+.usage-shell .fade {
+  animation-fill-mode: none;
+}
+
 .usage-shell [hidden] {
   display: none !important;
 }

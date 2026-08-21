@@ -368,7 +368,9 @@ async function refreshHeatmap() {
     if (sessionError || !sessionData?.session) return;
     const { data, error } = await client.functions.invoke("portal-usage-admin", { body: { scope: "heatmap" } });
     if (error) throw error;
-    renderHeatmap(data?.daily_activity || {});
+    const dailyActivity = data?.daily_activity || {};
+    renderHeatmap(dailyActivity);
+    window.dispatchEvent(new CustomEvent("usage:daily-activity", { detail: dailyActivity }));
   } catch (error) {
     console.error("daily usage heatmap refresh failed", error);
     const card = ensureCard();

@@ -22,7 +22,9 @@ const successRateMeta = document.getElementById("successRateMeta");
 const failureCount = document.getElementById("failureCount");
 const accountsHint = document.getElementById("accountsHint");
 const activityMeta = document.getElementById("activityMeta");
-const activityWindowBadge = document.getElementById("activityWindowBadge");
+const activityKicker = document.getElementById("activityKicker");
+const activityRangeControl = document.getElementById("activityRangeControl");
+const activityRangeButtons = Array.from(activityRangeControl?.querySelectorAll("[data-range]") || []);
 const globalPresenceRail = document.getElementById("globalPresenceRail");
 const globalPresenceAxis = document.getElementById("globalPresenceAxis");
 const globalTaskSpark = document.getElementById("globalTaskSpark");
@@ -41,6 +43,9 @@ let autoRefresh = null;
 let currentAudits = [];
 let currentUsers = [];
 let currentAuditLimit = 0;
+let currentSnapshot = null;
+let currentActivityRange = "24h";
+let dailyActivity = null;
 let hasRenderedData = false;
 
 function asNumber(value) {
@@ -62,6 +67,19 @@ function formatHour(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+}
+
+function formatDay(value, detailed = false) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("zh-CN", detailed
+    ? { month: "2-digit", day: "2-digit", weekday: "short", timeZone: "Asia/Shanghai" }
+    : { month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" }).format(date);
+}
+
+function formatBucket(value, granularity = "hour", detailed = false) {
+  return granularity === "day" ? formatDay(value, detailed) : formatHour(value);
 }
 
 function formatDuration(startValue, endValue) {
@@ -146,18 +164,19 @@ function createMetaItem(label, value) {
   return item;
 }
 
-function renderAxis(target, buckets) {
+function renderAxis(target, buckets, { granularity = "hour" } = {}) {
   target.replaceChildren();
   if (!buckets.length) return;
   const values = [buckets[0]?.bucket_start, buckets[Math.floor((buckets.length - 1) / 2)]?.bucket_start, buckets[buckets.length - 1]?.bucket_start];
   values.forEach((value) => {
     const label = document.createElement("span");
-    label.textContent = formatHour(value);
+    label.textContent = formatBucket(value, granularity);
     target.append(label);
   });
 }
 
-function renderPresenceRail(target, buckets, { totalUsers = 1, global = false } = {}) {
+function renderPresenceRail(target, buckets, { totalUsers = 1, global = false, granularity = "hour" } = {}) {
+  target.style.gridTemplateColumns = `repeat(${Math.max(1, buckets.length)}, minmax(0, 1fr))`;
   const nodes = buckets.map((bucket, index) => {
     const activeCount = global ? asNumber(bucket.active_count) : (bucket.active ? 1 : 0);
     const active = activeCount > 0;
@@ -170,20 +189,21 @@ function renderPresenceRail(target, buckets, { totalUsers = 1, global = false } 
       segment.style.setProperty("--presence-opacity", String(Math.max(.4, Math.min(1, ratio))));
     }
     const stateText = failed ? "有失败事件" : active ? (global ? `${activeCount} 个账号活跃` : "客户端活跃") : "无活动";
-    segment.title = `${formatHour(bucket.bucket_start)} · ${stateText} · 启动 ${asNumber(bucket.launches)} · 完成 ${asNumber(bucket.completed)} · 失败 ${asNumber(bucket.failed)}`;
+    segment.title = `${formatBucket(bucket.bucket_start, granularity, true)} · ${stateText} · 启动 ${asNumber(bucket.launches)} · 完成 ${asNumber(bucket.completed)} · 失败 ${asNumber(bucket.failed)}`;
     return segment;
   });
   target.replaceChildren(...nodes);
 }
 
-function renderThroughputChart(target, buckets) {
+function renderThroughputChart(target, buckets, { granularity = "hour" } = {}) {
+  target.style.gridTemplateColumns = `repeat(${Math.max(1, buckets.length)}, minmax(0, 1fr))`;
   const maxValue = Math.max(1, ...buckets.map((bucket) => asNumber(bucket.completed) + asNumber(bucket.failed)));
   const columns = buckets.map((bucket) => {
     const completed = asNumber(bucket.completed);
     const failed = asNumber(bucket.failed);
     const column = document.createElement("div");
     column.className = "usage-throughput-column";
-    column.title = `${formatHour(bucket.bucket_start)} · 完成 ${completed} · 失败 ${failed} · 启动 ${asNumber(bucket.launches)}`;
+    column.title = `${formatBucket(bucket.bucket_start, granularity, true)} · 完成 ${completed} · 失败 ${failed} · 启动 ${asNumber(bucket.launches)}`;
     if (completed > 0) {
       const success = document.createElement("span");
       success.className = "usage-throughput-completed";
@@ -310,7 +330,7 @@ function renderGlobalActivity(snapshot, users) {
     acc.peakOnline = Math.max(acc.peakOnline, asNumber(bucket.active_count));
     return acc;
   }, { launches: 0, completed: 0, failed: 0, activeHours: 0, peakOnline: 0 });
-  activityWindowBadge.textContent = `${hours} HOURS`;
+  activityKicker.textContent = `${hours}H ACTIVITY`;
   activityMeta.textContent = `${activeUserCount} 个账号在过去 ${hours} 小时出现真实心跳 · ${totals.launches} 次客户端启动`;
   presenceSummary.textContent = `${totals.activeHours}/${hours} 小时有活动 · 峰值 ${totals.peakOnline} 在线`;
   throughputSummary.textContent = `${totals.completed} 批次/单任务事件完成 · ${totals.failed} 失败`;
@@ -318,8 +338,91 @@ function renderGlobalActivity(snapshot, users) {
   renderAxis(globalPresenceAxis, buckets);
   renderThroughputChart(globalTaskSpark, buckets);
   renderAxis(globalTaskAxis, buckets);
+  globalPresenceRail.setAttribute("aria-label", `过去${hours}小时活动覆盖`);
+  globalTaskSpark.setAttribute("aria-label", `过去${hours}小时任务处理`);
   activitySection.hidden = false;
 }
+
+function dailyBucketsForRange(payload, days) {
+  const source = Array.isArray(payload?.days) ? payload.days.slice(-days) : [];
+  return source.map((day) => ({
+    bucket_start: `${String(day?.date || "")}T00:00:00+08:00`,
+    active_count: asNumber(day?.active_accounts),
+    launches: asNumber(day?.launches),
+    completed: asNumber(day?.success),
+    failed: asNumber(day?.failed),
+    review: asNumber(day?.review),
+    running: asNumber(day?.running),
+    tasks: asNumber(day?.tasks)
+  }));
+}
+
+function renderDailyActivity(payload, days) {
+  const buckets = dailyBucketsForRange(payload, days);
+  if (!buckets.length) {
+    activityKicker.textContent = `${days}D ACTIVITY`;
+    activityMeta.textContent = `正在读取过去 ${days} 天的每日汇总…`;
+    presenceSummary.textContent = "—";
+    throughputSummary.textContent = "—";
+    globalPresenceRail.replaceChildren();
+    globalPresenceAxis.replaceChildren();
+    globalTaskSpark.replaceChildren();
+    globalTaskAxis.replaceChildren();
+    return;
+  }
+
+  const totals = buckets.reduce((acc, bucket) => {
+    acc.tasks += asNumber(bucket.tasks);
+    acc.completed += asNumber(bucket.completed);
+    acc.failed += asNumber(bucket.failed);
+    acc.review += asNumber(bucket.review);
+    acc.launches += asNumber(bucket.launches);
+    if (asNumber(bucket.active_count) > 0 || asNumber(bucket.launches) > 0 || asNumber(bucket.tasks) > 0) acc.activeDays += 1;
+    acc.peakAccounts = Math.max(acc.peakAccounts, asNumber(bucket.active_count));
+    return acc;
+  }, { tasks: 0, completed: 0, failed: 0, review: 0, launches: 0, activeDays: 0, peakAccounts: 0 });
+
+  activityKicker.textContent = `${days}D ACTIVITY`;
+  activityMeta.textContent = `过去 ${days} 天 · ${totals.activeDays} 个活跃日 · ${totals.launches} 次客户端启动`;
+  presenceSummary.textContent = `${totals.activeDays}/${days} 天有活动 · 单日峰值 ${totals.peakAccounts} 个账号`;
+  throughputSummary.textContent = `${totals.tasks} 个任务 · ${totals.completed} 成功 · ${totals.failed} 失败${totals.review ? ` · ${totals.review} 复核` : ""}`;
+  renderPresenceRail(globalPresenceRail, buckets, { totalUsers: Math.max(1, totals.peakAccounts), global: true, granularity: "day" });
+  renderAxis(globalPresenceAxis, buckets, { granularity: "day" });
+  renderThroughputChart(globalTaskSpark, buckets, { granularity: "day" });
+  renderAxis(globalTaskAxis, buckets, { granularity: "day" });
+  globalPresenceRail.setAttribute("aria-label", `过去${days}天每日活动覆盖`);
+  globalTaskSpark.setAttribute("aria-label", `过去${days}天每日任务处理`);
+  activitySection.hidden = false;
+}
+
+function updateActivityRangeControl() {
+  activityRangeButtons.forEach((button) => {
+    const selected = button.dataset.range === currentActivityRange;
+    button.setAttribute("aria-pressed", selected ? "true" : "false");
+  });
+}
+
+function renderSelectedActivity() {
+  updateActivityRangeControl();
+  if (currentActivityRange === "24h") {
+    if (currentSnapshot) renderGlobalActivity(currentSnapshot, currentUsers);
+    return;
+  }
+  renderDailyActivity(dailyActivity, currentActivityRange === "7d" ? 7 : 30);
+}
+
+activityRangeControl?.addEventListener("click", (event) => {
+  const button = event.target instanceof Element ? event.target.closest("[data-range]") : null;
+  const range = button?.dataset.range;
+  if (range !== "24h" && range !== "7d" && range !== "30d") return;
+  currentActivityRange = range;
+  renderSelectedActivity();
+});
+
+window.addEventListener("usage:daily-activity", (event) => {
+  dailyActivity = event instanceof CustomEvent ? event.detail : null;
+  if (currentActivityRange !== "24h") renderSelectedActivity();
+});
 
 function auditUser(audit, usersById) {
   return usersById.get(String(audit?.user_id || "")) || null;
@@ -761,6 +864,7 @@ function renderTaskAudits() {
 
 function renderSnapshot(snapshot) {
   const users = Array.isArray(snapshot?.users) ? snapshot.users : [];
+  currentSnapshot = snapshot;
   currentUsers = users;
   currentAudits = Array.isArray(snapshot?.task_audits) ? snapshot.task_audits : [];
   currentAuditLimit = asNumber(snapshot?.task_audit_limit);
@@ -792,7 +896,7 @@ function renderSnapshot(snapshot) {
   accountsHint.textContent = users.length ? `${totalOnline} 在线 · ${users.length - totalOnline} 离线` : "暂无账号";
   summaryGrid.hidden = false;
   accountsSection.hidden = false;
-  renderGlobalActivity(snapshot, users);
+  renderSelectedActivity();
   renderTaskAudits();
   hasRenderedData = true;
   setStatus(users.length ? `Telemetry 正常 · ${users.length} 个账号 · ${currentAudits.length} 个商品任务摘要` : `Telemetry 正常 · ${currentAudits.length} 个商品任务摘要`, "ok");

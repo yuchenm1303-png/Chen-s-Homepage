@@ -79,7 +79,10 @@ a { text-decoration: none; }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  animation: fade-blur-main-in .65s ease both;
+  /* Do not retain filter: blur(0) after the entrance animation. A computed
+     filter other than none creates a Backdrop Root and prevents every child
+     card from sampling the page wallpaper with backdrop-filter. */
+  animation: fade-blur-main-in .65s ease;
 }
 
 .topbar {

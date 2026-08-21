@@ -46,6 +46,16 @@ body.beach-wallpaper-active .utility-card:active {
   transform: scale(1);
 }
 
+/* A filtered ancestor becomes the Backdrop Root for every descendant. Cancel
+   the shell's blur-based entrance animation in beach mode so all glass cards
+   sample the photographic wallpaper instead of an empty local backdrop. */
+body.beach-wallpaper-active .release-shell {
+  animation: none;
+  filter: none;
+  opacity: 1;
+  transform: none;
+}
+
 .beach-wallpaper {
   position: absolute;
   inset: 0;

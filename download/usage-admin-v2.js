@@ -1,4 +1,4 @@
-import "./usage-admin-v2-core.js?v=20260821-1705";
+import "./usage-admin-v2-core.js?v=20260821-1800";
 
 void Promise.allSettled([
   import("./usage-public-copy-v1.js?v=20260820-1645"),

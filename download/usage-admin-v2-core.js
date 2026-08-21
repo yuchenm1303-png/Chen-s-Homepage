@@ -100,9 +100,11 @@ function setStatus(text, state = "neutral") {
   statusPanel.dataset.state = state;
 }
 
-function activityForUser(user) {
-  if (!Array.isArray(user?.activity_24h)) return [];
-  return user.activity_24h.map((bucket) => ({
+function hourlyActivityForUser(user, hours = 24) {
+  const source = Array.isArray(user?.activity_7d_hourly)
+    ? user.activity_7d_hourly.slice(-hours)
+    : (hours === 24 && Array.isArray(user?.activity_24h) ? user.activity_24h : []);
+  return source.map((bucket) => ({
     bucket_start: bucket?.bucket_start || null,
     active: Boolean(bucket?.active),
     launches: asNumber(bucket?.launches),
@@ -121,8 +123,8 @@ function activityTotals(buckets) {
   }, { activeHours: 0, launches: 0, completed: 0, failed: 0 });
 }
 
-function aggregateActivity(users) {
-  const histories = users.map(activityForUser);
+function aggregateHourlyActivity(users, hours = 24) {
+  const histories = users.map((user) => hourlyActivityForUser(user, hours));
   const bucketCount = histories.reduce((max, history) => Math.max(max, history.length), 0);
   const result = [];
   for (let index = 0; index < bucketCount; index += 1) {
@@ -176,6 +178,7 @@ function renderAxis(target, buckets, { granularity = "hour" } = {}) {
 }
 
 function renderPresenceRail(target, buckets, { totalUsers = 1, global = false, granularity = "hour" } = {}) {
+  target.classList.toggle("is-dense", buckets.length > 48);
   target.style.gridTemplateColumns = `repeat(${Math.max(1, buckets.length)}, minmax(0, 1fr))`;
   const nodes = buckets.map((bucket, index) => {
     const activeCount = global ? asNumber(bucket.active_count) : (bucket.active ? 1 : 0);
@@ -196,6 +199,7 @@ function renderPresenceRail(target, buckets, { totalUsers = 1, global = false, g
 }
 
 function renderThroughputChart(target, buckets, { granularity = "hour" } = {}) {
+  target.classList.toggle("is-dense", buckets.length > 48);
   target.style.gridTemplateColumns = `repeat(${Math.max(1, buckets.length)}, minmax(0, 1fr))`;
   const maxValue = Math.max(1, ...buckets.map((bucket) => asNumber(bucket.completed) + asNumber(bucket.failed)));
   const columns = buckets.map((bucket) => {
@@ -222,28 +226,31 @@ function renderThroughputChart(target, buckets, { granularity = "hour" } = {}) {
 }
 
 function createAccountMonitor(user) {
-  const buckets = activityForUser(user);
+  const buckets = selectedActivityForUser(user);
   const totals = activityTotals(buckets);
+  const isDaily = currentActivityRange === "30d";
+  const rangeLabel = currentActivityRange === "7d" ? "7D HOURLY" : currentActivityRange === "30d" ? "30D DAILY" : "24H";
+  const unitLabel = isDaily ? "天" : "h";
   const monitor = document.createElement("div");
   monitor.className = "usage-account-monitor";
   const head = document.createElement("div");
   head.className = "usage-account-monitor-head";
   const label = document.createElement("span");
-  label.textContent = "24H CLIENT ACTIVITY";
+  label.textContent = `${rangeLabel} CLIENT ACTIVITY`;
   const summary = document.createElement("strong");
-  summary.textContent = `${totals.activeHours}h 活跃 · ${totals.completed} 完成 · ${totals.failed} 失败`;
+  summary.textContent = `${totals.activeHours}${unitLabel} 活跃 · ${totals.completed} 完成 · ${totals.failed} 失败`;
   head.append(label, summary);
   const rail = document.createElement("div");
   rail.className = "usage-presence-rail";
-  rail.setAttribute("aria-label", `${user.display_name || user.email || "客户"} 过去24小时在线活动`);
-  renderPresenceRail(rail, buckets);
+  rail.setAttribute("aria-label", `${user.display_name || user.email || "客户"} ${rangeLabel}在线活动`);
+  renderPresenceRail(rail, buckets, { granularity: isDaily ? "day" : "hour" });
   const chart = document.createElement("div");
   chart.className = "usage-throughput-chart usage-account-throughput";
-  chart.setAttribute("aria-label", `${user.display_name || user.email || "客户"} 过去24小时任务执行`);
-  renderThroughputChart(chart, buckets);
+  chart.setAttribute("aria-label", `${user.display_name || user.email || "客户"} ${rangeLabel}任务执行`);
+  renderThroughputChart(chart, buckets, { granularity: isDaily ? "day" : "hour" });
   const axis = document.createElement("div");
   axis.className = "usage-monitor-axis";
-  renderAxis(axis, buckets);
+  renderAxis(axis, buckets, { granularity: isDaily ? "day" : "hour" });
   monitor.append(head, rail, chart, axis);
   return monitor;
 }
@@ -318,10 +325,9 @@ function renderUser(user) {
   return card;
 }
 
-function renderGlobalActivity(snapshot, users) {
-  const buckets = aggregateActivity(users);
-  const hours = asNumber(snapshot?.activity_window_hours) || buckets.length || 24;
-  const activeUserCount = users.filter((user) => activityForUser(user).some((bucket) => bucket.active)).length;
+function renderGlobalHourlyActivity(users, hours) {
+  const buckets = aggregateHourlyActivity(users, hours);
+  const activeUserCount = users.filter((user) => hourlyActivityForUser(user, hours).some((bucket) => bucket.active)).length;
   const totals = buckets.reduce((acc, bucket) => {
     acc.launches += asNumber(bucket.launches);
     acc.completed += asNumber(bucket.completed);
@@ -333,7 +339,18 @@ function renderGlobalActivity(snapshot, users) {
   activityKicker.textContent = `${hours}H ACTIVITY`;
   activityMeta.textContent = `${activeUserCount} 个账号在过去 ${hours} 小时出现真实心跳 · ${totals.launches} 次客户端启动`;
   presenceSummary.textContent = `${totals.activeHours}/${hours} 小时有活动 · 峰值 ${totals.peakOnline} 在线`;
-  throughputSummary.textContent = `${totals.completed} 批次/单任务事件完成 · ${totals.failed} 失败`;
+  if (hours === 24 * 7 && Array.isArray(dailyActivity?.days)) {
+    const dailyTotals = dailyBucketsForRange(dailyActivity, 7).reduce((acc, bucket) => {
+      acc.tasks += asNumber(bucket.tasks);
+      acc.completed += asNumber(bucket.completed);
+      acc.failed += asNumber(bucket.failed);
+      acc.review += asNumber(bucket.review);
+      return acc;
+    }, { tasks: 0, completed: 0, failed: 0, review: 0 });
+    throughputSummary.textContent = `${dailyTotals.tasks} 个任务 · ${dailyTotals.completed} 成功 · ${dailyTotals.failed} 失败${dailyTotals.review ? ` · ${dailyTotals.review} 复核` : ""}`;
+  } else {
+    throughputSummary.textContent = `${totals.completed} 批次/单任务事件完成 · ${totals.failed} 失败`;
+  }
   renderPresenceRail(globalPresenceRail, buckets, { totalUsers: users.length, global: true });
   renderAxis(globalPresenceAxis, buckets);
   renderThroughputChart(globalTaskSpark, buckets);
@@ -355,6 +372,25 @@ function dailyBucketsForRange(payload, days) {
     running: asNumber(day?.running),
     tasks: asNumber(day?.tasks)
   }));
+}
+
+function dailyActivityForUser(user, days = 30) {
+  const source = Array.isArray(user?.activity_30d_daily) ? user.activity_30d_daily.slice(-days) : [];
+  return source.map((bucket) => ({
+    bucket_start: `${String(bucket?.date || "")}T00:00:00+08:00`,
+    active: asNumber(bucket?.tasks) > 0 || asNumber(bucket?.launches) > 0,
+    launches: asNumber(bucket?.launches),
+    completed: asNumber(bucket?.success),
+    failed: asNumber(bucket?.failed),
+    review: asNumber(bucket?.review),
+    tasks: asNumber(bucket?.tasks)
+  }));
+}
+
+function selectedActivityForUser(user) {
+  if (currentActivityRange === "7d") return hourlyActivityForUser(user, 24 * 7);
+  if (currentActivityRange === "30d") return dailyActivityForUser(user, 30);
+  return hourlyActivityForUser(user, 24);
 }
 
 function renderDailyActivity(payload, days) {
@@ -405,10 +441,13 @@ function updateActivityRangeControl() {
 function renderSelectedActivity() {
   updateActivityRangeControl();
   if (currentActivityRange === "24h") {
-    if (currentSnapshot) renderGlobalActivity(currentSnapshot, currentUsers);
-    return;
+    renderGlobalHourlyActivity(currentUsers, 24);
+  } else if (currentActivityRange === "7d") {
+    renderGlobalHourlyActivity(currentUsers, 24 * 7);
+  } else {
+    renderDailyActivity(dailyActivity, 30);
   }
-  renderDailyActivity(dailyActivity, currentActivityRange === "7d" ? 7 : 30);
+  if (currentUsers.length) usersPanel.replaceChildren(...currentUsers.map(renderUser));
 }
 
 activityRangeControl?.addEventListener("click", (event) => {

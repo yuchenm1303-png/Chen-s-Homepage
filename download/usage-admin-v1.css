@@ -249,6 +249,17 @@
   gap: 4px;
 }
 
+.usage-presence-rail.is-dense,
+.usage-throughput-chart.is-dense {
+  gap: 1px;
+}
+
+.usage-presence-rail.is-dense .usage-presence-segment,
+.usage-throughput-chart.is-dense .usage-throughput-completed,
+.usage-throughput-chart.is-dense .usage-throughput-failed {
+  border-radius: 1px 1px 0 0;
+}
+
 .usage-presence-segment {
   position: relative;
   height: 15px;

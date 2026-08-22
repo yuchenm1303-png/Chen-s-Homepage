@@ -98,6 +98,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Ark Pixel 10px";
+  src: url("assets/fonts/ark-pixel-10px-zh_cn-subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /*
    * 中英文都交给方舟像素。原来是"拉丁走 MS Sans Serif、中文走别的"，但那两套
@@ -130,65 +138,14 @@
 }
 
 /*
- * 高分屏补偿 —— 这一段是整个文件里最反直觉、也最关键的一段。
+ * 关于高分屏：这里刻意不做字号补偿。
  *
- * 点阵字只有在「字号 × 设备像素比 = 设计尺寸的整数倍」时才会一个字模像素
- * 正好压一个物理像素；否则浏览器会拿 12px 的字模去插值，边缘立刻发灰。
- * 本站设计尺寸是 12。于是：
- *   dpr 1.00 → 12   × 1.00 = 12  ✓（默认值就对）
- *   dpr 1.25 → 9.6  × 1.25 = 12  ✓
- *   dpr 1.50 → 16   × 1.50 = 24  ✓
- *   dpr 1.75 → 13.7143 × 1.75 = 24 ✓
- *   dpr 2.00 → 12   × 2.00 = 24  ✓（默认值就对）
- * Windows 的 125% / 150% 缩放非常常见，不补这一段，多数笔记本上看到的就是糊的。
+ * 点阵字只有在「字号 × 设备像素比 = 12 的整数倍」时才会一个字模像素正好压一个
+ * 物理像素。dpr 1.5 要满足这个条件得把字号提到 16px，但那样整个界面会比设计尺寸
+ * 大三分之一，观感立刻变成"大字版"。清晰度和比例在分数倍 dpr 上无法兼得，
+ * 这里选比例：全站一律 12px，1.25 / 1.5 / 1.75 的屏幕上边缘会略软一点，
+ * 但字模仍是方块状的，比掉回系统字体好得多，界面尺寸也始终是对的。
  */
-@media (resolution: 1.25dppx) {
-  .window *:not([class*="article-"]):not([class*="article-"] *),
-  .taskbar *,
-  .closed-dialog *,
-  .window,
-  .taskbar,
-  .desktop-shortcut {
-    font-size: 9.6px;
-  }
-
-  .profile-name {
-    font-size: 19.2px !important;
-    line-height: 26px !important;
-  }
-}
-
-@media (resolution: 1.5dppx) {
-  .window *:not([class*="article-"]):not([class*="article-"] *),
-  .taskbar *,
-  .closed-dialog *,
-  .window,
-  .taskbar,
-  .desktop-shortcut {
-    font-size: 16px;
-  }
-
-  .profile-name {
-    font-size: 32px !important;
-    line-height: 40px !important;
-  }
-}
-
-@media (resolution: 1.75dppx) {
-  .window *:not([class*="article-"]):not([class*="article-"] *),
-  .taskbar *,
-  .closed-dialog *,
-  .window,
-  .taskbar,
-  .desktop-shortcut {
-    font-size: 13.7143px;
-  }
-
-  .profile-name {
-    font-size: 27.4286px !important;
-    line-height: 36px !important;
-  }
-}
 
 .window,
 .taskbar,
@@ -204,6 +161,9 @@
 .status-bar {
   font-family: var(--r-stack);
   font-size: 12px;
+  /* 方舟像素没有真正的粗体字重。开启合成粗体会让 Chrome 用描边加粗，
+     边缘立刻带上抗锯齿（实测文字区颜色数从 7 涨到 273），所以必须关掉。
+     层级改由字号（12 / 10）和颜色承担，不靠字重。 */
   font-synthesis: none;
   letter-spacing: 0;
   text-rendering: optimizeSpeed;
@@ -243,6 +203,43 @@
 .start-button {
   font-family: var(--r-stack);
   font-weight: 700;
+}
+
+
+/*
+ * 次级文字用同族的 10px 字模。
+ *
+ * 站内原本的层级是靠字号拉开的：表头 8px、路径栏与筛选按钮 9px、列表描述 10px。
+ * 全部拉平到 12px 之后层级消失，整屏读起来又大又平。但点阵字不能随便缩，
+ * 12px 的字模拿去渲染 10px 一定发虚 —— 所以这里换的是另一套按 10px 网格
+ * 设计的字模，而不是把 12px 那套缩小。两套都出自方舟像素，风格一致。
+ *
+ * 这些规则需要 !important：上面那条 .window * 的通配规则特异性是 (0,3,0)，
+ * 普通的类选择器压不过它。
+ */
+.project-browser-head,
+.project-browser-head span,
+.project-row-copy strong,
+.project-row-icon,
+.project-glyph,
+.contact-glyph,
+.contact-label,
+.projects-path,
+.project-filter,
+.retro-action,
+.project-detail-back,
+.project-usage-hint,
+.project-row-copy small,
+.project-row-status,
+.project-status,
+.project-tags,
+.project-fact,
+.note,
+.blog-index-hint,
+.contact-index-hint {
+  font-family: "Ark Pixel 10px", var(--r-stack) !important;
+  font-size: 10px !important;
+  line-height: 15px !important;
 }
 
 /* ------------------------------------------------------------------ *

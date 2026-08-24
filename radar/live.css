@@ -1,0 +1,28 @@
+/* Real-data integration layer. Core glass material stays in the shared homepage CSS. */
+.radar-console-actions { display: grid; gap: 8px; margin-top: auto; }
+.radar-console-actions .radar-scan-button { margin-top: 0; }
+.radar-import-button { width: 100%; min-height: 46px; border: 0; cursor: pointer; color: rgba(255,255,255,.78); font-size: .68rem; }
+.radar-source-link { text-decoration: none; color: rgba(255,255,255,.66); }
+.radar-source-link:hover { color: #fff; }
+.radar-loading-state, .radar-error-state { border: 1px dashed rgba(255,255,255,.08); border-radius: 6px; }
+.radar-error-state strong { display: block; color: rgba(255,255,255,.84); font-weight: 500; }
+.radar-error-state p { margin-top: 8px; color: rgba(255,255,255,.44); }
+.radar-retry-button { width: auto; min-width: 110px; margin-top: 18px; padding: 0 14px; border: 0; cursor: pointer; }
+.radar-analysis-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.radar-reason-row { align-items: flex-start; }
+.radar-reason-row strong { max-width: 72%; line-height: 1.65; text-align: right; }
+.radar-source-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
+.radar-source-actions .radar-action { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.radar-modal-status-actions { grid-template-columns: repeat(3,1fr); margin-top: 10px; }
+.radar-import-modal { width: min(680px, calc(100vw - 28px)); }
+.radar-import-intro { margin-top: 10px; color: rgba(255,255,255,.52); font-size: .72rem; line-height: 1.7; }
+.radar-import-form { display: grid; gap: 13px; margin-top: 22px; }
+.radar-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.radar-import-form label { display: grid; gap: 7px; color: rgba(255,255,255,.42); font-size: .61rem; }
+.radar-import-form input, .radar-import-form textarea { width: 100%; box-sizing: border-box; border: 1px solid rgba(255,255,255,.09); border-radius: 6px; outline: none; background: rgba(0,0,0,.20); color: #fff; padding: 11px 12px; resize: vertical; font-family: STZhongsong, "华文中宋", "Songti SC", SimSun, serif; transition: border-color .2s ease, background-color .2s ease; }
+.radar-import-form input:focus, .radar-import-form textarea:focus { border-color: rgba(255,255,255,.22); background: rgba(0,0,0,.28); }
+.radar-import-form input::placeholder, .radar-import-form textarea::placeholder { color: rgba(255,255,255,.28); }
+.radar-import-note { padding: 10px 12px; border-left: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.42); font-size: .62rem; line-height: 1.65; }
+.radar-import-submit { margin-top: 3px; }
+@media (max-width: 720px) { .radar-analysis-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .radar-form-grid { grid-template-columns: 1fr; } .radar-reason-row { display: grid; gap: 8px; } .radar-reason-row strong { max-width: none; text-align: left; } }
+@media (max-width: 480px) { .radar-source-actions, .radar-modal-status-actions { grid-template-columns: 1fr; } }

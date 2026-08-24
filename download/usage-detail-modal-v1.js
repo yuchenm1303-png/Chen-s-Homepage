@@ -97,6 +97,157 @@ async function hydrateIfNeeded(details) {
   await loader(details);
 }
 
+function rawTaskAudit(details) {
+  const source = detailBody(details);
+  if (!source) return null;
+  const rawBlocks = [...source.querySelectorAll("details.usage-audit-raw")];
+  for (const block of rawBlocks.reverse()) {
+    const label = block.querySelector(":scope > summary")?.textContent || "";
+    if (!label.includes("完整原始审计 JSON")) continue;
+    const text = block.querySelector(":scope > pre")?.textContent || "";
+    try {
+      const payload = JSON.parse(text);
+      if (payload && typeof payload === "object") return payload;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function bytesFromBase64(value) {
+  const binary = atob(String(value || ""));
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
+
+async function gunzipChunkedText(blob) {
+  if (!blob || blob.encoding !== "gzip+base64-chunks" || !Array.isArray(blob.chunks)) return "";
+  if (typeof DecompressionStream !== "function") throw new Error("browser_gzip_decoder_unavailable");
+  const compressed = bytesFromBase64(blob.chunks.join(""));
+  const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return await new Response(stream).text();
+}
+
+async function sha256Hex(text) {
+  const bytes = new TextEncoder().encode(String(text || ""));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((part) => part.toString(16).padStart(2, "0")).join("");
+}
+
+function lineCount(text) {
+  if (!text) return 0;
+  const matches = String(text).match(/[^\r\n]+(?:\r\n|\r|\n|$)|(?:\r\n|\r|\n)/g);
+  return String(text).split(/\r\n|\r|\n/).filter((_, index, parts) => index < parts.length - 1 || parts[index] !== "").length;
+}
+
+function evidenceSection(titleText) {
+  const section = document.createElement("section");
+  section.className = "usage-audit-detail-section usage-failure-evidence";
+  const title = document.createElement("div");
+  title.className = "usage-audit-detail-title";
+  title.textContent = titleText;
+  section.append(title);
+  return section;
+}
+
+function evidenceLine(label, value, state = "neutral") {
+  const line = document.createElement("div");
+  line.className = "account-status-line";
+  const key = document.createElement("span");
+  key.textContent = label;
+  const data = document.createElement("strong");
+  data.textContent = String(value ?? "—");
+  data.dataset.state = state;
+  line.append(key, data);
+  return line;
+}
+
+function evidenceDetails(label, text) {
+  const details = document.createElement("details");
+  details.className = "usage-audit-raw";
+  const summary = document.createElement("summary");
+  summary.textContent = label;
+  const pre = document.createElement("pre");
+  pre.textContent = String(text || "—");
+  details.append(summary, pre);
+  return details;
+}
+
+async function enhanceFailureEvidence(details) {
+  if (!details.matches(".usage-task-card")) return;
+  const source = detailBody(details);
+  if (!source || source.dataset.failureEvidenceHydrated === "true") return;
+
+  const audit = rawTaskAudit(details);
+  const diagnostic = audit?.result_data?.failure_diagnostic;
+  if (!diagnostic || typeof diagnostic !== "object") {
+    source.dataset.failureEvidenceHydrated = "true";
+    return;
+  }
+
+  const section = evidenceSection("完整错误定位证据");
+  const stageLog = diagnostic.stage_log && typeof diagnostic.stage_log === "object" ? diagnostic.stage_log : null;
+  const panel = document.createElement("div");
+  panel.className = "account-status-panel usage-audit-status-panel";
+  panel.append(
+    evidenceLine("Truth source", diagnostic.truth_source || "—", diagnostic.truth_source === "stage_log" ? "ok" : "warn"),
+    evidenceLine("Stage log", diagnostic.stage_log_name || stageLog?.name || "—"),
+    evidenceLine("日志行数", diagnostic.line_count ?? stageLog?.line_count ?? "—"),
+    evidenceLine("日志字节", diagnostic.byte_count ?? stageLog?.byte_count ?? "—"),
+    evidenceLine("Traceback 数", diagnostic.traceback_count ?? (Array.isArray(diagnostic.tracebacks) ? diagnostic.tracebacks.length : 0)),
+    evidenceLine("Exception 数", diagnostic.exception_count ?? (Array.isArray(diagnostic.exceptions) ? diagnostic.exceptions.length : 0)),
+    evidenceLine("SHA-256", diagnostic.sha256 || stageLog?.sha256 || "—")
+  );
+  section.append(panel);
+
+  const exceptions = Array.isArray(diagnostic.exceptions) ? diagnostic.exceptions : [];
+  if (exceptions.length) section.append(evidenceDetails(`全部 Exception · ${exceptions.length}`, JSON.stringify(exceptions, null, 2)));
+
+  const tracebacks = Array.isArray(diagnostic.tracebacks) ? diagnostic.tracebacks : [];
+  for (let index = 0; index < tracebacks.length; index += 1) {
+    const traceback = tracebacks[index];
+    try {
+      const text = await gunzipChunkedText(traceback);
+      section.append(evidenceDetails(
+        `Traceback ${index + 1}/${tracebacks.length} · lines ${traceback?.start_line || "?"}-${traceback?.end_line || "?"}`,
+        text
+      ));
+    } catch (error) {
+      section.append(evidenceDetails(`Traceback ${index + 1}/${tracebacks.length} · 解码失败`, String(error?.message || error)));
+    }
+  }
+
+  if (stageLog) {
+    try {
+      const text = await gunzipChunkedText(stageLog);
+      const bytes = new TextEncoder().encode(text).byteLength;
+      const lines = lineCount(text);
+      const digest = await sha256Hex(text);
+      const expectedBytes = Number(stageLog.byte_count ?? diagnostic.byte_count ?? -1);
+      const expectedLines = Number(stageLog.line_count ?? diagnostic.line_count ?? -1);
+      const expectedDigest = String(stageLog.sha256 || diagnostic.sha256 || "").toLowerCase();
+      const byteOk = expectedBytes < 0 || expectedBytes === bytes;
+      const lineOk = expectedLines < 0 || expectedLines === lines;
+      const hashOk = !expectedDigest || expectedDigest === digest;
+      const integrity = byteOk && lineOk && hashOk;
+      panel.append(
+        evidenceLine("完整性校验", integrity ? "PASS" : "FAILED", integrity ? "ok" : "warn"),
+        evidenceLine("重建字节/行", `${bytes} B / ${lines} lines`, integrity ? "ok" : "warn")
+      );
+      section.append(evidenceDetails(`完整 Stage Log · ${stageLog.name || diagnostic.stage_log_name || "stage.log"}`, text));
+    } catch (error) {
+      panel.append(evidenceLine("完整 Stage Log 解码", `FAILED · ${String(error?.message || error)}`, "warn"));
+    }
+  }
+
+  const rawAnchor = [...source.children].find((node) => node.matches?.("details.usage-audit-raw"));
+  if (rawAnchor) source.insertBefore(section, rawAnchor);
+  else source.append(section);
+  source.dataset.failureEvidenceHydrated = "true";
+}
+
 document.addEventListener("click", async (event) => {
   const summary = event.target instanceof Element ? event.target.closest("summary") : null;
   if (!summary) return;
@@ -109,6 +260,7 @@ document.addEventListener("click", async (event) => {
   if (details.matches(".usage-task-card") && details.dataset.loading === "true") return;
   try {
     await hydrateIfNeeded(details);
+    await enhanceFailureEvidence(details);
     openDetailModal(details, summary);
   } catch (error) {
     console.error("usage task detail hydration failed", error);

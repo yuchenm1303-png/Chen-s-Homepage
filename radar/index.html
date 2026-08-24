@@ -110,7 +110,7 @@
         </div>
 
         <button class="download-button cards radar-scan-button" id="scanButton" type="button">
-          <span class="download-copy"><strong id="scanButtonText">立即扫描</strong><small>演示当前发现流程</small></span>
+          <span class="download-copy"><strong id="scanButtonText">立即扫描</strong><small>演示发现 → 评分 → 排序流程</small></span>
           <span class="download-arrow">↻</span>
         </button>
       </aside>
@@ -159,6 +159,7 @@
             <button class="release-badge filter-chip" data-filter="new" type="button">新发现</button>
             <button class="release-badge filter-chip" data-filter="saved" type="button">已收藏</button>
             <button class="release-badge filter-chip" data-filter="contacted" type="button">已联系</button>
+            <button class="release-badge filter-chip" data-filter="ignored" type="button">已忽略</button>
             <button class="release-badge filter-chip" data-filter="all" type="button">全部</button>
           </div>
           <label class="radar-search-wrap" for="searchInput">
@@ -236,9 +237,20 @@
     </footer>
   </main>
 
+  <!-- 直接复用原站 modal-layer / modal-card 玻璃详情层 -->
+  <div class="modal-layer" id="leadModal" hidden>
+    <div class="modal-mask" data-close-lead-modal></div>
+    <article class="modal-card cards" role="dialog" aria-modal="true" aria-labelledby="leadModalTitle">
+      <button class="modal-close" id="leadModalClose" type="button" aria-label="关闭机会详情">×</button>
+      <p class="modal-kicker" id="leadModalKicker">OPPORTUNITY ANALYSIS</p>
+      <h2 id="leadModalTitle">机会详情</h2>
+      <div class="modal-body" id="leadModalBody"></div>
+    </article>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="./app.js?v=20260824-3"></script>
+  <script src="./app.js?v=20260824-4"></script>
   <script src="../download/cursor-desktop-v2.js?v=20260813-2"></script>
 </body>
 </html>

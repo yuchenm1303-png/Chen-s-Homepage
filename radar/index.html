@@ -7,7 +7,7 @@
   <title>AI Lead Radar · 接单雷达</title>
   <meta name="description" content="AI 接单雷达：发现最新公开开发需求并进行智能筛选。" />
 
-  <!-- 直接复用 Listing Studio 下载页的原始样式栈，不重做玻璃卡片 -->
+  <!-- 继续复用 Listing Studio 原站的玻璃视觉与交互底座 -->
   <link rel="stylesheet" href="../download/styles-v3.css" />
   <link rel="stylesheet" href="../download/cosmic-bright-v1.css" />
   <link rel="stylesheet" href="../download/portal-polish-v1.css" />
@@ -15,9 +15,9 @@
   <link rel="stylesheet" href="../download/layout-visual-restore-v1.css" />
   <link rel="stylesheet" href="../download/cursor-reference-source-v1.css" />
   <link rel="stylesheet" href="../download/beach-wallpaper-v1.css" />
-  <link rel="stylesheet" href="./style.css?v=20260824-2" />
+  <link rel="stylesheet" href="./style.css?v=20260824-3" />
 </head>
-<body class="beach-wallpaper-active">
+<body class="beach-wallpaper-active radar-page">
   <div class="cosmos beach-wallpaper-active" aria-hidden="true">
     <div
       class="beach-wallpaper is-ready"
@@ -30,119 +30,83 @@
     <div class="cosmos-vignette"></div>
   </div>
 
-  <!-- 直接复用原下载页鼠标交互 -->
   <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
   <div class="cursor-follow" id="cursorFollow" aria-hidden="true"></div>
 
   <main class="release-shell radar-shell">
-    <header class="topbar fade">
+    <header class="topbar fade radar-topbar">
       <a class="brand" href="/" aria-label="返回 Smirel 首页">
         <span class="brand-mark">AR</span>
         <span class="brand-copy">
           <strong>AI Lead Radar</strong>
-          <small>Opportunity Monitor</small>
+          <small>Opportunity Intelligence</small>
         </span>
       </a>
 
       <div class="topbar-right">
         <nav class="portal-nav" aria-label="页面导航">
-          <a href="#dashboard">雷达</a>
-          <a href="#leads">潜客</a>
-          <a href="#monitor">监控</a>
+          <a href="#radar">雷达</a>
+          <a href="#opportunities">机会</a>
+          <a href="#strategy">策略</a>
         </nav>
-        <div class="service-status"><i></i><span>Demo Online</span></div>
+        <div class="service-status"><i></i><span>Radar Online</span></div>
       </div>
     </header>
 
-    <section class="portal-title fade" id="dashboard">
-      <div class="portal-title-copy">
-        <p class="eyebrow">AI · LEAD DISCOVERY</p>
-        <h1>接单雷达</h1>
-        <p>持续筛选最新公开需求，把真正值得联系的开发项目优先送到你面前。</p>
-      </div>
-      <div class="portal-title-meta" aria-label="运行状态">
-        <span class="title-chip live">Monitoring</span>
-        <span class="title-chip">XHS · MVP</span>
-      </div>
-    </section>
+    <section class="radar-hero fade" id="radar">
+      <article class="cards radar-hero-main">
+        <div class="radar-hero-copy">
+          <div class="hero-status-line">
+            <span class="release-badge radar-live-badge"><i></i> LIVE MONITOR</span>
+            <span class="hero-microcopy">XHS · DEVELOPMENT LEADS</span>
+          </div>
+          <p class="eyebrow">AI · LEAD DISCOVERY SYSTEM</p>
+          <h1>把真正值得联系的需求，<br><em>先一步</em>送到你面前。</h1>
+          <p class="hero-description">持续筛选最新公开开发需求，用 AI Score 判断付费意向、需求清晰度与能力匹配度。你只看值得出手的机会。</p>
 
-    <section class="radar-status cards fade" aria-label="监控概览">
-      <div class="meta-item"><span>MONITOR</span><strong>运行中</strong></div>
-      <div class="meta-item"><span>PLATFORM</span><strong>小红书 · MVP</strong></div>
-      <div class="meta-item"><span>MODE</span><strong>前端演示</strong></div>
-      <div class="meta-item"><span>LAST SCAN</span><strong id="lastScan">演示数据</strong></div>
-    </section>
+          <div class="hero-actions">
+            <a class="login-button cards hero-primary" href="#opportunities">查看最新机会 <span>↘</span></a>
+            <span class="hero-note">当前为前端演示 · 不自动私信</span>
+          </div>
+        </div>
 
-    <section class="utility-grid radar-summary-grid fade" aria-label="统计概览">
-      <article class="utility-card cards">
-        <span class="utility-overline">HIGH INTENT</span>
-        <h3 id="highCount">0</h3>
-        <p>高意向机会</p>
+        <div class="radar-orbit" aria-label="雷达运行状态">
+          <div class="orbit-ring orbit-ring-outer"></div>
+          <div class="orbit-ring orbit-ring-middle"></div>
+          <div class="orbit-ring orbit-ring-inner"></div>
+          <div class="orbit-sweep"></div>
+          <span class="orbit-dot dot-a"></span>
+          <span class="orbit-dot dot-b"></span>
+          <span class="orbit-dot dot-c"></span>
+          <div class="orbit-core">
+            <span>AI SCORE</span>
+            <strong id="heroHighCount">0</strong>
+            <small>high intent</small>
+          </div>
+        </div>
       </article>
-      <article class="utility-card cards">
-        <span class="utility-overline">NEW</span>
-        <h3 id="newCount">0</h3>
-        <p>等待处理</p>
-      </article>
-      <article class="utility-card cards">
-        <span class="utility-overline">CONTACTED</span>
-        <h3 id="contactedCount">0</h3>
-        <p>已联系项目</p>
-      </article>
-      <article class="utility-card cards">
-        <span class="utility-overline">LATENCY</span>
-        <h3>&lt; 5m</h3>
-        <p>目标发现延迟</p>
-      </article>
-    </section>
 
-    <section class="dashboard radar-workspace" id="leads">
-      <article class="release-card cards fade radar-lead-panel">
-        <div class="release-head radar-section-head">
+      <aside class="cards radar-scan-console">
+        <div class="console-head">
           <div>
-            <p class="kicker">LIVE OPPORTUNITIES</p>
-            <h2>最新潜客</h2>
-            <p class="radar-muted">当前线上版本先展示 MVP 工作流，真实公开数据连接器随后接入。</p>
+            <p class="kicker">SCANNER</p>
+            <h2>发现引擎</h2>
           </div>
-          <span class="release-badge" id="resultCount">0 条</span>
+          <span class="secure-pill">DEMO</span>
         </div>
 
-        <div class="radar-toolbar">
-          <div class="radar-filters" role="group" aria-label="潜客筛选">
-            <button class="release-badge filter-chip active" data-filter="high" type="button">高意向</button>
-            <button class="release-badge filter-chip" data-filter="new" type="button">新发现</button>
-            <button class="release-badge filter-chip" data-filter="contacted" type="button">已联系</button>
-            <button class="release-badge filter-chip" data-filter="all" type="button">全部</button>
+        <div class="console-status">
+          <div class="scan-pulse" id="scanPulse" aria-hidden="true"><i></i></div>
+          <div>
+            <span>STATUS</span>
+            <strong id="scanStatus">持续监控中</strong>
           </div>
-          <input id="searchInput" class="radar-search" type="search" placeholder="搜索需求 / 技术 / 关键词" autocomplete="off" />
         </div>
 
-        <div id="leadList" class="radar-lead-list"></div>
-      </article>
-
-      <aside class="account-card cards fade radar-side-panel">
-        <div class="account-head">
-          <div><p class="kicker">MATCH PROFILE</p><h2>我的接单范围</h2></div>
-          <span class="secure-pill">PROFILE</span>
-        </div>
-        <p class="account-intro">优先发现与你当前开发能力匹配、且有明确付费或交付意图的公开需求。</p>
-
-        <div class="radar-tag-cloud">
-          <span class="release-badge">微信小程序</span>
-          <span class="release-badge">网页开发</span>
-          <span class="release-badge">企业官网</span>
-          <span class="release-badge">独立站</span>
-          <span class="release-badge">Python</span>
-          <span class="release-badge">数据处理</span>
-          <span class="release-badge">AI 工具</span>
-          <span class="release-badge">自动化</span>
-        </div>
-
-        <div class="radar-rule-list">
-          <div class="spec-row"><span>最低提醒分</span><strong>80 / 100</strong></div>
-          <div class="spec-row"><span>优先时效</span><strong>30 分钟内</strong></div>
-          <div class="spec-row"><span>网页实时提醒</span><strong>开启</strong></div>
-          <div class="spec-row"><span>手机推送</span><strong>待接入</strong></div>
+        <div class="console-data">
+          <div><span>PLATFORM</span><strong>小红书</strong></div>
+          <div><span>LAST SCAN</span><strong id="lastScan">演示数据</strong></div>
+          <div><span>LATENCY</span><strong>&lt; 5 min</strong></div>
         </div>
 
         <button class="download-button cards radar-scan-button" id="scanButton" type="button">
@@ -152,33 +116,129 @@
       </aside>
     </section>
 
-    <section class="release-card cards fade radar-monitor" id="monitor">
-      <div class="release-head radar-section-head">
-        <div>
-          <p class="kicker">MONITOR CONFIGURATION</p>
-          <h2>监控策略</h2>
-          <p class="radar-muted">第一版聚焦开发需求发现，不做自动私信和批量营销。</p>
+    <section class="radar-signal-strip fade" aria-label="机会统计">
+      <article class="cards signal-stat signal-stat-primary">
+        <span class="signal-label">HIGH INTENT</span>
+        <strong id="highCount">0</strong>
+        <small>AI Score ≥ 80</small>
+      </article>
+      <article class="cards signal-stat">
+        <span class="signal-label">NEW SIGNALS</span>
+        <strong id="newCount">0</strong>
+        <small>等待处理</small>
+      </article>
+      <article class="cards signal-stat">
+        <span class="signal-label">SAVED</span>
+        <strong id="savedCount">0</strong>
+        <small>已收藏机会</small>
+      </article>
+      <article class="cards signal-stat">
+        <span class="signal-label">CONTACTED</span>
+        <strong id="contactedCount">0</strong>
+        <small>已联系项目</small>
+      </article>
+    </section>
+
+    <section class="radar-workbench" id="opportunities">
+      <article class="release-card cards fade radar-feed-panel">
+        <div class="feed-heading">
+          <div>
+            <p class="kicker">OPPORTUNITY FEED</p>
+            <h2>机会情报流</h2>
+            <p class="radar-muted">按 AI Score 与你的能力范围排序。搜索、筛选和状态操作都只在本机保存。</p>
+          </div>
+          <div class="feed-count">
+            <strong id="resultCount">0</strong>
+            <span>VISIBLE</span>
+          </div>
         </div>
-        <span class="release-badge">ASSISTED MONITORING</span>
+
+        <div class="radar-toolbar">
+          <div class="radar-filters" role="group" aria-label="潜客筛选">
+            <button class="release-badge filter-chip active" data-filter="high" type="button">高意向</button>
+            <button class="release-badge filter-chip" data-filter="new" type="button">新发现</button>
+            <button class="release-badge filter-chip" data-filter="saved" type="button">已收藏</button>
+            <button class="release-badge filter-chip" data-filter="contacted" type="button">已联系</button>
+            <button class="release-badge filter-chip" data-filter="all" type="button">全部</button>
+          </div>
+          <label class="radar-search-wrap" for="searchInput">
+            <span>⌕</span>
+            <input id="searchInput" class="radar-search" type="search" placeholder="搜索需求 / 技术 / 关键词" autocomplete="off" />
+          </label>
+        </div>
+
+        <div id="leadList" class="radar-lead-list"></div>
+      </article>
+
+      <aside class="radar-command-column fade">
+        <section class="account-card cards radar-profile-card">
+          <div class="account-head">
+            <div><p class="kicker">MATCH PROFILE</p><h2>我的接单范围</h2></div>
+            <span class="secure-pill">PROFILE</span>
+          </div>
+          <p class="account-intro">优先发现与你当前开发能力匹配、且有明确付费或交付意图的公开需求。</p>
+
+          <div class="radar-tag-cloud">
+            <span class="release-badge">微信小程序</span>
+            <span class="release-badge">网页开发</span>
+            <span class="release-badge">企业官网</span>
+            <span class="release-badge">独立站</span>
+            <span class="release-badge">Python</span>
+            <span class="release-badge">数据处理</span>
+            <span class="release-badge">AI 工具</span>
+            <span class="release-badge">自动化</span>
+          </div>
+        </section>
+
+        <section class="cards radar-rules-card">
+          <div class="mini-section-head">
+            <div><p class="kicker">PRIORITY LOGIC</p><h3>提醒规则</h3></div>
+            <span class="release-badge">AUTO</span>
+          </div>
+          <div class="radar-rule-list">
+            <div class="spec-row"><span>最低提醒分</span><strong>80 / 100</strong></div>
+            <div class="spec-row"><span>优先时效</span><strong>30 分钟内</strong></div>
+            <div class="spec-row"><span>网页实时提醒</span><strong>开启</strong></div>
+            <div class="spec-row"><span>手机推送</span><strong>待接入</strong></div>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="cards fade radar-strategy" id="strategy">
+      <div class="strategy-intro">
+        <p class="kicker">MONITORING STRATEGY</p>
+        <h2>只追踪有行动价值的信号。</h2>
+        <p>第一版聚焦开发需求发现，不做自动私信和批量营销；只保存完成判断所需的最小信息。</p>
       </div>
 
-      <div class="release-meta radar-monitor-grid">
-        <div class="meta-item"><span>PLATFORM</span><strong>小红书</strong><small>公开搜索结果</small></div>
-        <div class="meta-item"><span>DISCOVERY</span><strong>有偿 · 找人 · 求开发</strong><small>与技术类别组合判断</small></div>
-        <div class="meta-item"><span>AI FILTER</span><strong>需求 / 意向 / 匹配度</strong><small>过滤教程和学习噪音</small></div>
-        <div class="meta-item"><span>DATA</span><strong>最小化保存</strong><small>摘要、时间、链接和评分</small></div>
+      <div class="strategy-flow" aria-label="监控流程">
+        <div class="strategy-step">
+          <span>01</span>
+          <div><strong>公开发现</strong><small>小红书公开搜索结果</small></div>
+        </div>
+        <i>→</i>
+        <div class="strategy-step">
+          <span>02</span>
+          <div><strong>AI 过滤</strong><small>需求 · 意向 · 匹配度</small></div>
+        </div>
+        <i>→</i>
+        <div class="strategy-step">
+          <span>03</span>
+          <div><strong>优先提醒</strong><small>高分机会先进入视野</small></div>
+        </div>
       </div>
     </section>
 
     <footer class="footer fade">
       <span>© 2026 AI Lead Radar</span>
-      <span class="footer-status"><i></i>Smirel · Opportunity Monitor</span>
+      <span class="footer-status"><i></i>Smirel · Opportunity Intelligence</span>
     </footer>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="./app.js?v=20260824-2"></script>
+  <script src="./app.js?v=20260824-3"></script>
   <script src="../download/cursor-desktop-v2.js?v=20260813-2"></script>
 </body>
 </html>

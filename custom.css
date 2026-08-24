@@ -1,22 +1,8 @@
-@font-face {
-  font-family: "Pixelated MS Sans Serif";
-  src:
-    url("https://cdn.jsdelivr.net/gh/meorionel/98-pink.css/dist/ms_sans_serif.woff2") format("woff2"),
-    url("https://cdn.jsdelivr.net/gh/meorionel/98-pink.css/dist/ms_sans_serif.woff") format("woff");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Pixelated MS Sans Serif";
-  src:
-    url("https://cdn.jsdelivr.net/gh/meorionel/98-pink.css/dist/ms_sans_serif_bold.woff2") format("woff2"),
-    url("https://cdn.jsdelivr.net/gh/meorionel/98-pink.css/dist/ms_sans_serif_bold.woff") format("woff");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-}
+/*
+ * 原本这里有两条 @font-face，从 cdn.jsdelivr.net/gh/meorionel/98-pink.css 拉
+ * MS Sans Serif 点阵字。现在中英文都由自托管的方舟像素承担，这两条已经用不上，
+ * 留着只是在源码里留下一个指向别人仓库的痕迹，所以删掉。
+ */
 
 :root {
   --pixel: "Pixelated MS Sans Serif", Arial, sans-serif;

@@ -118,8 +118,7 @@ function render() {
       const lead = leads.find((item) => item.id === Number(button.dataset.id));
       if (!lead) return;
 
-      const nextStatus = button.dataset.status;
-      lead.status = lead.status === nextStatus && nextStatus === "saved" ? "new" : nextStatus;
+      lead.status = button.dataset.status;
       persistStatuses();
       showToast(`已标记：${labels[lead.status]}`);
       render();

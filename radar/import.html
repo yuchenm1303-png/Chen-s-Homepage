@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#91c7e3" />
+  <title>复核公开需求 · AI Lead Radar</title>
+  <meta name="description" content="复核 Browser Helper 捕获的公开需求并送入 AI Lead Radar。" />
+  <link rel="stylesheet" href="../download/styles-v3.css" />
+  <link rel="stylesheet" href="../download/cosmic-bright-v1.css" />
+  <link rel="stylesheet" href="../download/portal-polish-v1.css" />
+  <link rel="stylesheet" href="../download/portal-polish-v2.css" />
+  <link rel="stylesheet" href="../download/layout-visual-restore-v1.css" />
+  <link rel="stylesheet" href="../download/beach-wallpaper-v1.css" />
+  <link rel="stylesheet" href="./style.css?v=20260824-3" />
+  <link rel="stylesheet" href="./live.css?v=20260824-1" />
+  <link rel="stylesheet" href="./import.css?v=20260824-1" />
+</head>
+<body class="beach-wallpaper-active radar-page radar-import-page">
+  <div class="cosmos beach-wallpaper-active" aria-hidden="true">
+    <div class="beach-wallpaper is-ready" style="--beach-image:url('../download/wallpaper-rain-anime-v1.png');--beach-position-x:54%;--beach-position-mobile-x:57%;--beach-veil-top:.17;--beach-veil-bottom:.28"></div>
+    <div class="cosmos-sky"></div><div class="cosmos-glow"></div><div class="cosmos-nebula cosmos-nebula-cyan"></div><div class="cosmos-nebula cosmos-nebula-violet"></div><div class="cosmos-vignette"></div>
+  </div>
+  <main class="release-shell radar-shell radar-import-shell">
+    <header class="topbar fade radar-topbar">
+      <a class="brand" href="/radar/" aria-label="返回 AI Lead Radar"><span class="brand-mark">AR</span><span class="brand-copy"><strong>AI Lead Radar</strong><small>Browser Helper Review</small></span></a>
+      <div class="service-status"><i></i><span id="serviceStatus">等待复核</span></div>
+    </header>
+
+    <section class="cards fade radar-import-hero">
+      <div>
+        <p class="kicker">SAFE SOURCE INGEST</p>
+        <h1>先复核，再入库。</h1>
+        <p>这里显示 Browser Helper 从你当前可见页面提取的最小信息。你可以修改标题、摘要和发布时间；只有勾选并点击提交的内容才会发送给 Radar。</p>
+      </div>
+      <div class="radar-import-summary"><span>CAPTURED</span><strong id="candidateCount">0</strong><small>公开候选</small></div>
+    </section>
+
+    <section class="release-card cards fade radar-import-panel">
+      <div class="feed-heading">
+        <div><p class="kicker">REVIEW QUEUE</p><h2>候选需求</h2><p class="radar-muted">图片内文字不会自动读取；如果需求主要写在图片中，请在摘要里补上判断所需的文字。</p></div>
+        <button class="release-badge filter-chip" id="toggleAll" type="button">全选 / 取消</button>
+      </div>
+      <div id="candidateList" class="radar-import-list"></div>
+      <div class="radar-import-submitbar">
+        <div id="resultMessage" class="radar-muted">未提交</div>
+        <div class="radar-import-submit-actions">
+          <a class="login-button cards radar-action" href="/radar/">返回 Radar</a>
+          <button class="download-button cards radar-import-submit" id="submitButton" type="button">
+            <span class="download-copy"><strong>分析并入库</strong><small>prefilter → AI / rules → score → dedupe</small></span><span class="download-arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./import.js?v=20260824-1"></script>
+</body>
+</html>

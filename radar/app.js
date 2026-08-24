@@ -17,7 +17,31 @@ const newCount = $("newCount");
 const contactedCount = $("contactedCount");
 const searchInput = $("searchInput");
 const scanButton = $("scanButton");
+const scanButtonText = $("scanButtonText");
 const lastScan = $("lastScan");
+const toast = $("toast");
+
+function restoreStatuses() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("leadRadarDemoStatuses") || "{}");
+    leads.forEach((lead) => {
+      if (saved[lead.id] && labels[saved[lead.id]]) lead.status = saved[lead.id];
+    });
+  } catch {}
+}
+
+function persistStatuses() {
+  const payload = Object.fromEntries(leads.map((lead) => [lead.id, lead.status]));
+  localStorage.setItem("leadRadarDemoStatuses", JSON.stringify(payload));
+}
+
+function showToast(message) {
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("show");
+  window.clearTimeout(showToast.timer);
+  showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 1800);
+}
 
 function updateCounts() {
   highCount.textContent = String(leads.filter((lead) => lead.score >= 80).length);
@@ -36,26 +60,35 @@ function matchesFilter(lead) {
 function render() {
   const query = searchInput.value.trim().toLowerCase();
   const visible = leads.filter((lead) => {
-    const haystack = `${lead.title} ${lead.excerpt} ${lead.category}`.toLowerCase();
+    const haystack = `${lead.title} ${lead.excerpt} ${lead.category} ${lead.signals.join(" ")}`.toLowerCase();
     return (!query || haystack.includes(query)) && matchesFilter(lead);
   });
 
   resultCount.textContent = `${visible.length} 条`;
   leadList.innerHTML = visible.length ? visible.map((lead) => `
-    <article class="lead-card">
-      <div class="lead-score"><strong>${lead.score}</strong><span>AI SCORE</span></div>
+    <article class="lead-card cards fade">
+      <div class="lead-score meta-item">
+        <span>AI SCORE</span>
+        <strong>${lead.score}</strong>
+      </div>
       <div class="lead-main">
         <div class="lead-meta">
-          <span class="source-pill">${lead.source}</span><span>${lead.age}</span><span>${lead.category}</span><span class="status-pill">${labels[lead.status]}</span>
+          <span class="release-badge">${lead.source}</span>
+          <span>${lead.age}</span>
+          <span>${lead.category}</span>
+          <span class="release-badge">${labels[lead.status]}</span>
         </div>
         <h3>${lead.title}</h3>
         <p>${lead.excerpt}</p>
-        <div class="signal-row">${lead.signals.map((signal) => `<span>${signal}</span>`).join("")}<span>${lead.budget}</span></div>
+        <div class="signal-row">
+          ${lead.signals.map((signal) => `<span class="release-badge">${signal}</span>`).join("")}
+          <span class="release-badge">${lead.budget}</span>
+        </div>
       </div>
       <div class="lead-actions">
-        <button class="primary" type="button" data-id="${lead.id}" data-status="contacted">标记已联系</button>
-        <button type="button" data-id="${lead.id}" data-status="saved">收藏</button>
-        <button type="button" data-id="${lead.id}" data-status="ignored">忽略</button>
+        <button class="login-button cards radar-action is-primary" type="button" data-id="${lead.id}" data-status="contacted">标记已联系</button>
+        <button class="login-button cards radar-action" type="button" data-id="${lead.id}" data-status="saved">收藏</button>
+        <button class="login-button cards radar-action" type="button" data-id="${lead.id}" data-status="ignored">忽略</button>
       </div>
     </article>`).join("") : '<div class="empty-state">没有符合当前筛选条件的项目。</div>';
 
@@ -64,9 +97,12 @@ function render() {
       const lead = leads.find((item) => item.id === Number(button.dataset.id));
       if (!lead) return;
       lead.status = button.dataset.status;
+      persistStatuses();
+      showToast(`已标记：${labels[lead.status]}`);
       render();
     });
   });
+
   updateCounts();
 }
 
@@ -80,15 +116,20 @@ document.querySelectorAll(".filter-chip").forEach((button) => {
 });
 
 searchInput.addEventListener("input", render);
+
 scanButton.addEventListener("click", () => {
+  if (scanButton.disabled) return;
   scanButton.disabled = true;
-  scanButton.textContent = "扫描中…";
+  scanButtonText.textContent = "扫描中…";
   lastScan.textContent = "正在扫描";
+
   window.setTimeout(() => {
     lastScan.textContent = "刚刚 · 演示扫描";
-    scanButton.textContent = "立即扫描";
+    scanButtonText.textContent = "立即扫描";
     scanButton.disabled = false;
+    showToast("扫描完成 · 当前为演示数据");
   }, 900);
 });
 
+restoreStatuses();
 render();

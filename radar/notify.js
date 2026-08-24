@@ -12,6 +12,18 @@
     return supported && Notification.permission === "granted" && localStorage.getItem(STORAGE_KEY) === "1";
   }
 
+  function ensureHelperLink() {
+    const actions = document.querySelector(".radar-console-actions");
+    if (!actions || document.getElementById("browserHelperLink")) return;
+    const link = document.createElement("a");
+    link.id = "browserHelperLink";
+    link.className = "login-button cards radar-import-button radar-helper-entry";
+    link.href = "./helper.html";
+    link.textContent = "⌁ 浏览器助手";
+    link.setAttribute("aria-label", "安装 AI Lead Radar 浏览器助手");
+    actions.appendChild(link);
+  }
+
   function ensureControl() {
     const ruleList = document.querySelector(".radar-rule-list");
     if (!ruleList || document.getElementById("browserNotifyButton")) return;
@@ -102,6 +114,7 @@
     }
   }
 
+  ensureHelperLink();
   ensureControl();
   poll();
   window.setInterval(poll, POLL_MS);

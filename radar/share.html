@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#91c7e3" />
+  <title>小红书快速导入 · AI Lead Radar</title>
+  <meta name="description" content="粘贴小红书分享文本或公开链接，复核后送入 AI Lead Radar。" />
+  <link rel="stylesheet" href="../download/styles-v3.css" />
+  <link rel="stylesheet" href="../download/cosmic-bright-v1.css" />
+  <link rel="stylesheet" href="../download/portal-polish-v1.css" />
+  <link rel="stylesheet" href="../download/portal-polish-v2.css" />
+  <link rel="stylesheet" href="../download/layout-visual-restore-v1.css" />
+  <link rel="stylesheet" href="../download/beach-wallpaper-v1.css" />
+  <link rel="stylesheet" href="./style.css?v=20260824-3" />
+  <link rel="stylesheet" href="./live.css?v=20260824-2" />
+  <link rel="stylesheet" href="./share.css?v=20260824-1" />
+</head>
+<body class="beach-wallpaper-active radar-page radar-share-page">
+  <div class="cosmos beach-wallpaper-active" aria-hidden="true">
+    <div class="beach-wallpaper is-ready" style="--beach-image:url('../download/wallpaper-rain-anime-v1.png');--beach-position-x:54%;--beach-position-mobile-x:57%;--beach-veil-top:.17;--beach-veil-bottom:.28"></div>
+    <div class="cosmos-sky"></div><div class="cosmos-glow"></div><div class="cosmos-nebula cosmos-nebula-cyan"></div><div class="cosmos-nebula cosmos-nebula-violet"></div><div class="cosmos-vignette"></div>
+  </div>
+  <main class="release-shell radar-shell radar-share-shell">
+    <header class="topbar fade radar-topbar">
+      <a class="brand" href="/radar/" aria-label="返回 AI Lead Radar"><span class="brand-mark">AR</span><span class="brand-copy"><strong>AI Lead Radar</strong><small>XHS Quick Import</small></span></a>
+      <div class="service-status"><i></i><span id="shareStatus">等待粘贴</span></div>
+    </header>
+
+    <section class="cards fade radar-share-card">
+      <p class="kicker">IPHONE · IPAD · MOBILE</p>
+      <h1>把小红书分享内容粘进来。</h1>
+      <p class="radar-share-intro">在小红书 App 里点“分享 / 复制链接”，把复制到剪贴板的文字粘贴到下面。系统不会登录小红书，也不会自动访问受保护内容。</p>
+
+      <label class="radar-share-field">
+        <span>小红书分享文本 / 公开链接</span>
+        <textarea id="shareText" rows="7" placeholder="例如：复制小红书分享内容后粘贴到这里…"></textarea>
+      </label>
+      <button class="login-button cards radar-share-parse" id="parseButton" type="button">解析分享内容</button>
+
+      <form id="shareForm" class="radar-share-form" hidden>
+        <div class="radar-share-grid">
+          <label><span>来源</span><input id="shareSource" value="小红书" maxlength="40"></label>
+          <label><span>发布时间</span><input id="sharePublishedAt" type="datetime-local"></label>
+        </div>
+        <label><span>需求标题 *</span><input id="shareTitle" maxlength="240" required></label>
+        <label><span>公开文字摘要</span><textarea id="shareExcerpt" rows="5" maxlength="1600" placeholder="如果核心需求写在图片里，请在这里补上必要文字"></textarea></label>
+        <div class="radar-share-grid">
+          <label><span>原帖链接</span><input id="shareUrl" type="url" readonly></label>
+          <label><span>预算信息</span><input id="shareBudget" maxlength="100" placeholder="如：有偿 / 预算可聊"></label>
+        </div>
+        <div class="radar-import-note">只保存完成判断所需的最小公开信息。不会自动私信、评论、关注或收集联系方式。</div>
+        <button class="download-button cards radar-share-submit" id="shareSubmit" type="submit">
+          <span class="download-copy"><strong>分析并入库</strong><small>prefilter → AI / rules → score → dedupe</small></span><span class="download-arrow">→</span>
+        </button>
+      </form>
+      <div class="radar-share-result" id="shareResult">尚未解析</div>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./share.js?v=20260824-1"></script>
+</body>
+</html>

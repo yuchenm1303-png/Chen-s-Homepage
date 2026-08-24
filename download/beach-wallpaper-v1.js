@@ -1,14 +1,14 @@
 (() => {
-  const ASSET_VERSION = "20260821-1545";
+  const ASSET_VERSION = "20260824-1650";
   const STYLE_ID = "beach-wallpaper-v1-style";
   const STYLE_URL = `./beach-wallpaper-v1.css?v=${ASSET_VERSION}`;
   const WALLPAPER = {
-    id: "rain-anime",
-    src: `./wallpaper-rain-anime-v1.png?v=${ASSET_VERSION}`,
-    positionX: "54%",
-    mobilePositionX: "57%",
-    veilTop: ".17",
-    veilBottom: ".28"
+    id: "soft-blue",
+    src: `./wallpaper-soft-blue-v1.webp?v=${ASSET_VERSION}`,
+    positionX: "50%",
+    mobilePositionX: "58%",
+    veilTop: ".05",
+    veilBottom: ".12"
   };
 
   function ensureStylesheet() {

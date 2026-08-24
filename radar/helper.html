@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#91c7e3" />
+  <title>Browser Helper · AI Lead Radar</title>
+  <meta name="description" content="安装 AI Lead Radar Browser Helper，把当前可见的小红书需求送入 Radar。" />
+  <link rel="stylesheet" href="../download/styles-v3.css" />
+  <link rel="stylesheet" href="../download/cosmic-bright-v1.css" />
+  <link rel="stylesheet" href="../download/portal-polish-v1.css" />
+  <link rel="stylesheet" href="../download/portal-polish-v2.css" />
+  <link rel="stylesheet" href="../download/layout-visual-restore-v1.css" />
+  <link rel="stylesheet" href="../download/beach-wallpaper-v1.css" />
+  <link rel="stylesheet" href="./style.css?v=20260824-3" />
+  <link rel="stylesheet" href="./live.css?v=20260824-2" />
+  <link rel="stylesheet" href="./helper.css?v=20260824-1" />
+</head>
+<body class="beach-wallpaper-active radar-page radar-helper-page">
+  <div class="cosmos beach-wallpaper-active" aria-hidden="true">
+    <div class="beach-wallpaper is-ready" style="--beach-image:url('../download/wallpaper-rain-anime-v1.png');--beach-position-x:54%;--beach-position-mobile-x:57%;--beach-veil-top:.17;--beach-veil-bottom:.28"></div>
+    <div class="cosmos-sky"></div><div class="cosmos-glow"></div><div class="cosmos-nebula cosmos-nebula-cyan"></div><div class="cosmos-nebula cosmos-nebula-violet"></div><div class="cosmos-vignette"></div>
+  </div>
+  <main class="release-shell radar-shell radar-helper-shell">
+    <header class="topbar fade radar-topbar">
+      <a class="brand" href="/radar/" aria-label="返回 AI Lead Radar"><span class="brand-mark">AR</span><span class="brand-copy"><strong>AI Lead Radar</strong><small>Browser Helper</small></span></a>
+      <div class="service-status"><i></i><span>Explicit-click only</span></div>
+    </header>
+
+    <section class="cards fade radar-helper-hero">
+      <div>
+        <p class="kicker">XIAOHONGSHU FIRST</p>
+        <h1>刷到需求时，一键送进 Radar。</h1>
+        <p>Browser Helper 只在你主动点击扩展时读取当前可见页面。它不会后台抓取，不读取 Cookie，不绕登录、验证码或平台风控。</p>
+      </div>
+      <a class="download-button cards radar-helper-download" href="./ai-lead-radar-browser-helper.zip" download>
+        <span class="download-copy"><strong>下载浏览器助手</strong><small>Chrome / Edge · Manifest V3</small></span><span class="download-arrow">↓</span>
+      </a>
+    </section>
+
+    <section class="radar-helper-grid fade">
+      <article class="cards radar-helper-card">
+        <span class="helper-step">01</span><h2>下载并解压</h2><p>下载上面的 ZIP 后解压到一个固定文件夹。不要直接双击 ZIP 安装。</p>
+      </article>
+      <article class="cards radar-helper-card">
+        <span class="helper-step">02</span><h2>加载扩展</h2><p>Chrome / Edge 打开扩展管理页，开启“开发者模式”，选择“加载已解压的扩展程序”，指向解压后的 <code>browser-helper</code> 文件夹。</p>
+      </article>
+      <article class="cards radar-helper-card">
+        <span class="helper-step">03</span><h2>正常浏览小红书</h2><p>照常登录、搜索和打开帖子。详情页点“捕获当前帖子”；搜索结果页点“捕获当前页候选”。</p>
+      </article>
+      <article class="cards radar-helper-card">
+        <span class="helper-step">04</span><h2>复核后入库</h2><p>扩展会打开 Radar 复核页。确认标题、摘要和发布时间后再提交，系统随后完成过滤、评分、去重和入库。</p>
+      </article>
+    </section>
+
+    <section class="cards fade radar-helper-note">
+      <p class="kicker">CURRENT LIMIT</p>
+      <h2>图片文字暂时需要补充。</h2>
+      <p>像很多小红书帖子一样，如果核心需求只写在图片里，当前扩展不会在本地自动 OCR。复核页会保留摘要输入框，你可以补上必要文字。下一步会做“用户主动截图 → 视觉模型判断 → 图片不持久化”的可选流程。</p>
+      <div class="radar-helper-actions"><a class="login-button cards radar-action is-primary" href="/radar/">返回 Radar</a><a class="login-button cards radar-action" href="./import.html">打开复核页</a></div>
+    </section>
+  </main>
+</body>
+</html>

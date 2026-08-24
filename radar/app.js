@@ -13,11 +13,15 @@ const $ = (id) => document.getElementById(id);
 const leadList = $("leadList");
 const resultCount = $("resultCount");
 const highCount = $("highCount");
+const heroHighCount = $("heroHighCount");
 const newCount = $("newCount");
+const savedCount = $("savedCount");
 const contactedCount = $("contactedCount");
 const searchInput = $("searchInput");
 const scanButton = $("scanButton");
 const scanButtonText = $("scanButtonText");
+const scanStatus = $("scanStatus");
+const scanPulse = $("scanPulse");
 const lastScan = $("lastScan");
 const toast = $("toast");
 
@@ -44,8 +48,11 @@ function showToast(message) {
 }
 
 function updateCounts() {
-  highCount.textContent = String(leads.filter((lead) => lead.score >= 80).length);
+  const high = leads.filter((lead) => lead.score >= 80).length;
+  highCount.textContent = String(high);
+  heroHighCount.textContent = String(high);
   newCount.textContent = String(leads.filter((lead) => lead.status === "new").length);
+  savedCount.textContent = String(leads.filter((lead) => lead.status === "saved").length);
   contactedCount.textContent = String(leads.filter((lead) => lead.status === "contacted").length);
 }
 
@@ -53,50 +60,66 @@ function matchesFilter(lead) {
   if (currentFilter === "all") return true;
   if (currentFilter === "high") return lead.score >= 80;
   if (currentFilter === "new") return lead.status === "new";
+  if (currentFilter === "saved") return lead.status === "saved";
   if (currentFilter === "contacted") return lead.status === "contacted";
   return true;
+}
+
+function actionClass(lead, status, primary = false) {
+  const classes = ["login-button", "cards", "radar-action"];
+  if (primary) classes.push("is-primary");
+  if (lead.status === status) classes.push("is-current");
+  return classes.join(" ");
 }
 
 function render() {
   const query = searchInput.value.trim().toLowerCase();
   const visible = leads.filter((lead) => {
-    const haystack = `${lead.title} ${lead.excerpt} ${lead.category} ${lead.signals.join(" ")}`.toLowerCase();
+    const haystack = `${lead.title} ${lead.excerpt} ${lead.category} ${lead.source} ${lead.budget} ${lead.signals.join(" ")}`.toLowerCase();
     return (!query || haystack.includes(query)) && matchesFilter(lead);
   });
 
-  resultCount.textContent = `${visible.length} 条`;
+  resultCount.textContent = String(visible.length);
+
   leadList.innerHTML = visible.length ? visible.map((lead) => `
     <article class="lead-card cards fade">
-      <div class="lead-score meta-item">
-        <span>AI SCORE</span>
-        <strong>${lead.score}</strong>
+      <div class="lead-rank">
+        <span class="lead-score-label">AI SCORE</span>
+        <div class="lead-score-value"><strong>${lead.score}</strong><small>/100</small></div>
+        <div class="score-track" aria-hidden="true"><i style="width:${lead.score}%"></i></div>
       </div>
+
       <div class="lead-main">
-        <div class="lead-meta">
+        <div class="lead-topline">
           <span class="release-badge">${lead.source}</span>
           <span>${lead.age}</span>
-          <span>${lead.category}</span>
           <span class="release-badge">${labels[lead.status]}</span>
         </div>
         <h3>${lead.title}</h3>
         <p>${lead.excerpt}</p>
+        <div class="lead-context">
+          <span>${lead.category}</span>
+          <span>${lead.budget}</span>
+        </div>
         <div class="signal-row">
           ${lead.signals.map((signal) => `<span class="release-badge">${signal}</span>`).join("")}
-          <span class="release-badge">${lead.budget}</span>
         </div>
       </div>
+
       <div class="lead-actions">
-        <button class="login-button cards radar-action is-primary" type="button" data-id="${lead.id}" data-status="contacted">标记已联系</button>
-        <button class="login-button cards radar-action" type="button" data-id="${lead.id}" data-status="saved">收藏</button>
-        <button class="login-button cards radar-action" type="button" data-id="${lead.id}" data-status="ignored">忽略</button>
+        <button class="${actionClass(lead, "contacted", true)}" type="button" data-id="${lead.id}" data-status="contacted" aria-pressed="${lead.status === "contacted"}">已联系</button>
+        <button class="${actionClass(lead, "saved")}" type="button" data-id="${lead.id}" data-status="saved" aria-pressed="${lead.status === "saved"}">收藏</button>
+        <button class="${actionClass(lead, "ignored")}" type="button" data-id="${lead.id}" data-status="ignored" aria-pressed="${lead.status === "ignored"}">忽略</button>
       </div>
-    </article>`).join("") : '<div class="empty-state">没有符合当前筛选条件的项目。</div>';
+    </article>`).join("") : '<div class="empty-state">没有符合当前筛选条件的项目。换个关键词或筛选条件试试。</div>';
 
   leadList.querySelectorAll("button[data-status]").forEach((button) => {
     button.addEventListener("click", () => {
       const lead = leads.find((item) => item.id === Number(button.dataset.id));
       if (!lead) return;
-      lead.status = button.dataset.status;
+
+      const nextStatus = button.dataset.status;
+      lead.status = lead.status === nextStatus && nextStatus === "saved" ? "new" : nextStatus;
       persistStatuses();
       showToast(`已标记：${labels[lead.status]}`);
       render();
@@ -119,14 +142,19 @@ searchInput.addEventListener("input", render);
 
 scanButton.addEventListener("click", () => {
   if (scanButton.disabled) return;
+
   scanButton.disabled = true;
   scanButtonText.textContent = "扫描中…";
+  scanStatus.textContent = "正在分析公开信号";
   lastScan.textContent = "正在扫描";
+  scanPulse.classList.add("is-scanning");
 
   window.setTimeout(() => {
     lastScan.textContent = "刚刚 · 演示扫描";
+    scanStatus.textContent = "持续监控中";
     scanButtonText.textContent = "立即扫描";
     scanButton.disabled = false;
+    scanPulse.classList.remove("is-scanning");
     showToast("扫描完成 · 当前为演示数据");
   }, 900);
 });

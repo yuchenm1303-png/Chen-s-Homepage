@@ -1,0 +1,19 @@
+.radar-helper-page, .radar-helper-page button, .radar-helper-page a { font-family: STZhongsong, "华文中宋", "Songti SC", SimSun, serif; }
+.radar-helper-shell { max-width: 1080px; }
+.radar-helper-hero { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(250px,.6fr); gap: 28px; align-items: end; padding: clamp(28px,4vw,44px); }
+.radar-helper-hero h1 { margin-top: 8px; font-size: clamp(2rem,4.4vw,3.6rem); font-weight: 500; line-height: 1.08; }
+.radar-helper-hero p:last-child { max-width: 700px; margin-top: 16px; color: rgba(255,255,255,.58); font-size: .78rem; line-height: 1.85; }
+.radar-helper-download { align-self: end; text-decoration: none; }
+.radar-helper-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 16px; }
+.radar-helper-card { min-height: 180px; padding: 24px; }
+.helper-step { color: rgba(255,255,255,.3); font-family: ui-rounded, "SF Pro Rounded", sans-serif; font-size: .6rem; letter-spacing: .1em; }
+.radar-helper-card h2 { margin-top: 24px; font-size: 1.18rem; font-weight: 500; }
+.radar-helper-card p { margin-top: 9px; color: rgba(255,255,255,.5); font-size: .7rem; line-height: 1.75; }
+.radar-helper-card code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: rgba(255,255,255,.75); }
+.radar-helper-note { margin-top: 16px; padding: 28px; }
+.radar-helper-note h2 { margin-top: 7px; font-size: 1.35rem; font-weight: 500; }
+.radar-helper-note > p:last-of-type { max-width: 820px; margin-top: 10px; color: rgba(255,255,255,.52); font-size: .72rem; line-height: 1.8; }
+.radar-helper-actions { display: flex; gap: 8px; margin-top: 20px; }
+.radar-helper-actions .radar-action { width: auto; min-width: 130px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+@media (max-width: 760px) { .radar-helper-hero { grid-template-columns: 1fr; } .radar-helper-grid { grid-template-columns: 1fr; } .radar-helper-download { width: 100%; } }
+@media (max-width: 480px) { .radar-helper-actions { flex-direction: column; } .radar-helper-actions .radar-action { width: 100%; } }

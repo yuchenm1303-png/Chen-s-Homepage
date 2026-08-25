@@ -2,11 +2,23 @@
   background: #21313c !important;
 }
 
-/* Keep the wallpaper and glass cards in the same compositor path. */
+/*
+ * The cosmic background normally owns a promoted compositor layer. That
+ * isolates the photographic wallpaper from the cards' backdrop-filter in
+ * Chromium, so the cards stay translucent but cannot blur the image behind
+ * them. Remove that isolation only while the beach wallpaper is active.
+ */
 .cosmos.beach-wallpaper-active {
   transform: none;
 }
 
+/*
+ * Keep beach-mode glass surfaces on the same backdrop sampling path. The
+ * default scale(1) promotes every card to its own compositor layer, which can
+ * make Chromium display only the translucent fill without the blur. A stronger
+ * blur is intentional here because the beach photography contains much finer
+ * texture than the original gradient background.
+ */
 body.beach-wallpaper-active .cards {
   background-color: rgba(4, 18, 30, .42);
   -webkit-backdrop-filter: blur(22px) saturate(120%);
@@ -30,24 +42,17 @@ body.beach-wallpaper-active .utility-card:active {
   transform: scale(1);
 }
 
-/*
- * The wallpaper is a viewport layer, not a page-sized cover image.
- * Stretch the complete source image to the viewport so it is never zoomed,
- * cropped, or moved while the page scrolls.
- */
 .beach-wallpaper {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
   z-index: 0;
+  overflow: hidden;
   pointer-events: none;
-  background-color: #dcecff;
+  background-color: #21313c;
   background-image: var(--beach-image);
   background-repeat: no-repeat;
-  background-size: 100% 100%;
-  background-position: center center;
+  background-size: cover;
+  background-position: var(--beach-position-x, 50%) center;
   opacity: 0;
   transition: opacity .42s ease;
 }
@@ -57,11 +62,9 @@ body.beach-wallpaper-active .utility-card:active {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(4, 10, 16, var(--beach-veil-top, .05)),
-    rgba(4, 10, 16, var(--beach-veil-bottom, .12))
-  );
+  background:
+    linear-gradient(180deg, rgba(4, 10, 16, var(--beach-veil-top, .24)), rgba(4, 10, 16, var(--beach-veil-bottom, .42))),
+    radial-gradient(ellipse at 50% 34%, transparent 24%, rgba(3, 8, 14, .22) 100%);
 }
 
 .beach-wallpaper.is-ready {
@@ -76,6 +79,12 @@ body.beach-wallpaper-active .utility-card:active {
   opacity: 0 !important;
   visibility: hidden !important;
   animation: none !important;
+}
+
+@media (max-aspect-ratio: 9 / 16) {
+  .beach-wallpaper {
+    background-position-x: var(--beach-position-mobile-x, var(--beach-position-x, 50%));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

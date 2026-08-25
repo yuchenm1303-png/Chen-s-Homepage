@@ -1,10 +1,12 @@
 (() => {
-  const ASSET_VERSION = "20260825-1520";
+  const ASSET_VERSION = "20260825-1540";
   const STYLE_ID = "beach-wallpaper-v1-style";
   const STYLE_URL = `./beach-wallpaper-v1.css?v=${ASSET_VERSION}`;
   const WALLPAPER = {
     id: "rain-anime",
     src: `./wallpaper-rain-anime-v1.png?v=${ASSET_VERSION}`,
+    positionX: "54%",
+    mobilePositionX: "57%",
     veilTop: ".17",
     veilBottom: ".28"
   };
@@ -57,6 +59,8 @@
     layer.className = "beach-wallpaper";
     layer.dataset.wallpaper = WALLPAPER.id;
     layer.style.setProperty("--beach-image", `url("${WALLPAPER.src}")`);
+    layer.style.setProperty("--beach-position-x", WALLPAPER.positionX);
+    layer.style.setProperty("--beach-position-mobile-x", WALLPAPER.mobilePositionX);
     layer.style.setProperty("--beach-veil-top", WALLPAPER.veilTop);
     layer.style.setProperty("--beach-veil-bottom", WALLPAPER.veilBottom);
     cosmos.prepend(layer);

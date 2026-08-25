@@ -1,0 +1,24 @@
+name: Radar Check
+
+on:
+  pull_request:
+    paths:
+      - "radar/**"
+      - ".github/workflows/radar-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --check radar/app.js
+      - run: node --check radar/import.js
+      - run: node --check radar/share.js
+      - run: node --check radar/notify.js

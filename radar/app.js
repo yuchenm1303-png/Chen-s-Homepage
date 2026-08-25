@@ -7,6 +7,7 @@ let currentFilter = "high";
 let activeLeadId = null;
 let activeScanRequestId = null;
 let scanPollTimer = null;
+let scanDirectReady = false;
 let apiLoading = true;
 let apiError = "";
 const $ = (id) => document.getElementById(id);
@@ -14,7 +15,7 @@ const leadList = $("leadList"), resultCount = $("resultCount"), highCount = $("h
 
 function escapeHTML(value) { return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
 function safeUrl(value) { if (!value) return ""; try { const url = new URL(value); return ["http:", "https:"].includes(url.protocol) ? url.href : ""; } catch { return ""; } }
-async function requestJson(base, path, options = {}) { const controller = new AbortController(); const timeout = window.setTimeout(() => controller.abort(), 12000); try { const response = await fetch(`${base}${path}`, { cache: "no-store", ...options, signal: controller.signal, headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...(options.headers || {}) } }); const data = await response.json().catch(() => ({})); if (!response.ok) { const error = new Error(data.detail || `API ${response.status}`); error.status = response.status; error.retryAfterSeconds = Number(data.retry_after_seconds || 0); throw error; } return data; } finally { window.clearTimeout(timeout); } }
+async function requestJson(base, path, options = {}) { const { timeoutMs = 12000, ...fetchOptions } = options; const controller = new AbortController(); const timeout = window.setTimeout(() => controller.abort(), timeoutMs); try { const response = await fetch(`${base}${path}`, { cache: "no-store", ...fetchOptions, signal: controller.signal, headers: { ...(fetchOptions.body ? { "Content-Type": "application/json" } : {}), ...(fetchOptions.headers || {}) } }); const data = await response.json().catch(() => ({})); if (!response.ok) { const error = new Error(data.detail || `API ${response.status}`); error.status = response.status; error.retryAfterSeconds = Number(data.retry_after_seconds || 0); throw error; } return data; } finally { window.clearTimeout(timeout); } }
 async function api(path, options = {}) { return requestJson(API_BASE, path, options); }
 async function scanApi(path, options = {}) { return requestJson(SCAN_API_BASE, path, options); }
 function formatAge(value) { if (!value) return "发布时间未知"; const timestamp = new Date(value).getTime(); if (!Number.isFinite(timestamp)) return "发布时间未知"; const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000)); if (minutes < 1) return "刚刚"; if (minutes < 60) return `${minutes} 分钟前`; const hours = Math.floor(minutes / 60); if (hours < 24) return `${hours} 小时前`; const days = Math.floor(hours / 24); if (days < 30) return `${days} 天前`; return new Date(value).toLocaleDateString("zh-CN"); }
@@ -50,6 +51,7 @@ function scanCompletionMessage(request) { const result = request?.result || {}; 
 async function loadMonitorStatus() {
   try {
     const [queueStatus, monitor] = await Promise.all([scanApi("/api/v1/status"), api("/api/v1/monitor/status")]);
+    scanDirectReady = Boolean(queueStatus.direct_ready);
     if ($("scannerPlatform")) $("scannerPlatform").textContent = queueStatus.platform || "小红书 · Just One V4";
     if ($("scannerProvider")) $("scannerProvider").textContent = String(monitor.ai_provider || "rules").toUpperCase();
     lastScan.textContent = queueStatus.last_scan_at ? formatAge(queueStatus.last_scan_at) : "等待首次扫描";
@@ -65,10 +67,17 @@ async function loadMonitorStatus() {
       return queueStatus;
     }
     if (queueStatus.queued) {
-      scanStatus.textContent = "已排队 · 等待采集";
-      scanButtonText.textContent = "已排队";
-      scanButton.disabled = true;
-      scanPulse.classList.add("is-scanning");
+      if (scanDirectReady) {
+        scanStatus.textContent = "已排队 · 可立即处理";
+        scanButtonText.textContent = "立即处理";
+        scanButton.disabled = false;
+        scanPulse.classList.remove("is-scanning");
+      } else {
+        scanStatus.textContent = "已排队 · 等待采集";
+        scanButtonText.textContent = "已排队";
+        scanButton.disabled = true;
+        scanPulse.classList.add("is-scanning");
+      }
       scheduleScanPolling();
       return queueStatus;
     }
@@ -87,7 +96,7 @@ async function loadMonitorStatus() {
     }
 
     if (queueStatus.queue_available) {
-      scanStatus.textContent = "实时采集就绪";
+      scanStatus.textContent = scanDirectReady ? "即时采集就绪" : "实时采集就绪";
       scanButtonText.textContent = "立即扫描";
       scanButton.disabled = false;
     } else {
@@ -133,17 +142,17 @@ document.addEventListener("keydown", (event) => { if (event.key !== "Escape") re
 scanButton.addEventListener("click", async () => {
   if (scanButton.disabled) return;
   scanButton.disabled = true;
-  scanButtonText.textContent = "提交中…";
+  scanButtonText.textContent = scanDirectReady ? "扫描中…" : "提交中…";
   scanPulse.classList.add("is-scanning");
-  scanStatus.textContent = "正在提交安全扫描";
+  scanStatus.textContent = scanDirectReady ? "正在即时扫描" : "正在提交安全扫描";
   try {
-    const result = await scanApi("/api/v1/request", { method: "POST" });
+    const result = await scanApi("/api/v1/request", { method: "POST", timeoutMs: 45000 });
     if (result.request?.id) activeScanRequestId = Number(result.request.id);
-    showToast(result.existing ? "已有扫描任务 · 继续跟踪当前任务" : "已排队 · GitHub 安全采集器将在约 5 分钟内处理");
+    if (!result.direct) showToast(result.existing ? "已有扫描任务 · 继续跟踪当前任务" : "已排队 · GitHub 采集器将作为备用路径处理");
   } catch (error) {
     scanPulse.classList.remove("is-scanning");
     scanStatus.textContent = error.status === 429 ? "额度保护中" : "扫描请求失败";
-    showToast(error.message || "扫描请求失败");
+    showToast(error.name === "AbortError" ? "扫描仍可能在后台完成，请稍后刷新状态" : (error.message || "扫描请求失败"));
   } finally {
     try { await loadMonitorStatus(); } catch { scanButtonText.textContent = "立即扫描"; scanButton.disabled = false; }
   }

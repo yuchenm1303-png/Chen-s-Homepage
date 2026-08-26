@@ -1,13 +1,5 @@
 /* Radar rendering stability only. Glass materials come from the shared .cards system. */
 
-/* Remove Radar-only decoration so overview cards use the exact shared beach-wallpaper glass. */
-body.beach-wallpaper-active .radar-scan-console.cards,
-body.beach-wallpaper-active .signal-stat.cards {
-  background-image: none;
-  border: 0;
-  box-shadow: none;
-}
-
 /* Avoid a visible fade every time a remote cover is reattached. */
 .scan-post-cover-image {
   opacity: 1 !important;

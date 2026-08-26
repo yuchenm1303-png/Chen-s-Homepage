@@ -9,6 +9,7 @@
     stored: { label: "通过 · 潜客", className: "is-stored" },
     filtered: { label: "已过滤", className: "is-filtered" },
     seen: { label: "已处理", className: "is-seen" },
+    duplicate: { label: "已处理", className: "is-seen" },
     error: { label: "需复核", className: "is-error" },
     unknown: { label: "待判断", className: "is-unknown" },
   };
@@ -42,6 +43,52 @@
     return rows.filter(([, value]) => value !== null && value !== undefined).map(([label, value]) => `${label} ${value}`);
   }
 
+  function normalizeImageUrl(value) {
+    if (!value) return "";
+    try {
+      const url = new URL(String(value));
+      if (!["http:", "https:"].includes(url.protocol)) return "";
+      let href = url.href;
+      if (/xhscdn\.com$/i.test(url.hostname) || /\.xhscdn\.com$/i.test(url.hostname)) {
+        href = href.replace(/\/format\/heif(?=\/|&|$)/gi, "/format/webp");
+        href = href.replace(/format=heif/gi, "format=webp");
+      }
+      return href;
+    } catch {
+      return "";
+    }
+  }
+
+  function normalizedImages(images) {
+    const result = [];
+    const seen = new Set();
+    for (const raw of Array.isArray(images) ? images : []) {
+      const url = normalizeImageUrl(raw);
+      if (!url) continue;
+      let key = url;
+      try {
+        const parsed = new URL(url);
+        key = `${parsed.origin}${parsed.pathname}`;
+      } catch {}
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(url);
+      if (result.length >= 9) break;
+    }
+    return result;
+  }
+
+  function createRemoteImage(url, alt, className = "") {
+    const image = document.createElement("img");
+    image.src = url;
+    image.alt = alt || "帖子图片";
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.referrerPolicy = "no-referrer";
+    if (className) image.className = className;
+    return image;
+  }
+
   function ensurePanel() {
     let panel = document.getElementById("scanPostsPanel");
     if (panel) return panel;
@@ -54,7 +101,7 @@
     const heading = el("div");
     heading.append(el("p", "kicker", "SCAN REVIEW"));
     heading.append(el("h2", "", "本次扫描帖子"));
-    heading.append(el("p", "radar-muted", "这里展示本次扫描抓到的公开帖子原文，用来人工判断数据源与筛选质量。"));
+    heading.append(el("p", "radar-muted", "紧凑浏览本次扫描结果；点击任意卡片查看完整正文、图片与原帖。"));
     head.append(heading);
 
     const count = el("div", "scan-posts-count");
@@ -85,70 +132,145 @@
     return panel;
   }
 
-  function createImageGallery(images, title) {
-    const urls = Array.isArray(images) ? images.filter(Boolean).slice(0, 9) : [];
-    if (!urls.length) return null;
-    const gallery = el("div", `scan-post-images count-${Math.min(urls.length, 4)}`);
-    urls.forEach((url, index) => {
-      const link = document.createElement("a");
-      link.href = url;
+  function ensureModal() {
+    let layer = document.getElementById("scanPostModal");
+    if (layer) return layer;
+
+    layer = el("div", "scan-post-modal-layer");
+    layer.id = "scanPostModal";
+    layer.hidden = true;
+    layer.innerHTML = `
+      <div class="scan-post-modal-mask" data-scan-post-close></div>
+      <article class="cards scan-post-modal-card" role="dialog" aria-modal="true" aria-labelledby="scanPostModalTitle">
+        <button class="scan-post-modal-close" type="button" aria-label="关闭" data-scan-post-close>×</button>
+        <div id="scanPostModalContent"></div>
+      </article>`;
+    document.body.append(layer);
+    layer.querySelectorAll("[data-scan-post-close]").forEach((node) => node.addEventListener("click", closePostModal));
+    return layer;
+  }
+
+  function closePostModal() {
+    const layer = document.getElementById("scanPostModal");
+    if (!layer) return;
+    layer.hidden = true;
+    document.body.classList.remove("scan-post-modal-open");
+  }
+
+  function openPostModal(post) {
+    const layer = ensureModal();
+    const content = document.getElementById("scanPostModalContent");
+    if (!layer || !content) return;
+    content.replaceChildren();
+
+    const decision = String(post?.decision || "unknown");
+    const meta = decisionMeta[decision] || decisionMeta.unknown;
+    const header = el("div", "scan-post-modal-head");
+    const identity = el("div", "scan-post-modal-identity");
+    identity.append(el("strong", "", post?.author?.nickname || "小红书公开用户"));
+    identity.append(el("span", "", formatTime(post?.published_at)));
+    header.append(identity, el("span", `release-badge scan-post-decision ${meta.className}`, meta.label));
+    content.append(header);
+
+    const title = el("h2", "scan-post-modal-title", post?.title || "无标题");
+    title.id = "scanPostModalTitle";
+    content.append(title);
+
+    const images = normalizedImages(post?.images);
+    if (images.length) {
+      const gallery = el("div", "scan-post-modal-images");
+      images.forEach((url, index) => {
+        const holder = el("a", "scan-post-modal-image");
+        holder.href = url;
+        holder.target = "_blank";
+        holder.rel = "noopener noreferrer";
+        const image = createRemoteImage(url, `${post?.title || "帖子图片"} ${index + 1}`);
+        image.addEventListener("error", () => holder.classList.add("is-image-failed"));
+        holder.append(image, el("span", "scan-post-image-fallback", "图片暂不可预览"));
+        gallery.append(holder);
+      });
+      content.append(gallery);
+    }
+
+    const body = el("div", "scan-post-modal-body", post?.body || "（正文为空）");
+    content.append(body);
+
+    const metaRow = el("div", "scan-post-modal-meta");
+    metricText(post?.metrics).forEach((text) => metaRow.append(el("span", "", text)));
+    (Array.isArray(post?.tags) ? post.tags : []).slice(0, 12).forEach((tag) => metaRow.append(el("span", "scan-post-tag", `#${tag}`)));
+    content.append(metaRow);
+
+    if (post?.url) {
+      const link = el("a", "radar-action is-primary scan-post-modal-link", "打开小红书原帖 ↗");
+      link.href = post.url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      const image = document.createElement("img");
-      image.src = url;
-      image.alt = `${title || "帖子图片"} ${index + 1}`;
-      image.loading = "lazy";
-      image.decoding = "async";
-      image.addEventListener("error", () => link.remove());
-      link.append(image);
-      gallery.append(link);
-    });
-    return gallery;
+      content.append(link);
+    }
+
+    layer.hidden = false;
+    document.body.classList.add("scan-post-modal-open");
+  }
+
+  function createCover(post) {
+    const cover = el("div", "scan-post-cover");
+    const fallback = el("div", "scan-post-cover-fallback", "XHS");
+    cover.append(fallback);
+    const images = normalizedImages(post?.images);
+    if (!images.length) {
+      cover.classList.add("is-image-failed");
+      return cover;
+    }
+
+    let index = 0;
+    const image = createRemoteImage(images[index], post?.title || "帖子封面", "scan-post-cover-image");
+    const tryNext = () => {
+      index += 1;
+      if (index < images.length) {
+        image.src = images[index];
+        return;
+      }
+      cover.classList.add("is-image-failed");
+      image.remove();
+    };
+    image.addEventListener("load", () => cover.classList.add("is-image-ready"));
+    image.addEventListener("error", tryNext);
+    cover.append(image);
+    return cover;
   }
 
   function createPostCard(post, index) {
     const card = el("article", "scan-post-card");
-    const top = el("div", "scan-post-top");
-    const identity = el("div", "scan-post-identity");
-    if (post?.author?.avatar) {
-      const avatar = document.createElement("img");
-      avatar.src = post.author.avatar;
-      avatar.alt = "";
-      avatar.loading = "lazy";
-      avatar.addEventListener("error", () => avatar.remove());
-      identity.append(avatar);
-    }
-    const identityText = el("div");
-    identityText.append(el("strong", "", post?.author?.nickname || "小红书公开用户"));
-    identityText.append(el("span", "", `${formatTime(post?.published_at)} · #${index + 1}`));
-    identity.append(identityText);
-    top.append(identity);
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `查看帖子：${post?.title || "无标题"}`);
+    card.addEventListener("click", () => openPostModal(post));
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openPostModal(post);
+      }
+    });
 
+    const cover = createCover(post);
     const decision = String(post?.decision || "unknown");
     const meta = decisionMeta[decision] || decisionMeta.unknown;
-    top.append(el("span", `release-badge scan-post-decision ${meta.className}`, meta.label));
-    card.append(top);
-    card.append(el("h3", "scan-post-title", post?.title || "无标题"));
+    cover.append(el("span", `release-badge scan-post-decision scan-post-cover-badge ${meta.className}`, meta.label));
+    card.append(cover);
 
-    const body = el("div", "scan-post-body");
-    body.textContent = post?.body || "（正文为空）";
-    card.append(body);
-    const gallery = createImageGallery(post?.images, post?.title);
-    if (gallery) card.append(gallery);
+    const content = el("div", "scan-post-card-content");
+    const eyebrow = el("div", "scan-post-card-eyebrow");
+    eyebrow.append(el("span", "", post?.author?.nickname || "小红书公开用户"), el("span", "", `${formatTime(post?.published_at)} · #${index + 1}`));
+    content.append(eyebrow);
+    content.append(el("h3", "scan-post-title", post?.title || "无标题"));
+    content.append(el("p", "scan-post-body", post?.body || "（正文为空）"));
 
-    const footer = el("div", "scan-post-footer");
-    const left = el("div", "scan-post-meta");
-    metricText(post?.metrics).forEach((text) => left.append(el("span", "", text)));
-    (Array.isArray(post?.tags) ? post.tags : []).slice(0, 8).forEach((tag) => left.append(el("span", "scan-post-tag", `#${tag}`)));
-    footer.append(left);
-    if (post?.url) {
-      const link = el("a", "radar-action is-primary scan-post-link", "打开原帖 ↗");
-      link.href = post.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      footer.append(link);
-    }
-    card.append(footer);
+    const footer = el("div", "scan-post-card-footer");
+    const metrics = el("div", "scan-post-meta");
+    metricText(post?.metrics).slice(0, 4).forEach((text) => metrics.append(el("span", "", text)));
+    footer.append(metrics, el("span", "scan-post-detail-hint", "详情 ↗"));
+    content.append(footer);
+    card.append(content);
     return card;
   }
 
@@ -157,21 +279,22 @@
     const list = document.getElementById("scanPostsList");
     if (!panel || !list) return;
 
-    const posts = latestPosts.filter((post) => currentFilter === "all" || String(post?.decision || "unknown") === currentFilter);
+    const posts = latestPosts.filter((post) => {
+      const decision = String(post?.decision || "unknown");
+      if (currentFilter === "seen") return ["seen", "duplicate"].includes(decision);
+      return currentFilter === "all" || decision === currentFilter;
+    });
     document.getElementById("scanPostsCount").textContent = String(latestPosts.length);
     list.replaceChildren();
 
     if (latestFailure) {
-      const box = el("div", "scan-post-empty", `${latestFailure} 这不是“筛选后为 0”，而是数据源没有返回内容。`);
-      list.append(box);
+      list.append(el("div", "scan-post-empty", `${latestFailure} 这不是“筛选后为 0”，而是数据源没有返回内容。`));
       return;
     }
-
     if (!latestResult) {
       list.append(el("div", "scan-post-empty", "正在读取本次扫描帖子…"));
       return;
     }
-
     if (!latestPosts.length) {
       const scanned = Number(latestResult?.scanned || 0);
       const fresh = Number(latestResult?.fresh || 0);
@@ -181,7 +304,6 @@
       list.append(el("div", "scan-post-empty", message));
       return;
     }
-
     if (!posts.length) {
       list.append(el("div", "scan-post-empty", "当前筛选下没有帖子。"));
       return;
@@ -210,10 +332,14 @@
   }
 
   ensurePanel();
+  ensureModal();
   renderPosts();
   load();
   window.setInterval(load, 5000);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") load();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closePostModal();
   });
 })();

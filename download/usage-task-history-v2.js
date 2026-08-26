@@ -1,7 +1,7 @@
 const PANEL_ID = "taskAuditPanel";
 const CARD_SELECTOR = ":scope > .usage-task-card:not([data-task-history-day])";
 const PAGE_SIZE = 8;
-const DETAIL_MODAL_MODULE = "./usage-detail-modal-v1.js?v=20260826-2210";
+const DETAIL_MODAL_MODULE = "./usage-detail-modal-v1.js?v=20260826-2359";
 
 const loadedByDay = new Map();
 let groupedDays = [];

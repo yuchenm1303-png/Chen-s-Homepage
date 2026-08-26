@@ -51,6 +51,7 @@ function detailBody(details) {
 
 function isPortalDetail(details) {
   if (!(details instanceof HTMLDetailsElement)) return false;
+  if (details.matches(".usage-task-card[data-task-history-day]")) return false;
   if (details.matches(".usage-task-card")) return true;
   if (details.matches("#deviceHealthPanel > .usage-diagnostic-item")) return true;
   if (details.matches("#diagnosticsPanel > .usage-diagnostic-item")) return true;
@@ -138,7 +139,6 @@ async function sha256Hex(text) {
 
 function lineCount(text) {
   if (!text) return 0;
-  const matches = String(text).match(/[^\r\n]+(?:\r\n|\r|\n|$)|(?:\r\n|\r|\n)/g);
   return String(text).split(/\r\n|\r|\n/).filter((_, index, parts) => index < parts.length - 1 || parts[index] !== "").length;
 }
 

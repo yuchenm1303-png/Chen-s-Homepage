@@ -55,22 +55,9 @@ function statsText(cards) {
   return parts.join(" · ");
 }
 
-function toggleDay(key) {
-  if (openDays.has(key)) {
-    openDays.delete(key);
-  } else {
-    openDays.add(key);
-    if (!loadedByDay.has(key)) loadedByDay.set(key, PAGE_SIZE);
-  }
-  renderGroupedPanel();
-}
-
-function makeDayHeader(day) {
-  const header = document.createElement("div");
-  header.className = "usage-task-summary";
-  header.setAttribute("role", "button");
-  header.tabIndex = 0;
-  header.setAttribute("aria-expanded", String(openDays.has(day.key)));
+function makeDaySummary(day) {
+  const summary = document.createElement("summary");
+  summary.className = "usage-task-summary";
 
   const identity = document.createElement("div");
   const kicker = document.createElement("p");
@@ -82,15 +69,8 @@ function makeDayHeader(day) {
   meta.className = "usage-account-email";
   meta.textContent = statsText(day.cards);
   identity.append(kicker, title, meta);
-  header.append(identity);
-
-  header.addEventListener("click", () => toggleDay(day.key));
-  header.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    toggleDay(day.key);
-  });
-  return header;
+  summary.append(identity);
+  return summary;
 }
 
 function makeLoadMore(day, shown) {
@@ -104,7 +84,9 @@ function makeLoadMore(day, shown) {
   more.type = "button";
   more.className = "switch-account-button usage-refresh";
   more.textContent = `加载更多（${day.cards.length - shown}）`;
-  more.addEventListener("click", () => {
+  more.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     loadedByDay.set(day.key, Math.min(day.cards.length, shown + PAGE_SIZE));
     renderGroupedPanel();
   });
@@ -115,28 +97,42 @@ function makeLoadMore(day, shown) {
 
 function makeDayGroup(day) {
   const open = openDays.has(day.key);
-  const group = document.createElement("article");
+  const group = document.createElement("details");
   group.className = "account-card cards usage-task-card";
   group.dataset.taskHistoryDay = day.key;
-  if (open) group.setAttribute("open", "");
-  group.append(makeDayHeader(day));
+  group.open = open;
+  group.append(makeDaySummary(day));
 
-  if (!open) return group;
+  if (open) {
+    const shown = Math.min(day.cards.length, loadedByDay.get(day.key) || PAGE_SIZE);
+    const body = document.createElement("div");
+    body.className = "usage-task-body";
 
-  const shown = Math.min(day.cards.length, loadedByDay.get(day.key) || PAGE_SIZE);
-  const body = document.createElement("div");
-  body.className = "usage-task-body";
+    const section = document.createElement("div");
+    section.className = "usage-audit-detail-section";
+    const list = document.createElement("div");
+    list.className = "usage-task-audit-list";
+    list.append(...day.cards.slice(0, shown));
+    section.append(list);
+    body.append(section);
 
-  const section = document.createElement("div");
-  section.className = "usage-audit-detail-section";
-  const list = document.createElement("div");
-  list.className = "usage-task-audit-list";
-  list.append(...day.cards.slice(0, shown));
-  section.append(list);
-  body.append(section);
+    if (shown < day.cards.length) body.append(makeLoadMore(day, shown));
+    group.append(body);
+  }
 
-  if (shown < day.cards.length) body.append(makeLoadMore(day, shown));
-  group.append(body);
+  group.addEventListener("toggle", () => {
+    const wasOpen = openDays.has(day.key);
+    if (group.open === wasOpen) return;
+
+    if (group.open) {
+      openDays.add(day.key);
+      if (!loadedByDay.has(day.key)) loadedByDay.set(day.key, PAGE_SIZE);
+    } else {
+      openDays.delete(day.key);
+    }
+    renderGroupedPanel();
+  });
+
   return group;
 }
 

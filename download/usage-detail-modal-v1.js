@@ -33,11 +33,15 @@ ensureStylesheet("usageDetailModalStyles", "./usage-detail-modal-v1.css?v=202608
 const modalLayer = ensureModal();
 const modalMask = document.getElementById("usageDetailModalMask");
 const modalClose = document.getElementById("usageDetailModalClose");
+const modalCard = modalLayer?.querySelector(".modal-card") || null;
 const modalKicker = document.getElementById("usageDetailModalKicker");
 const modalTitle = document.getElementById("usageDetailModalTitle");
 const modalBody = document.getElementById("usageDetailModalBody");
 
 let lastTrigger = null;
+let detailRequestId = 0;
+const modalViewStack = [];
+const hydratePromises = new WeakMap();
 
 function directSummary(details) {
   return [...details.children].find((child) => child.tagName === "SUMMARY") || null;
@@ -58,8 +62,50 @@ function isPortalDetail(details) {
   return false;
 }
 
+function captureCurrentModalView(trigger) {
+  if (!modalLayer || modalLayer.hidden || !modalBody || !(trigger instanceof Node) || !modalBody.contains(trigger)) return;
+
+  const fragment = document.createDocumentFragment();
+  while (modalBody.firstChild) fragment.append(modalBody.firstChild);
+  modalViewStack.push({
+    kicker: modalKicker?.textContent || "DETAIL",
+    title: modalTitle?.textContent || "详情",
+    body: fragment,
+    scrollTop: modalCard?.scrollTop || 0,
+    focusTarget: trigger instanceof HTMLElement ? trigger : null,
+    previousTrigger: lastTrigger
+  });
+}
+
+function restorePreviousModalView() {
+  const view = modalViewStack.pop();
+  if (!view || !modalBody || !modalKicker || !modalTitle) return false;
+
+  detailRequestId += 1;
+  modalKicker.textContent = view.kicker;
+  modalTitle.textContent = view.title;
+  modalBody.replaceChildren(view.body);
+  lastTrigger = view.previousTrigger || null;
+
+  const restoreScroll = () => {
+    if (modalCard) modalCard.scrollTop = view.scrollTop;
+  };
+  restoreScroll();
+  requestAnimationFrame(() => {
+    restoreScroll();
+    if (view.focusTarget instanceof HTMLElement && view.focusTarget.isConnected) {
+      view.focusTarget.focus({ preventScroll: true });
+    }
+  });
+  return true;
+}
+
 function closeDetailModal() {
   if (!modalLayer || modalLayer.hidden) return;
+  if (restorePreviousModalView()) return;
+
+  detailRequestId += 1;
+  modalViewStack.length = 0;
   modalLayer.hidden = true;
   document.documentElement.classList.remove("usage-detail-modal-open");
   modalBody?.replaceChildren();
@@ -67,35 +113,74 @@ function closeDetailModal() {
   lastTrigger = null;
 }
 
-function openDetailModal(details, trigger) {
-  if (!modalLayer || !modalBody || !modalTitle || !modalKicker) return;
+function modalHeadingFromSummary(summary) {
+  return {
+    kicker: summary?.querySelector(".kicker")?.textContent?.trim() || "DETAIL",
+    title: summary?.querySelector("h2, h3")?.textContent?.trim() || "详情"
+  };
+}
+
+function showLoadingDetailModal(details, trigger) {
+  if (!modalLayer || !modalBody || !modalTitle || !modalKicker) return 0;
   const summary = directSummary(details);
-  const source = detailBody(details);
-  if (!summary || !source) return;
+  if (!summary) return 0;
 
-  details.open = false;
+  captureCurrentModalView(trigger);
   lastTrigger = trigger instanceof HTMLElement ? trigger : summary;
+  const heading = modalHeadingFromSummary(summary);
+  modalKicker.textContent = heading.kicker;
+  modalTitle.textContent = heading.title;
 
-  const kicker = summary.querySelector(".kicker")?.textContent?.trim();
-  const title = summary.querySelector("h2, h3")?.textContent?.trim();
-  modalKicker.textContent = kicker || "DETAIL";
-  modalTitle.textContent = title || "详情";
-
-  const clone = source.cloneNode(true);
-  clone.classList.add("usage-modal-clone");
-  modalBody.replaceChildren(clone);
+  const loading = document.createElement("div");
+  loading.className = "usage-empty";
+  loading.textContent = "正在读取完整任务详情…";
+  modalBody.replaceChildren(loading);
 
   modalLayer.hidden = false;
   document.documentElement.classList.add("usage-detail-modal-open");
+  if (modalCard) modalCard.scrollTop = 0;
   modalClose?.focus({ preventScroll: true });
+  return ++detailRequestId;
+}
+
+function renderDetailModal(details, requestId) {
+  if (!requestId || requestId !== detailRequestId || !modalLayer || modalLayer.hidden || !modalBody) return false;
+  const source = detailBody(details);
+  if (!source) return false;
+
+  details.open = false;
+  const clone = source.cloneNode(true);
+  clone.classList.add("usage-modal-clone");
+  modalBody.replaceChildren(clone);
+  if (modalCard) modalCard.scrollTop = 0;
+  return true;
+}
+
+function renderDetailError(summary, error, requestId) {
+  if (!requestId || requestId !== detailRequestId || !modalLayer || modalLayer.hidden || !modalBody || !modalTitle || !modalKicker) return;
+  console.error("usage task detail hydration failed", error);
+  const heading = modalHeadingFromSummary(summary);
+  modalKicker.textContent = heading.kicker === "DETAIL" ? "TASK DETAIL" : heading.kicker;
+  modalTitle.textContent = heading.title === "详情" ? "任务详情" : heading.title;
+  const message = document.createElement("div");
+  message.className = "usage-empty";
+  message.textContent = "该任务详情暂时无法读取，任务列表和监控数据不受影响。";
+  modalBody.replaceChildren(message);
 }
 
 async function hydrateIfNeeded(details) {
   if (!details.matches(".usage-task-card")) return;
   if (details.dataset.hydrated === "true") return;
+
+  const existing = hydratePromises.get(details);
+  if (existing) return existing;
+
   const loader = window.UsageMonitorTaskDetail?.hydrate;
   if (typeof loader !== "function") throw new Error("task_detail_loader_unavailable");
-  await loader(details);
+
+  const promise = Promise.resolve(loader(details)).finally(() => hydratePromises.delete(details));
+  hydratePromises.set(details, promise);
+  return promise;
 }
 
 function rawTaskAudit(details) {
@@ -257,24 +342,19 @@ document.addEventListener("click", async (event) => {
   event.preventDefault();
   event.stopPropagation();
 
-  if (details.matches(".usage-task-card") && details.dataset.loading === "true") return;
+  const requestId = showLoadingDetailModal(details, summary);
+  if (!requestId) return;
+
   try {
     await hydrateIfNeeded(details);
+    if (requestId !== detailRequestId) return;
+
+    renderDetailModal(details, requestId);
     await enhanceFailureEvidence(details);
-    openDetailModal(details, summary);
+    if (requestId !== detailRequestId) return;
+    renderDetailModal(details, requestId);
   } catch (error) {
-    console.error("usage task detail hydration failed", error);
-    details.open = false;
-    lastTrigger = summary instanceof HTMLElement ? summary : null;
-    modalKicker.textContent = "TASK DETAIL";
-    modalTitle.textContent = summary.querySelector("h2, h3")?.textContent?.trim() || "任务详情";
-    const message = document.createElement("div");
-    message.className = "usage-empty";
-    message.textContent = "该任务详情暂时无法读取，任务列表和监控数据不受影响。";
-    modalBody.replaceChildren(message);
-    modalLayer.hidden = false;
-    document.documentElement.classList.add("usage-detail-modal-open");
-    modalClose?.focus({ preventScroll: true });
+    renderDetailError(summary, error, requestId);
   }
 }, true);
 
@@ -284,4 +364,10 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && modalLayer && !modalLayer.hidden) closeDetailModal();
 });
 
-window.addEventListener("pagehide", closeDetailModal);
+window.addEventListener("pagehide", () => {
+  detailRequestId += 1;
+  modalViewStack.length = 0;
+  if (modalLayer) modalLayer.hidden = true;
+  document.documentElement.classList.remove("usage-detail-modal-open");
+  modalBody?.replaceChildren();
+});

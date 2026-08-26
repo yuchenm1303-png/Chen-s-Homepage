@@ -28,7 +28,7 @@ function ensureModal() {
 }
 
 ensureStylesheet("usageTaskListStyles", "./usage-task-list-v1.css?v=20260818-1234");
-ensureStylesheet("usageDetailModalStyles", "./usage-detail-modal-v1.css?v=20260818-1308");
+ensureStylesheet("usageDetailModalStyles", "./usage-detail-modal-v1.css?v=20260826-2035");
 
 const modalLayer = ensureModal();
 const modalMask = document.getElementById("usageDetailModalMask");

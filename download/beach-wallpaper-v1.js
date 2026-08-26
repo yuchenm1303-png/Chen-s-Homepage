@@ -1,15 +1,27 @@
 (() => {
   const ASSET_VERSION = "20260825-1540";
+  const DOWNLOAD_WALLPAPER_VERSION = "20260826-2345";
   const STYLE_ID = "beach-wallpaper-v1-style";
   const STYLE_URL = `./beach-wallpaper-v1.css?v=${ASSET_VERSION}`;
-  const WALLPAPER = {
-    id: "rain-anime",
-    src: `./wallpaper-rain-anime-v1.png?v=${ASSET_VERSION}`,
-    positionX: "54%",
-    mobilePositionX: "57%",
-    veilTop: ".17",
-    veilBottom: ".28"
-  };
+  const normalizedPath = window.location.pathname.replace(/\/+$/, "");
+  const isDownloadPage = normalizedPath === "/download" || normalizedPath.endsWith("/download/index.html");
+  const WALLPAPER = isDownloadPage
+    ? {
+        id: "beach-blue",
+        src: `./wallpaper-beach-blue-v1.webp?v=${DOWNLOAD_WALLPAPER_VERSION}`,
+        positionX: "54%",
+        mobilePositionX: "57%",
+        veilTop: ".17",
+        veilBottom: ".28"
+      }
+    : {
+        id: "rain-anime",
+        src: `./wallpaper-rain-anime-v1.png?v=${ASSET_VERSION}`,
+        positionX: "54%",
+        mobilePositionX: "57%",
+        veilTop: ".17",
+        veilBottom: ".28"
+      };
 
   function ensureStylesheet() {
     const existing = document.getElementById(STYLE_ID);

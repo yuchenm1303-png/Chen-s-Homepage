@@ -62,6 +62,13 @@ function isPortalDetail(details) {
   return false;
 }
 
+function animateModalView() {
+  if (!modalBody) return;
+  modalBody.classList.remove("fade");
+  void modalBody.offsetWidth;
+  modalBody.classList.add("fade");
+}
+
 function captureCurrentModalView(trigger) {
   if (!modalLayer || modalLayer.hidden || !modalBody || !(trigger instanceof Node) || !modalBody.contains(trigger)) return;
 
@@ -85,6 +92,7 @@ function restorePreviousModalView() {
   modalKicker.textContent = view.kicker;
   modalTitle.textContent = view.title;
   modalBody.replaceChildren(view.body);
+  animateModalView();
   lastTrigger = view.previousTrigger || null;
 
   const restoreScroll = () => {
@@ -120,7 +128,29 @@ function modalHeadingFromSummary(summary) {
   };
 }
 
-function showLoadingDetailModal(details, trigger) {
+function makeImmediateDetailNode(details, summary) {
+  const source = detailBody(details);
+  if (source) {
+    const clone = source.cloneNode(true);
+    clone.classList.add("usage-modal-clone");
+    return clone;
+  }
+
+  const fallback = document.createElement("div");
+  const panel = document.createElement("div");
+  panel.className = "account-status-panel usage-audit-status-panel";
+
+  const status = summary?.querySelector(".usage-task-status")?.textContent?.trim() || "—";
+  const meta = summary?.querySelector(".usage-account-email")?.textContent?.trim() || "—";
+  panel.append(
+    evidenceLine("任务状态", status),
+    evidenceLine("任务摘要", meta)
+  );
+  fallback.append(panel);
+  return fallback;
+}
+
+function showImmediateDetailModal(details, trigger) {
   if (!modalLayer || !modalBody || !modalTitle || !modalKicker) return 0;
   const summary = directSummary(details);
   if (!summary) return 0;
@@ -130,15 +160,12 @@ function showLoadingDetailModal(details, trigger) {
   const heading = modalHeadingFromSummary(summary);
   modalKicker.textContent = heading.kicker;
   modalTitle.textContent = heading.title;
-
-  const loading = document.createElement("div");
-  loading.className = "usage-empty";
-  loading.textContent = "正在读取完整任务详情…";
-  modalBody.replaceChildren(loading);
+  modalBody.replaceChildren(makeImmediateDetailNode(details, summary));
 
   modalLayer.hidden = false;
   document.documentElement.classList.add("usage-detail-modal-open");
   if (modalCard) modalCard.scrollTop = 0;
+  animateModalView();
   modalClose?.focus({ preventScroll: true });
   return ++detailRequestId;
 }
@@ -153,6 +180,7 @@ function renderDetailModal(details, requestId) {
   clone.classList.add("usage-modal-clone");
   modalBody.replaceChildren(clone);
   if (modalCard) modalCard.scrollTop = 0;
+  animateModalView();
   return true;
 }
 
@@ -162,10 +190,19 @@ function renderDetailError(summary, error, requestId) {
   const heading = modalHeadingFromSummary(summary);
   modalKicker.textContent = heading.kicker === "DETAIL" ? "TASK DETAIL" : heading.kicker;
   modalTitle.textContent = heading.title === "详情" ? "任务详情" : heading.title;
-  const message = document.createElement("div");
-  message.className = "usage-empty";
-  message.textContent = "该任务详情暂时无法读取，任务列表和监控数据不受影响。";
-  modalBody.replaceChildren(message);
+
+  const source = summary?.parentElement instanceof HTMLDetailsElement ? detailBody(summary.parentElement) : null;
+  if (source) {
+    const clone = source.cloneNode(true);
+    clone.classList.add("usage-modal-clone");
+    modalBody.replaceChildren(clone);
+  } else {
+    const message = document.createElement("div");
+    message.className = "usage-empty";
+    message.textContent = "完整审计暂时无法读取，已保留当前任务摘要。";
+    modalBody.replaceChildren(message);
+  }
+  animateModalView();
 }
 
 async function hydrateIfNeeded(details) {
@@ -342,7 +379,7 @@ document.addEventListener("click", async (event) => {
   event.preventDefault();
   event.stopPropagation();
 
-  const requestId = showLoadingDetailModal(details, summary);
+  const requestId = showImmediateDetailModal(details, summary);
   if (!requestId) return;
 
   try {

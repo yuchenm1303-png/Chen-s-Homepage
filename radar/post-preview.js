@@ -3,6 +3,7 @@
   let currentFilter = "all";
   let latestPosts = [];
   let latestResult = null;
+  let latestFailure = "";
 
   const decisionMeta = {
     stored: { label: "通过 · 潜客", className: "is-stored" },
@@ -19,6 +20,12 @@
     return node;
   }
 
+  function friendlyError(value) {
+    const text = String(value || "").trim();
+    if (/INSUFFICIENT BALANCE|business code 601/i.test(text)) return "Just One 余额不足，本次请求没有返回任何帖子。";
+    return text || "本次扫描失败，没有返回可预览帖子。";
+  }
+
   function formatTime(value) {
     if (!value) return "时间未知";
     const date = new Date(value);
@@ -31,12 +38,7 @@
 
   function metricText(metrics) {
     if (!metrics || typeof metrics !== "object") return [];
-    const rows = [
-      ["赞", metrics.likes],
-      ["评", metrics.comments],
-      ["藏", metrics.collects],
-      ["转", metrics.shares],
-    ];
+    const rows = [["赞", metrics.likes], ["评", metrics.comments], ["藏", metrics.collects], ["转", metrics.shares]];
     return rows.filter(([, value]) => value !== null && value !== undefined).map(([label, value]) => `${label} ${value}`);
   }
 
@@ -48,7 +50,6 @@
 
     panel = el("section", "release-card cards fade scan-posts-panel");
     panel.id = "scanPostsPanel";
-
     const head = el("div", "scan-posts-head");
     const heading = el("div");
     heading.append(el("p", "kicker", "SCAN REVIEW"));
@@ -57,20 +58,14 @@
     head.append(heading);
 
     const count = el("div", "scan-posts-count");
-    count.append(el("strong", "", "0"));
-    count.querySelector("strong").id = "scanPostsCount";
-    count.append(el("span", "", "POSTS"));
+    const countStrong = el("strong", "", "0");
+    countStrong.id = "scanPostsCount";
+    count.append(countStrong, el("span", "", "POSTS"));
     head.append(count);
     panel.append(head);
 
     const toolbar = el("div", "scan-posts-toolbar");
-    const filters = [
-      ["all", "全部"],
-      ["stored", "通过"],
-      ["filtered", "已过滤"],
-      ["seen", "已处理"],
-    ];
-    for (const [key, label] of filters) {
+    [["all", "全部"], ["stored", "通过"], ["filtered", "已过滤"], ["seen", "已处理"]].forEach(([key, label]) => {
       const button = el("button", `release-badge scan-post-filter${key === "all" ? " active" : ""}`, label);
       button.type = "button";
       button.dataset.filter = key;
@@ -80,13 +75,12 @@
         renderPosts();
       });
       toolbar.append(button);
-    }
+    });
     panel.append(toolbar);
 
     const body = el("div", "scan-posts-list");
     body.id = "scanPostsList";
     panel.append(body);
-
     feed.parentNode.insertBefore(panel, feed);
     return panel;
   }
@@ -115,7 +109,6 @@
   function createPostCard(post, index) {
     const card = el("article", "scan-post-card");
     const top = el("div", "scan-post-top");
-
     const identity = el("div", "scan-post-identity");
     if (post?.author?.avatar) {
       const avatar = document.createElement("img");
@@ -135,13 +128,11 @@
     const meta = decisionMeta[decision] || decisionMeta.unknown;
     top.append(el("span", `release-badge scan-post-decision ${meta.className}`, meta.label));
     card.append(top);
-
     card.append(el("h3", "scan-post-title", post?.title || "无标题"));
 
     const body = el("div", "scan-post-body");
     body.textContent = post?.body || "（正文为空）";
     card.append(body);
-
     const gallery = createImageGallery(post?.images, post?.title);
     if (gallery) card.append(gallery);
 
@@ -150,7 +141,6 @@
     metricText(post?.metrics).forEach((text) => left.append(el("span", "", text)));
     (Array.isArray(post?.tags) ? post.tags : []).slice(0, 8).forEach((tag) => left.append(el("span", "scan-post-tag", `#${tag}`)));
     footer.append(left);
-
     if (post?.url) {
       const link = el("a", "radar-action is-primary scan-post-link", "打开原帖 ↗");
       link.href = post.url;
@@ -171,6 +161,12 @@
     document.getElementById("scanPostsCount").textContent = String(latestPosts.length);
     list.replaceChildren();
 
+    if (latestFailure) {
+      const box = el("div", "scan-post-empty", `${latestFailure} 这不是“筛选后为 0”，而是数据源没有返回内容。`);
+      list.append(box);
+      return;
+    }
+
     if (!latestResult) {
       list.append(el("div", "scan-post-empty", "正在读取本次扫描帖子…"));
       return;
@@ -180,7 +176,7 @@
       const scanned = Number(latestResult?.scanned || 0);
       const fresh = Number(latestResult?.fresh || 0);
       const message = scanned > 0
-        ? `这次历史扫描抓到 ${scanned} 条、其中 ${fresh} 条为 24 小时内内容，但当时后端还没有保存帖子正文快照。下一次扫描开始会在这里完整显示每条帖子。`
+        ? `上一轮成功扫描抓到 ${scanned} 条、其中 ${fresh} 条为 24 小时内内容，但那一轮发生在帖子快照功能上线前，因此没有正文可恢复。`
         : "当前还没有可预览的扫描帖子。";
       list.append(el("div", "scan-post-empty", message));
       return;
@@ -190,7 +186,6 @@
       list.append(el("div", "scan-post-empty", "当前筛选下没有帖子。"));
       return;
     }
-
     posts.forEach((post, index) => list.append(createPostCard(post, index)));
   }
 
@@ -199,7 +194,16 @@
       const response = await fetch(`${SCAN_API}/api/v1/status`, { cache: "no-store" });
       if (!response.ok) return;
       const data = await response.json();
-      latestResult = data?.latest_request?.result || data?.active_request?.result || data?.last_scan || null;
+      const latest = data?.latest_request || null;
+      if (latest?.status === "failed") {
+        latestFailure = friendlyError(latest.error);
+        latestResult = latest.result || {};
+        latestPosts = [];
+        renderPosts();
+        return;
+      }
+      latestFailure = "";
+      latestResult = latest?.result || data?.active_request?.result || data?.last_scan || null;
       latestPosts = Array.isArray(latestResult?.posts) ? latestResult.posts : [];
       renderPosts();
     } catch {}
@@ -208,7 +212,7 @@
   ensurePanel();
   renderPosts();
   load();
-  window.setInterval(load, 10000);
+  window.setInterval(load, 5000);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") load();
   });

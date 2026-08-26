@@ -1,3 +1,4 @@
+import "./usage-task-history-v2.js?v=20260826-0815";
 import "./usage-admin-v2-core.js?v=20260821-1800";
 
 void Promise.allSettled([

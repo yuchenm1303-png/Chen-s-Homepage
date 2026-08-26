@@ -22,3 +22,4 @@ jobs:
       - run: node --check radar/import.js
       - run: node --check radar/share.js
       - run: node --check radar/notify.js
+      - run: node --check radar/scan-summary.js

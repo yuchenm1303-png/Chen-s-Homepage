@@ -1,5 +1,5 @@
 const PANEL_ID = "taskAuditPanel";
-const CARD_SELECTOR = ":scope > .usage-task-card";
+const CARD_SELECTOR = ":scope > .usage-task-card:not([data-task-history-day])";
 const PAGE_SIZE = 8;
 
 const openDays = new Set();
@@ -55,40 +55,47 @@ function statsText(cards) {
   return parts.join(" · ");
 }
 
+function toggleDay(key) {
+  if (openDays.has(key)) {
+    openDays.delete(key);
+  } else {
+    openDays.add(key);
+    if (!loadedByDay.has(key)) loadedByDay.set(key, PAGE_SIZE);
+  }
+  renderGroupedPanel();
+}
+
 function makeDayHeader(day) {
   const header = document.createElement("div");
-  header.className = "usage-section-head";
+  header.className = "usage-task-summary";
+  header.setAttribute("role", "button");
+  header.tabIndex = 0;
+  header.setAttribute("aria-expanded", String(openDays.has(day.key)));
 
   const identity = document.createElement("div");
+  const kicker = document.createElement("p");
+  kicker.className = "kicker";
+  kicker.textContent = "TASK HISTORY";
   const title = document.createElement("h2");
   title.textContent = dayLabel(day.key);
   const meta = document.createElement("p");
   meta.className = "usage-account-email";
   meta.textContent = statsText(day.cards);
-  identity.append(title, meta);
+  identity.append(kicker, title, meta);
+  header.append(identity);
 
-  const toggle = document.createElement("button");
-  toggle.type = "button";
-  toggle.className = "switch-account-button usage-refresh";
-  toggle.textContent = openDays.has(day.key) ? "收起" : "展开";
-  toggle.setAttribute("aria-expanded", String(openDays.has(day.key)));
-  toggle.addEventListener("click", () => {
-    if (openDays.has(day.key)) {
-      openDays.delete(day.key);
-    } else {
-      openDays.add(day.key);
-      if (!loadedByDay.has(day.key)) loadedByDay.set(day.key, PAGE_SIZE);
-    }
-    renderGroupedPanel();
+  header.addEventListener("click", () => toggleDay(day.key));
+  header.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    toggleDay(day.key);
   });
-
-  header.append(identity, toggle);
   return header;
 }
 
 function makeLoadMore(day, shown) {
   const footer = document.createElement("div");
-  footer.className = "usage-section-head";
+  footer.className = "account-footer";
 
   const progress = document.createElement("span");
   progress.textContent = `已显示 ${shown} / ${day.cards.length}`;
@@ -106,6 +113,33 @@ function makeLoadMore(day, shown) {
   return footer;
 }
 
+function makeDayGroup(day) {
+  const open = openDays.has(day.key);
+  const group = document.createElement("article");
+  group.className = "account-card cards usage-task-card";
+  group.dataset.taskHistoryDay = day.key;
+  if (open) group.setAttribute("open", "");
+  group.append(makeDayHeader(day));
+
+  if (!open) return group;
+
+  const shown = Math.min(day.cards.length, loadedByDay.get(day.key) || PAGE_SIZE);
+  const body = document.createElement("div");
+  body.className = "usage-task-body";
+
+  const section = document.createElement("div");
+  section.className = "usage-audit-detail-section";
+  const list = document.createElement("div");
+  list.className = "usage-task-audit-list";
+  list.append(...day.cards.slice(0, shown));
+  section.append(list);
+  body.append(section);
+
+  if (shown < day.cards.length) body.append(makeLoadMore(day, shown));
+  group.append(body);
+  return group;
+}
+
 function renderGroupedPanel() {
   const panel = document.getElementById(PANEL_ID);
   if (!panel || !groupedDays.length) return;
@@ -113,16 +147,7 @@ function renderGroupedPanel() {
   organizing = true;
   observer?.disconnect();
   try {
-    const nodes = [];
-    groupedDays.forEach((day) => {
-      nodes.push(makeDayHeader(day));
-      if (!openDays.has(day.key)) return;
-
-      const shown = Math.min(day.cards.length, loadedByDay.get(day.key) || PAGE_SIZE);
-      nodes.push(...day.cards.slice(0, shown));
-      if (shown < day.cards.length) nodes.push(makeLoadMore(day, shown));
-    });
-    panel.replaceChildren(...nodes);
+    panel.replaceChildren(...groupedDays.map(makeDayGroup));
   } finally {
     organizing = false;
     observer?.observe(panel, { childList: true });
@@ -169,7 +194,7 @@ function install() {
   observer = new MutationObserver((records) => {
     const hasFreshCards = records.some((record) =>
       Array.from(record.addedNodes).some((node) =>
-        node instanceof Element && node.matches?.(".usage-task-card")
+        node instanceof Element && node.matches?.(".usage-task-card:not([data-task-history-day])")
       )
     );
     if (hasFreshCards) scheduleOrganize();

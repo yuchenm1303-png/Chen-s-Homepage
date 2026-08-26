@@ -8,6 +8,9 @@
   let feedbackByKey = new Map();
   let feedbackLoading = false;
   let feedbackLoadedAt = 0;
+  let feedbackSnapshot = null;
+  let scanSnapshot = null;
+  let loadInFlight = false;
 
   const decisionMeta = {
     stored: { label: "通过 · 潜客", className: "is-stored" },
@@ -128,13 +131,46 @@
     return key ? feedbackByKey.get(key) || null : null;
   }
 
+  function feedbackFingerprint(map) {
+    return JSON.stringify([...map.entries()]
+      .map(([key, row]) => [
+        key,
+        String(row?.label || ""),
+        String(row?.reason_code || ""),
+        String(row?.updated_at || row?.created_at || ""),
+      ])
+      .sort((left, right) => left[0].localeCompare(right[0])));
+  }
+
+  function scanFingerprint(data) {
+    const latest = data?.latest_request || null;
+    const active = data?.active_request || null;
+    return JSON.stringify({
+      latest: latest ? {
+        id: latest.id || null,
+        status: latest.status || null,
+        started_at: latest.started_at || null,
+        finished_at: latest.finished_at || null,
+        error: latest.error || null,
+        result: latest.result || null,
+      } : null,
+      active: active ? {
+        id: active.id || null,
+        status: active.status || null,
+        error: active.error || null,
+        result: active.result || null,
+      } : null,
+      last_scan: data?.last_scan || null,
+    });
+  }
+
   async function loadFeedback(force = false) {
-    if (feedbackLoading) return;
-    if (!force && Date.now() - feedbackLoadedAt < 12000) return;
+    if (feedbackLoading) return false;
+    if (!force && Date.now() - feedbackLoadedAt < 12000) return false;
     feedbackLoading = true;
     try {
       const response = await fetch(`${API}/api/v1/feedback?source=${encodeURIComponent("小红书")}&limit=500`, { cache: "no-store" });
-      if (!response.ok) return;
+      if (!response.ok) return false;
       const rows = await response.json();
       const next = new Map();
       for (const row of Array.isArray(rows) ? rows : []) {
@@ -142,13 +178,47 @@
         const sourceId = String(row?.source_id || "").trim();
         if (source && sourceId) next.set(`${source}|${sourceId}`, row);
       }
+      const nextSnapshot = feedbackFingerprint(next);
+      const changed = nextSnapshot !== feedbackSnapshot;
       feedbackByKey = next;
+      feedbackSnapshot = nextSnapshot;
       feedbackLoadedAt = Date.now();
+      return changed;
     } catch {
       // Feedback is supplementary; preview remains usable if this read fails.
+      return false;
     } finally {
       feedbackLoading = false;
     }
+  }
+
+  function feedbackFilterActive() {
+    return currentFilter.startsWith("human_");
+  }
+
+  function updateReviewedCount() {
+    const reviewed = latestPosts.filter((post) => Boolean(feedbackFor(post))).length;
+    const reviewedNode = document.getElementById("scanPostsReviewed");
+    if (reviewedNode) reviewedNode.textContent = `${reviewed}/${latestPosts.length} REVIEWED`;
+  }
+
+  function refreshFeedbackControls(post) {
+    const key = feedbackKey(post);
+    if (!key) return;
+    document.querySelectorAll(".scan-feedback").forEach((wrapper) => {
+      if (wrapper.dataset.feedbackKey !== key) return;
+      const compact = wrapper.dataset.feedbackCompact === "true";
+      wrapper.replaceWith(createFeedbackControls(post, compact));
+    });
+  }
+
+  function refreshFeedbackUI() {
+    if (feedbackFilterActive()) {
+      renderPosts();
+      return;
+    }
+    latestPosts.forEach(refreshFeedbackControls);
+    updateReviewedCount();
   }
 
   async function submitFeedback(post, label, reasonCode = null, trigger = null) {
@@ -169,11 +239,21 @@
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.detail || `API ${response.status}`);
-      const saved = data?.feedback;
-      if (saved) feedbackByKey.set(key, saved);
+      const saved = data?.feedback || {
+        source: String(post?.source || "小红书"),
+        source_id: String(post?.id || ""),
+        label,
+        reason_code: label === "not_lead" ? reasonCode : null,
+      };
+      feedbackByKey.set(key, saved);
+      feedbackSnapshot = feedbackFingerprint(feedbackByKey);
+      feedbackLoadedAt = Date.now();
       post.__reasonOpen = label === "not_lead";
-      renderPosts();
-      if (document.getElementById("scanPostModal") && !document.getElementById("scanPostModal").hidden) openPostModal(post);
+      if (feedbackFilterActive()) renderPosts();
+      else {
+        refreshFeedbackControls(post);
+        updateReviewedCount();
+      }
       if (typeof window.loadLeads === "function") window.loadLeads({ silent: true });
       const suffix = label === "not_lead" && reasonCode ? ` · ${reasonMeta[reasonCode]}` : "";
       showToast(`人工判断已保存：${feedbackMeta[label].label}${suffix}`);
@@ -186,6 +266,9 @@
 
   function createFeedbackControls(post, compact = false) {
     const wrapper = el("div", `scan-feedback${compact ? " is-compact" : ""}`);
+    const key = feedbackKey(post);
+    if (key) wrapper.dataset.feedbackKey = key;
+    wrapper.dataset.feedbackCompact = compact ? "true" : "false";
     wrapper.addEventListener("click", (event) => event.stopPropagation());
     wrapper.addEventListener("keydown", (event) => event.stopPropagation());
 
@@ -454,10 +537,8 @@
     if (!panel || !list) return;
 
     const posts = latestPosts.filter(matchesCurrentFilter);
-    const reviewed = latestPosts.filter((post) => Boolean(feedbackFor(post))).length;
     document.getElementById("scanPostsCount").textContent = String(latestPosts.length);
-    const reviewedNode = document.getElementById("scanPostsReviewed");
-    if (reviewedNode) reviewedNode.textContent = `${reviewed}/${latestPosts.length} REVIEWED`;
+    updateReviewedCount();
     list.replaceChildren();
 
     if (latestFailure) {
@@ -484,26 +565,40 @@
     posts.forEach((post, index) => list.append(createPostCard(post, index)));
   }
 
+  function applyScanState(data) {
+    const latest = data?.latest_request || null;
+    if (latest?.status === "failed") {
+      latestFailure = friendlyError(latest.error);
+      latestResult = latest.result || {};
+      latestPosts = [];
+      return;
+    }
+    latestFailure = "";
+    latestResult = latest?.result || data?.active_request?.result || data?.last_scan || null;
+    latestPosts = Array.isArray(latestResult?.posts) ? latestResult.posts : [];
+  }
+
   async function load() {
+    if (loadInFlight) return;
+    loadInFlight = true;
     try {
       const response = await fetch(`${SCAN_API}/api/v1/status`, { cache: "no-store" });
       if (!response.ok) return;
       const data = await response.json();
-      const latest = data?.latest_request || null;
-      if (latest?.status === "failed") {
-        latestFailure = friendlyError(latest.error);
-        latestResult = latest.result || {};
-        latestPosts = [];
-        await loadFeedback();
-        renderPosts();
-        return;
+      const nextScanSnapshot = scanFingerprint(data);
+      const scanChanged = nextScanSnapshot !== scanSnapshot;
+      if (scanChanged) {
+        scanSnapshot = nextScanSnapshot;
+        applyScanState(data);
       }
-      latestFailure = "";
-      latestResult = latest?.result || data?.active_request?.result || data?.last_scan || null;
-      latestPosts = Array.isArray(latestResult?.posts) ? latestResult.posts : [];
-      await loadFeedback();
-      renderPosts();
-    } catch {}
+      const feedbackChanged = await loadFeedback();
+      if (scanChanged) renderPosts();
+      else if (feedbackChanged) refreshFeedbackUI();
+    } catch {
+      // Keep the last stable preview on transient polling failures.
+    } finally {
+      loadInFlight = false;
+    }
   }
 
   ensurePanel();

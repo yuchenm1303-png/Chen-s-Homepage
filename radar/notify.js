@@ -17,7 +17,7 @@
     if (!actions || document.getElementById("browserHelperLink")) return;
     const link = document.createElement("a");
     link.id = "browserHelperLink";
-    link.className = "login-button cards radar-import-button radar-helper-entry";
+    link.className = "login-button radar-helper-entry";
     link.href = "./helper.html";
     link.textContent = "⌁ 浏览器助手";
     link.setAttribute("aria-label", "安装 AI Lead Radar 浏览器助手");

@@ -3,7 +3,8 @@ const CARD_SELECTOR = ":scope > .usage-task-card";
 const PAGE_SIZE = 8;
 
 const openDays = new Set();
-const deferredByGroup = new WeakMap();
+const loadedByDay = new Map();
+let groupedDays = [];
 let observer = null;
 let organizing = false;
 let scheduled = false;
@@ -45,93 +46,88 @@ function groupStats(cards) {
   }, { total: 0, success: 0, failed: 0, running: 0 });
 }
 
-function makeSummary(key, cards) {
+function statsText(cards) {
   const stats = groupStats(cards);
-  const summary = document.createElement("summary");
-  summary.className = "usage-task-day-summary";
+  const parts = [`${stats.total} 个任务`];
+  if (stats.success) parts.push(`${stats.success} 完成`);
+  if (stats.failed) parts.push(`${stats.failed} 异常`);
+  if (stats.running) parts.push(`${stats.running} 运行中`);
+  return parts.join(" · ");
+}
+
+function makeDayHeader(day) {
+  const header = document.createElement("div");
+  header.className = "usage-section-head";
 
   const identity = document.createElement("div");
-  identity.className = "usage-task-day-identity";
-  const kicker = document.createElement("span");
+  const kicker = document.createElement("p");
   kicker.className = "kicker";
   kicker.textContent = "TASK HISTORY";
-  const title = document.createElement("strong");
-  title.textContent = dayLabel(key);
+  const title = document.createElement("h2");
+  title.textContent = dayLabel(day.key);
   identity.append(kicker, title);
 
-  const counters = document.createElement("div");
-  counters.className = "usage-task-day-counters";
-  const total = document.createElement("span");
-  total.textContent = `${stats.total} 个任务`;
-  counters.append(total);
-  if (stats.success) {
-    const success = document.createElement("span");
-    success.dataset.state = "ok";
-    success.textContent = `${stats.success} 完成`;
-    counters.append(success);
-  }
-  if (stats.failed) {
-    const failed = document.createElement("span");
-    failed.dataset.state = "warn";
-    failed.textContent = `${stats.failed} 异常`;
-    counters.append(failed);
-  }
-  if (stats.running) {
-    const running = document.createElement("span");
-    running.textContent = `${stats.running} 运行中`;
-    counters.append(running);
-  }
-
-  summary.append(identity, counters);
-  return summary;
-}
-
-function appendNextPage(group) {
-  const state = deferredByGroup.get(group);
-  if (!state) return;
-  const next = state.remaining.splice(0, PAGE_SIZE);
-  state.list.append(...next);
-  if (!state.remaining.length) {
-    state.more.remove();
-    deferredByGroup.delete(group);
-    return;
-  }
-  state.more.textContent = `加载更多 · 剩余 ${state.remaining.length}`;
-}
-
-function makeGroup(key, cards, isNewest) {
-  const group = document.createElement("details");
-  group.className = "usage-task-day-group";
-  group.dataset.day = key;
-  group.open = openDays.has(key) || (isNewest && !openDays.size);
-  group.append(makeSummary(key, cards));
-
-  const list = document.createElement("div");
-  list.className = "usage-task-day-list";
-  const initial = cards.slice(0, PAGE_SIZE);
-  list.append(...initial);
-  group.append(list);
-
-  const remaining = cards.slice(PAGE_SIZE);
-  if (remaining.length) {
-    const more = document.createElement("button");
-    more.type = "button";
-    more.className = "usage-task-day-more";
-    more.textContent = `加载更多 · 剩余 ${remaining.length}`;
-    more.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      appendNextPage(group);
-    });
-    group.append(more);
-    deferredByGroup.set(group, { remaining, list, more });
-  }
-
-  group.addEventListener("toggle", () => {
-    if (group.open) openDays.add(key);
-    else openDays.delete(key);
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "switch-account-button usage-refresh";
+  toggle.textContent = openDays.has(day.key)
+    ? `${statsText(day.cards)} · 收起`
+    : `${statsText(day.cards)} · 展开`;
+  toggle.addEventListener("click", () => {
+    if (openDays.has(day.key)) {
+      openDays.delete(day.key);
+    } else {
+      openDays.add(day.key);
+      if (!loadedByDay.has(day.key)) loadedByDay.set(day.key, PAGE_SIZE);
+    }
+    renderGroupedPanel();
   });
-  return group;
+
+  header.append(identity, toggle);
+  return header;
+}
+
+function makeLoadMore(day, shown) {
+  const footer = document.createElement("div");
+  footer.className = "usage-section-head";
+
+  const progress = document.createElement("span");
+  progress.textContent = `已显示 ${shown} / ${day.cards.length}`;
+
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "switch-account-button usage-refresh";
+  more.textContent = `加载更多 · 剩余 ${day.cards.length - shown}`;
+  more.addEventListener("click", () => {
+    loadedByDay.set(day.key, Math.min(day.cards.length, shown + PAGE_SIZE));
+    renderGroupedPanel();
+  });
+
+  footer.append(progress, more);
+  return footer;
+}
+
+function renderGroupedPanel() {
+  const panel = document.getElementById(PANEL_ID);
+  if (!panel || !groupedDays.length) return;
+
+  organizing = true;
+  observer?.disconnect();
+  try {
+    const nodes = [];
+    groupedDays.forEach((day) => {
+      nodes.push(makeDayHeader(day));
+      if (!openDays.has(day.key)) return;
+
+      const shown = Math.min(day.cards.length, loadedByDay.get(day.key) || PAGE_SIZE);
+      nodes.push(...day.cards.slice(0, shown));
+      if (shown < day.cards.length) nodes.push(makeLoadMore(day, shown));
+    });
+    panel.replaceChildren(...nodes);
+  } finally {
+    organizing = false;
+    observer?.observe(panel, { childList: true });
+  }
 }
 
 function organize() {
@@ -139,26 +135,27 @@ function organize() {
   if (organizing) return;
   const panel = document.getElementById(PANEL_ID);
   if (!panel) return;
+
   const cards = Array.from(panel.querySelectorAll(CARD_SELECTOR));
   if (!cards.length) return;
 
-  organizing = true;
-  observer?.disconnect();
-  try {
-    const groups = new Map();
-    cards.forEach((card) => {
-      const key = dayKeyFromCard(card);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(card);
-    });
+  const groups = new Map();
+  cards.forEach((card) => {
+    const key = dayKeyFromCard(card);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(card);
+  });
 
-    const ordered = Array.from(groups.entries()).sort(([a], [b]) => b.localeCompare(a));
-    const nodes = ordered.map(([key, dayCards], index) => makeGroup(key, dayCards, index === 0));
-    panel.replaceChildren(...nodes);
-  } finally {
-    organizing = false;
-    observer?.observe(panel, { childList: true });
-  }
+  groupedDays = Array.from(groups.entries())
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([key, dayCards]) => ({ key, cards: dayCards }));
+
+  if (!openDays.size && groupedDays.length) openDays.add(groupedDays[0].key);
+  groupedDays.forEach((day) => {
+    if (!loadedByDay.has(day.key)) loadedByDay.set(day.key, PAGE_SIZE);
+  });
+
+  renderGroupedPanel();
 }
 
 function scheduleOrganize() {
@@ -171,9 +168,12 @@ function install() {
   const panel = document.getElementById(PANEL_ID);
   if (!panel || observer) return;
   observer = new MutationObserver((records) => {
-    if (records.some((record) => Array.from(record.addedNodes).some((node) => node instanceof Element && node.matches?.(".usage-task-card")))) {
-      scheduleOrganize();
-    }
+    const hasFreshCards = records.some((record) =>
+      Array.from(record.addedNodes).some((node) =>
+        node instanceof Element && node.matches?.(".usage-task-card")
+      )
+    );
+    if (hasFreshCards) scheduleOrganize();
   });
   observer.observe(panel, { childList: true });
   scheduleOrganize();

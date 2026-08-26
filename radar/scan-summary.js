@@ -6,6 +6,12 @@
     return Number.isFinite(n) ? n : 0;
   }
 
+  function friendlyError(value) {
+    const text = String(value || "").trim();
+    if (/INSUFFICIENT BALANCE|business code 601/i.test(text)) return "Just One 余额不足，本次扫描未返回任何帖子。";
+    return text || "采集任务执行失败，本次扫描没有产生帖子。";
+  }
+
   function ensurePanel() {
     let panel = document.getElementById("scanSummaryPanel");
     if (panel) return panel;
@@ -33,7 +39,14 @@
     return panel;
   }
 
-  function render(result) {
+  function setNumbers(scanned, fresh, filtered, stored) {
+    document.getElementById("scanSummaryScanned").textContent = String(scanned);
+    document.getElementById("scanSummaryFresh").textContent = String(fresh);
+    document.getElementById("scanSummaryFiltered").textContent = String(filtered);
+    document.getElementById("scanSummaryStored").textContent = String(stored);
+  }
+
+  function renderSuccess(result) {
     const panel = ensurePanel();
     if (!panel || !result || typeof result !== "object") return;
 
@@ -46,15 +59,12 @@
     if (!scanned && !fresh && !filtered && !stored && !duplicates) return;
 
     panel.hidden = false;
-    document.getElementById("scanSummaryScanned").textContent = String(scanned);
-    document.getElementById("scanSummaryFresh").textContent = String(fresh);
-    document.getElementById("scanSummaryFiltered").textContent = String(filtered);
-    document.getElementById("scanSummaryStored").textContent = String(stored);
+    panel.classList.remove("is-error");
+    setNumbers(scanned, fresh, filtered, stored);
 
-    const headline = stored > 0
+    document.getElementById("scanSummaryHeadline").textContent = stored > 0
       ? `新增 ${stored} 条潜客`
       : "没有帖子通过潜客筛选";
-    document.getElementById("scanSummaryHeadline").textContent = headline;
 
     const notes = [];
     if (fresh > 0 && filtered > 0) notes.push(`${filtered} 条候选被规则 / AI 判定为非甲方需求`);
@@ -63,18 +73,41 @@
     document.getElementById("scanSummaryNote").textContent = notes.join(" · ");
   }
 
+  function renderFailure(request, status) {
+    const panel = ensurePanel();
+    if (!panel) return;
+    const message = friendlyError(request?.error);
+    panel.hidden = false;
+    panel.classList.add("is-error");
+    setNumbers("—", "—", "—", "—");
+    document.getElementById("scanSummaryHeadline").textContent = "本次扫描失败";
+    document.getElementById("scanSummaryNote").textContent = `${message} 上方旧统计不代表本次请求。`;
+
+    const scanStatus = document.getElementById("scanStatus");
+    const scanButton = document.getElementById("scanButton");
+    const scanButtonText = document.getElementById("scanButtonText");
+    if (scanStatus) scanStatus.textContent = /余额不足/.test(message) ? "Just One 余额不足" : "扫描失败";
+    if (scanButtonText) scanButtonText.textContent = status?.queue_available ? "重试扫描" : "稍后重试";
+    if (scanButton) scanButton.disabled = !status?.queue_available;
+  }
+
   async function load() {
     try {
       const response = await fetch(`${SCAN_API}/api/v1/status`, { cache: "no-store" });
       if (!response.ok) return;
       const data = await response.json();
-      const result = data?.latest_request?.result || data?.active_request?.result || data?.last_scan || null;
-      render(result);
+      const latest = data?.latest_request || null;
+      if (latest?.status === "failed") {
+        renderFailure(latest, data);
+        return;
+      }
+      const result = latest?.result || data?.active_request?.result || data?.last_scan || null;
+      renderSuccess(result);
     } catch {}
   }
 
   load();
-  window.setInterval(load, 10000);
+  window.setInterval(load, 5000);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") load();
   });

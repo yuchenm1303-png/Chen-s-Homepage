@@ -1,0 +1,231 @@
+.scan-posts-panel {
+  margin-top: 16px;
+  padding: 24px;
+}
+
+.scan-posts-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.scan-posts-head h2 {
+  margin-top: 6px;
+  font-size: 1.55rem;
+  font-weight: 500;
+}
+
+.scan-posts-count {
+  min-width: 72px;
+  text-align: right;
+}
+
+.scan-posts-count strong {
+  display: block;
+  font-family: ui-rounded, "SF Pro Rounded", sans-serif;
+  font-size: 1.8rem;
+  font-weight: 520;
+}
+
+.scan-posts-count span {
+  display: block;
+  margin-top: 2px;
+  color: rgba(255,255,255,.32);
+  font-family: ui-rounded, "SF Pro Rounded", sans-serif;
+  font-size: .5rem;
+  letter-spacing: .12em;
+}
+
+.scan-posts-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.scan-post-filter {
+  border: 0;
+  cursor: pointer;
+}
+
+.scan-post-filter.active,
+.scan-post-filter:hover {
+  color: #fff;
+  background: rgba(255,255,255,.17);
+}
+
+.scan-posts-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.scan-post-card {
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  background: rgba(4,16,31,.26);
+  box-shadow: inset 0 1px rgba(255,255,255,.035);
+}
+
+.scan-post-top,
+.scan-post-footer,
+.scan-post-identity,
+.scan-post-meta {
+  display: flex;
+  align-items: center;
+}
+
+.scan-post-top,
+.scan-post-footer {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.scan-post-identity {
+  min-width: 0;
+  gap: 10px;
+}
+
+.scan-post-identity > img {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+.scan-post-identity strong,
+.scan-post-identity span {
+  display: block;
+}
+
+.scan-post-identity strong {
+  color: rgba(255,255,255,.82);
+  font-size: .72rem;
+  font-weight: 500;
+}
+
+.scan-post-identity span {
+  margin-top: 3px;
+  color: rgba(255,255,255,.36);
+  font-size: .58rem;
+}
+
+.scan-post-decision {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  font-size: .58rem;
+}
+
+.scan-post-decision.is-stored {
+  color: rgba(210,255,235,.94);
+  background: rgba(95,220,165,.14);
+}
+
+.scan-post-decision.is-filtered {
+  color: rgba(255,255,255,.55);
+  background: rgba(255,255,255,.07);
+}
+
+.scan-post-decision.is-error {
+  color: rgba(255,225,190,.94);
+  background: rgba(255,173,93,.12);
+}
+
+.scan-post-title {
+  margin-top: 16px;
+  color: rgba(255,255,255,.93);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.scan-post-body {
+  margin-top: 9px;
+  color: rgba(255,255,255,.65);
+  font-size: .72rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.scan-post-images {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.scan-post-images a {
+  display: block;
+  min-width: 0;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+.scan-post-images img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.scan-post-footer {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.scan-post-meta {
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  color: rgba(255,255,255,.38);
+  font-size: .58rem;
+}
+
+.scan-post-tag {
+  color: rgba(204,231,247,.58);
+}
+
+.scan-post-link {
+  width: auto;
+  min-width: 104px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.scan-post-empty {
+  min-height: 110px;
+  display: grid;
+  place-items: center;
+  padding: 26px 18px;
+  text-align: center;
+  color: rgba(255,255,255,.45);
+  font-size: .7rem;
+  line-height: 1.8;
+  border: 1px dashed rgba(255,255,255,.08);
+  border-radius: 9px;
+}
+
+@media (max-width: 720px) {
+  .scan-posts-panel { padding: 18px; }
+  .scan-post-images { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scan-post-footer { align-items: flex-start; flex-direction: column; }
+  .scan-post-link { width: 100%; min-height: 36px; }
+}
+
+@media (max-width: 480px) {
+  .scan-post-top { align-items: flex-start; }
+  .scan-post-images { grid-template-columns: 1fr 1fr; }
+}

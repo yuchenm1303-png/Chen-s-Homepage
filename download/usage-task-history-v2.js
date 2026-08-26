@@ -60,19 +60,18 @@ function makeDayHeader(day) {
   header.className = "usage-section-head";
 
   const identity = document.createElement("div");
-  const kicker = document.createElement("p");
-  kicker.className = "kicker";
-  kicker.textContent = "TASK HISTORY";
   const title = document.createElement("h2");
   title.textContent = dayLabel(day.key);
-  identity.append(kicker, title);
+  const meta = document.createElement("p");
+  meta.className = "usage-account-email";
+  meta.textContent = statsText(day.cards);
+  identity.append(title, meta);
 
   const toggle = document.createElement("button");
   toggle.type = "button";
   toggle.className = "switch-account-button usage-refresh";
-  toggle.textContent = openDays.has(day.key)
-    ? `${statsText(day.cards)} · 收起`
-    : `${statsText(day.cards)} · 展开`;
+  toggle.textContent = openDays.has(day.key) ? "收起" : "展开";
+  toggle.setAttribute("aria-expanded", String(openDays.has(day.key)));
   toggle.addEventListener("click", () => {
     if (openDays.has(day.key)) {
       openDays.delete(day.key);
@@ -97,7 +96,7 @@ function makeLoadMore(day, shown) {
   const more = document.createElement("button");
   more.type = "button";
   more.className = "switch-account-button usage-refresh";
-  more.textContent = `加载更多 · 剩余 ${day.cards.length - shown}`;
+  more.textContent = `加载更多（${day.cards.length - shown}）`;
   more.addEventListener("click", () => {
     loadedByDay.set(day.key, Math.min(day.cards.length, shown + PAGE_SIZE));
     renderGroupedPanel();

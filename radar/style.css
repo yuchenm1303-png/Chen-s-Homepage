@@ -54,6 +54,14 @@ html { scroll-behavior: smooth; }
   flex-direction: column;
 }
 
+.radar-page .radar-scan-console {
+  background: linear-gradient(145deg, rgba(12,22,34,.70), rgba(17,28,42,.50));
+  border: 1px solid rgba(255,255,255,.17);
+  box-shadow: 0 18px 44px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.11), inset 0 -1px 0 rgba(255,255,255,.035);
+  -webkit-backdrop-filter: blur(28px) saturate(155%);
+  backdrop-filter: blur(28px) saturate(155%);
+}
+
 .console-head {
   display: flex;
   align-items: flex-start;
@@ -116,7 +124,7 @@ html { scroll-behavior: smooth; }
 .console-status span,
 .console-data span {
   display: block;
-  color: rgba(255,255,255,.33);
+  color: rgba(255,255,255,.46);
   font-size: .51rem;
   letter-spacing: .1em;
 }
@@ -124,7 +132,7 @@ html { scroll-behavior: smooth; }
 .console-status strong {
   display: block;
   margin-top: 4px;
-  color: rgba(255,255,255,.88);
+  color: rgba(255,255,255,.92);
   font-size: .82rem;
   font-weight: 520;
   white-space: nowrap;
@@ -154,7 +162,7 @@ html { scroll-behavior: smooth; }
   gap: 0;
   margin-top: auto;
   padding-top: 18px;
-  border-top: 1px solid rgba(255,255,255,.075);
+  border-top: 1px solid rgba(255,255,255,.11);
 }
 
 .console-data > div {
@@ -164,13 +172,13 @@ html { scroll-behavior: smooth; }
 
 .console-data > div + div {
   padding-left: 16px;
-  border-left: 1px solid rgba(255,255,255,.07);
+  border-left: 1px solid rgba(255,255,255,.09);
 }
 
 .console-data strong {
   display: block;
   margin-top: 5px;
-  color: rgba(255,255,255,.72);
+  color: rgba(255,255,255,.82);
   font-size: .64rem;
   font-weight: 500;
   white-space: nowrap;
@@ -192,6 +200,14 @@ html { scroll-behavior: smooth; }
   overflow: hidden;
 }
 
+.radar-page .signal-stat {
+  background: linear-gradient(145deg, rgba(15,25,38,.66), rgba(18,31,46,.47));
+  border: 1px solid rgba(255,255,255,.15);
+  box-shadow: 0 14px 32px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.095), inset 0 -1px 0 rgba(255,255,255,.03);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+
 .signal-stat::after {
   content: "";
   position: absolute;
@@ -199,13 +215,13 @@ html { scroll-behavior: smooth; }
   height: 68px;
   right: -30px;
   bottom: -32px;
-  border: 1px solid rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.09);
   border-radius: 50%;
 }
 
 .signal-label {
   display: block;
-  color: rgba(255,255,255,.34);
+  color: rgba(255,255,255,.48);
   font-size: .52rem;
   letter-spacing: .1em;
 }
@@ -223,7 +239,7 @@ html { scroll-behavior: smooth; }
 .signal-stat small {
   display: block;
   margin-top: 7px;
-  color: rgba(255,255,255,.4);
+  color: rgba(255,255,255,.54);
   font-size: .58rem;
 }
 

@@ -1,0 +1,140 @@
+.usage-task-audit-list {
+  display: grid;
+  gap: 12px;
+}
+
+.usage-task-day-group {
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 18px;
+  background: rgba(24,35,54,.34);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: clip;
+  contain: layout paint style;
+}
+
+.usage-task-day-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 74px;
+  padding: 15px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.usage-task-day-summary::-webkit-details-marker {
+  display: none;
+}
+
+.usage-task-day-summary::after {
+  content: "+";
+  flex: 0 0 auto;
+  font-size: 22px;
+  line-height: 1;
+  color: rgba(255,255,255,.58);
+  transition: transform .18s ease;
+}
+
+.usage-task-day-group[open] > .usage-task-day-summary::after {
+  transform: rotate(45deg);
+}
+
+.usage-task-day-identity {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.usage-task-day-identity .kicker {
+  margin: 0;
+}
+
+.usage-task-day-identity strong {
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: .01em;
+}
+
+.usage-task-day-counters {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.usage-task-day-counters span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  color: rgba(255,255,255,.76);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.usage-task-day-counters span[data-state="ok"] {
+  color: #8fe3c6;
+}
+
+.usage-task-day-counters span[data-state="warn"] {
+  color: #efb4a5;
+}
+
+.usage-task-day-list {
+  display: grid;
+  gap: 10px;
+  padding: 0 10px 10px;
+}
+
+.usage-task-day-list > .usage-task-card {
+  margin: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: 96px;
+}
+
+.usage-task-day-more {
+  width: calc(100% - 20px);
+  min-height: 42px;
+  margin: 0 10px 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  background: rgba(255,255,255,.045);
+  color: rgba(255,255,255,.72);
+  font: inherit;
+  cursor: pointer;
+}
+
+.usage-task-day-more:hover {
+  background: rgba(255,255,255,.075);
+}
+
+@media (max-width: 720px) {
+  .usage-task-day-summary {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 14px;
+  }
+
+  .usage-task-day-counters {
+    width: calc(100% - 34px);
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .usage-task-day-list {
+    padding: 0 6px 6px;
+  }
+
+  .usage-task-day-more {
+    width: calc(100% - 12px);
+    margin: 0 6px 6px;
+  }
+}

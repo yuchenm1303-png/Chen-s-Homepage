@@ -1,8 +1,8 @@
 const PANEL_ID = "taskAuditPanel";
 const CARD_SELECTOR = ":scope > .usage-task-card:not([data-task-history-day])";
 const PAGE_SIZE = 8;
+const DETAIL_MODAL_MODULE = "./usage-detail-modal-v1.js?v=20260826-2035";
 
-const openDays = new Set();
 const loadedByDay = new Map();
 let groupedDays = [];
 let observer = null;
@@ -55,9 +55,85 @@ function statsText(cards) {
   return parts.join(" · ");
 }
 
-function makeDaySummary(day) {
-  const summary = document.createElement("summary");
-  summary.className = "usage-task-summary";
+function cloneTaskCard(card) {
+  const clone = card.cloneNode(true);
+  if (clone instanceof HTMLDetailsElement) clone.open = false;
+  return clone;
+}
+
+function renderDayModalBody(day) {
+  const modalBody = document.getElementById("usageDetailModalBody");
+  if (!modalBody) return;
+
+  const shown = Math.min(day.cards.length, loadedByDay.get(day.key) || PAGE_SIZE);
+  const content = document.createElement("div");
+
+  const list = document.createElement("div");
+  list.className = "usage-task-audit-list";
+  list.append(...day.cards.slice(0, shown).map(cloneTaskCard));
+  content.append(list);
+
+  if (shown < day.cards.length) {
+    const footer = document.createElement("div");
+    footer.className = "account-footer";
+
+    const progress = document.createElement("span");
+    progress.textContent = `已显示 ${shown} / ${day.cards.length}`;
+
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "switch-account-button usage-refresh";
+    more.textContent = `加载更多（${day.cards.length - shown}）`;
+    more.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      loadedByDay.set(day.key, Math.min(day.cards.length, shown + PAGE_SIZE));
+      renderDayModalBody(day);
+    });
+
+    footer.append(progress, more);
+    content.append(footer);
+  }
+
+  modalBody.replaceChildren(content);
+}
+
+async function openDayModal(day, trigger) {
+  if (!loadedByDay.has(day.key)) loadedByDay.set(day.key, PAGE_SIZE);
+
+  try {
+    await import(DETAIL_MODAL_MODULE);
+  } catch (error) {
+    console.error("usage task history modal unavailable", error);
+    return;
+  }
+
+  const layer = document.getElementById("usageDetailModal");
+  const kicker = document.getElementById("usageDetailModalKicker");
+  const title = document.getElementById("usageDetailModalTitle");
+  const close = document.getElementById("usageDetailModalClose");
+  if (!layer || !kicker || !title) return;
+
+  kicker.textContent = "TASK HISTORY";
+  title.textContent = dayLabel(day.key);
+  renderDayModalBody(day);
+
+  layer.hidden = false;
+  document.documentElement.classList.add("usage-detail-modal-open");
+  if (trigger instanceof HTMLElement) trigger.blur();
+  close?.focus({ preventScroll: true });
+}
+
+function makeDayCard(day) {
+  const card = document.createElement("article");
+  card.className = "account-card cards usage-task-card";
+  card.dataset.taskHistoryDay = day.key;
+
+  const header = document.createElement("div");
+  header.className = "usage-task-summary";
+  header.setAttribute("role", "button");
+  header.setAttribute("tabindex", "0");
+  header.setAttribute("aria-label", `查看 ${dayLabel(day.key)} 的任务记录`);
 
   const identity = document.createElement("div");
   const kicker = document.createElement("p");
@@ -69,71 +145,17 @@ function makeDaySummary(day) {
   meta.className = "usage-account-email";
   meta.textContent = statsText(day.cards);
   identity.append(kicker, title, meta);
-  summary.append(identity);
-  return summary;
-}
+  header.append(identity);
 
-function makeLoadMore(day, shown) {
-  const footer = document.createElement("div");
-  footer.className = "account-footer";
-
-  const progress = document.createElement("span");
-  progress.textContent = `已显示 ${shown} / ${day.cards.length}`;
-
-  const more = document.createElement("button");
-  more.type = "button";
-  more.className = "switch-account-button usage-refresh";
-  more.textContent = `加载更多（${day.cards.length - shown}）`;
-  more.addEventListener("click", (event) => {
+  header.addEventListener("click", () => openDayModal(day, header));
+  header.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
-    event.stopPropagation();
-    loadedByDay.set(day.key, Math.min(day.cards.length, shown + PAGE_SIZE));
-    renderGroupedPanel();
+    openDayModal(day, header);
   });
 
-  footer.append(progress, more);
-  return footer;
-}
-
-function makeDayGroup(day) {
-  const open = openDays.has(day.key);
-  const group = document.createElement("details");
-  group.className = "account-card cards usage-task-card";
-  group.dataset.taskHistoryDay = day.key;
-  group.open = open;
-  group.append(makeDaySummary(day));
-
-  if (open) {
-    const shown = Math.min(day.cards.length, loadedByDay.get(day.key) || PAGE_SIZE);
-    const body = document.createElement("div");
-    body.className = "usage-task-body";
-
-    const section = document.createElement("div");
-    section.className = "usage-audit-detail-section";
-    const list = document.createElement("div");
-    list.className = "usage-task-audit-list";
-    list.append(...day.cards.slice(0, shown));
-    section.append(list);
-    body.append(section);
-
-    if (shown < day.cards.length) body.append(makeLoadMore(day, shown));
-    group.append(body);
-  }
-
-  group.addEventListener("toggle", () => {
-    const wasOpen = openDays.has(day.key);
-    if (group.open === wasOpen) return;
-
-    if (group.open) {
-      openDays.add(day.key);
-      if (!loadedByDay.has(day.key)) loadedByDay.set(day.key, PAGE_SIZE);
-    } else {
-      openDays.delete(day.key);
-    }
-    renderGroupedPanel();
-  });
-
-  return group;
+  card.append(header);
+  return card;
 }
 
 function renderGroupedPanel() {
@@ -143,7 +165,7 @@ function renderGroupedPanel() {
   organizing = true;
   observer?.disconnect();
   try {
-    panel.replaceChildren(...groupedDays.map(makeDayGroup));
+    panel.replaceChildren(...groupedDays.map(makeDayCard));
   } finally {
     organizing = false;
     observer?.observe(panel, { childList: true });
@@ -170,7 +192,6 @@ function organize() {
     .sort(([a], [b]) => b.localeCompare(a))
     .map(([key, dayCards]) => ({ key, cards: dayCards }));
 
-  if (!openDays.size && groupedDays.length) openDays.add(groupedDays[0].key);
   groupedDays.forEach((day) => {
     if (!loadedByDay.has(day.key)) loadedByDay.set(day.key, PAGE_SIZE);
   });

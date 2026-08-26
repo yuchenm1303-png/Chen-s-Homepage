@@ -1,9 +1,13 @@
 (() => {
   const SCAN_API = "https://nfzkphjbelyltrzgkdwt.supabase.co/functions/v1/lead-radar-scan";
+  const API = "https://nfzkphjbelyltrzgkdwt.supabase.co/functions/v1/lead-radar-api";
   let currentFilter = "all";
   let latestPosts = [];
   let latestResult = null;
   let latestFailure = "";
+  let feedbackByKey = new Map();
+  let feedbackLoading = false;
+  let feedbackLoadedAt = 0;
 
   const decisionMeta = {
     stored: { label: "通过 · 潜客", className: "is-stored" },
@@ -14,11 +18,35 @@
     unknown: { label: "待判断", className: "is-unknown" },
   };
 
+  const feedbackMeta = {
+    lead: { label: "真潜客", className: "is-human-lead" },
+    maybe: { label: "可能", className: "is-human-maybe" },
+    not_lead: { label: "不是", className: "is-human-not-lead" },
+  };
+
+  const reasonMeta = {
+    provider_self_promo: "服务商",
+    tutorial_content: "教程内容",
+    recruiting: "招聘",
+    learning: "学习",
+    general_discussion: "普通讨论",
+    other: "其他",
+  };
+
   function el(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
     if (text !== undefined && text !== null) node.textContent = String(text);
     return node;
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add("show");
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2600);
   }
 
   function friendlyError(value) {
@@ -89,6 +117,127 @@
     return image;
   }
 
+  function feedbackKey(post) {
+    const source = String(post?.source || "小红书").trim();
+    const id = String(post?.id || "").trim();
+    return source && id ? `${source}|${id}` : "";
+  }
+
+  function feedbackFor(post) {
+    const key = feedbackKey(post);
+    return key ? feedbackByKey.get(key) || null : null;
+  }
+
+  async function loadFeedback(force = false) {
+    if (feedbackLoading) return;
+    if (!force && Date.now() - feedbackLoadedAt < 12000) return;
+    feedbackLoading = true;
+    try {
+      const response = await fetch(`${API}/api/v1/feedback?source=${encodeURIComponent("小红书")}&limit=500`, { cache: "no-store" });
+      if (!response.ok) return;
+      const rows = await response.json();
+      const next = new Map();
+      for (const row of Array.isArray(rows) ? rows : []) {
+        const source = String(row?.source || "").trim();
+        const sourceId = String(row?.source_id || "").trim();
+        if (source && sourceId) next.set(`${source}|${sourceId}`, row);
+      }
+      feedbackByKey = next;
+      feedbackLoadedAt = Date.now();
+    } catch {
+      // Feedback is supplementary; preview remains usable if this read fails.
+    } finally {
+      feedbackLoading = false;
+    }
+  }
+
+  async function submitFeedback(post, label, reasonCode = null, trigger = null) {
+    const key = feedbackKey(post);
+    if (!key || !feedbackMeta[label]) return;
+    if (label === "not_lead" && !reasonMeta[reasonCode]) return;
+    if (trigger) trigger.disabled = true;
+    try {
+      const response = await fetch(`${API}/api/v1/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: String(post?.source || "小红书"),
+          source_id: String(post?.id || ""),
+          label,
+          reason_code: label === "not_lead" ? reasonCode : null,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.detail || `API ${response.status}`);
+      const saved = data?.feedback;
+      if (saved) feedbackByKey.set(key, saved);
+      post.__reasonOpen = label === "not_lead";
+      renderPosts();
+      if (document.getElementById("scanPostModal") && !document.getElementById("scanPostModal").hidden) openPostModal(post);
+      if (typeof window.loadLeads === "function") window.loadLeads({ silent: true });
+      const suffix = label === "not_lead" && reasonCode ? ` · ${reasonMeta[reasonCode]}` : "";
+      showToast(`人工判断已保存：${feedbackMeta[label].label}${suffix}`);
+    } catch (error) {
+      showToast(`保存失败：${error?.message || "请稍后重试"}`);
+    } finally {
+      if (trigger) trigger.disabled = false;
+    }
+  }
+
+  function createFeedbackControls(post, compact = false) {
+    const wrapper = el("div", `scan-feedback${compact ? " is-compact" : ""}`);
+    wrapper.addEventListener("click", (event) => event.stopPropagation());
+    wrapper.addEventListener("keydown", (event) => event.stopPropagation());
+
+    const current = feedbackFor(post);
+    const top = el("div", "scan-feedback-top");
+    top.append(el("span", "scan-feedback-label", "人工判断"));
+    if (current?.label && feedbackMeta[current.label]) {
+      const currentMeta = feedbackMeta[current.label];
+      const currentText = current.label === "not_lead" && current.reason_code && reasonMeta[current.reason_code]
+        ? `${currentMeta.label} · ${reasonMeta[current.reason_code]}`
+        : currentMeta.label;
+      top.append(el("span", `scan-feedback-current ${currentMeta.className}`, currentText));
+    } else {
+      top.append(el("span", "scan-feedback-current", "未标注"));
+    }
+    wrapper.append(top);
+
+    const actions = el("div", "scan-feedback-actions");
+    [["lead", "真潜客"], ["maybe", "可能"], ["not_lead", "不是"]].forEach(([label, text]) => {
+      const button = el("button", `scan-feedback-button${current?.label === label ? " active" : ""}`, text);
+      button.type = "button";
+      button.dataset.feedbackLabel = label;
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (label === "not_lead") {
+          post.__reasonOpen = true;
+          wrapper.querySelector(".scan-feedback-reasons")?.removeAttribute("hidden");
+          return;
+        }
+        submitFeedback(post, label, null, button);
+      });
+      actions.append(button);
+    });
+    wrapper.append(actions);
+
+    const reasons = el("div", "scan-feedback-reasons");
+    if (!(post.__reasonOpen || current?.label === "not_lead")) reasons.hidden = true;
+    Object.entries(reasonMeta).forEach(([code, text]) => {
+      const button = el("button", `scan-feedback-reason${current?.reason_code === code ? " active" : ""}`, text);
+      button.type = "button";
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        submitFeedback(post, "not_lead", code, button);
+      });
+      reasons.append(button);
+    });
+    wrapper.append(reasons);
+    return wrapper;
+  }
+
   function ensurePanel() {
     let panel = document.getElementById("scanPostsPanel");
     if (panel) return panel;
@@ -101,18 +250,30 @@
     const heading = el("div");
     heading.append(el("p", "kicker", "SCAN REVIEW"));
     heading.append(el("h2", "", "本次扫描帖子"));
-    heading.append(el("p", "radar-muted", "紧凑浏览本次扫描结果；点击任意卡片查看完整正文、图片与原帖。"));
+    heading.append(el("p", "radar-muted", "先在小卡片上快速标注质量；需要细看时点击卡片查看完整正文、图片与原帖。"));
     head.append(heading);
 
     const count = el("div", "scan-posts-count");
     const countStrong = el("strong", "", "0");
     countStrong.id = "scanPostsCount";
-    count.append(countStrong, el("span", "", "POSTS"));
+    const countUnit = el("span", "", "POSTS");
+    const reviewed = el("span", "scan-posts-reviewed", "0 REVIEWED");
+    reviewed.id = "scanPostsReviewed";
+    count.append(countStrong, countUnit, reviewed);
     head.append(count);
     panel.append(head);
 
     const toolbar = el("div", "scan-posts-toolbar");
-    [["all", "全部"], ["stored", "通过"], ["filtered", "已过滤"], ["seen", "已处理"]].forEach(([key, label]) => {
+    [
+      ["all", "全部"],
+      ["human_unlabeled", "未标注"],
+      ["human_lead", "真潜客"],
+      ["human_maybe", "可能"],
+      ["human_not_lead", "不是"],
+      ["stored", "系统通过"],
+      ["filtered", "系统过滤"],
+      ["seen", "已处理"],
+    ].forEach(([key, label]) => {
       const button = el("button", `release-badge scan-post-filter${key === "all" ? " active" : ""}`, label);
       button.type = "button";
       button.dataset.filter = key;
@@ -199,6 +360,7 @@
     metricText(post?.metrics).forEach((text) => metaRow.append(el("span", "", text)));
     (Array.isArray(post?.tags) ? post.tags : []).slice(0, 12).forEach((tag) => metaRow.append(el("span", "scan-post-tag", `#${tag}`)));
     content.append(metaRow);
+    content.append(createFeedbackControls(post, false));
 
     if (post?.url) {
       const link = el("a", "radar-action is-primary scan-post-modal-link", "打开小红书原帖 ↗");
@@ -264,6 +426,7 @@
     content.append(eyebrow);
     content.append(el("h3", "scan-post-title", post?.title || "无标题"));
     content.append(el("p", "scan-post-body", post?.body || "（正文为空）"));
+    content.append(createFeedbackControls(post, true));
 
     const footer = el("div", "scan-post-card-footer");
     const metrics = el("div", "scan-post-meta");
@@ -274,17 +437,27 @@
     return card;
   }
 
+  function matchesCurrentFilter(post) {
+    const decision = String(post?.decision || "unknown");
+    const feedback = feedbackFor(post);
+    if (currentFilter === "human_unlabeled") return !feedback;
+    if (currentFilter === "human_lead") return feedback?.label === "lead";
+    if (currentFilter === "human_maybe") return feedback?.label === "maybe";
+    if (currentFilter === "human_not_lead") return feedback?.label === "not_lead";
+    if (currentFilter === "seen") return ["seen", "duplicate"].includes(decision);
+    return currentFilter === "all" || decision === currentFilter;
+  }
+
   function renderPosts() {
     const panel = ensurePanel();
     const list = document.getElementById("scanPostsList");
     if (!panel || !list) return;
 
-    const posts = latestPosts.filter((post) => {
-      const decision = String(post?.decision || "unknown");
-      if (currentFilter === "seen") return ["seen", "duplicate"].includes(decision);
-      return currentFilter === "all" || decision === currentFilter;
-    });
+    const posts = latestPosts.filter(matchesCurrentFilter);
+    const reviewed = latestPosts.filter((post) => Boolean(feedbackFor(post))).length;
     document.getElementById("scanPostsCount").textContent = String(latestPosts.length);
+    const reviewedNode = document.getElementById("scanPostsReviewed");
+    if (reviewedNode) reviewedNode.textContent = `${reviewed}/${latestPosts.length} REVIEWED`;
     list.replaceChildren();
 
     if (latestFailure) {
@@ -321,12 +494,14 @@
         latestFailure = friendlyError(latest.error);
         latestResult = latest.result || {};
         latestPosts = [];
+        await loadFeedback();
         renderPosts();
         return;
       }
       latestFailure = "";
       latestResult = latest?.result || data?.active_request?.result || data?.last_scan || null;
       latestPosts = Array.isArray(latestResult?.posts) ? latestResult.posts : [];
+      await loadFeedback();
       renderPosts();
     } catch {}
   }

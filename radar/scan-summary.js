@@ -12,6 +12,19 @@
     return text || "采集任务执行失败，本次扫描没有产生帖子。";
   }
 
+  function renderRetrievalMeta(status) {
+    const meta = document.getElementById("scanButtonMeta");
+    if (!meta) return;
+    const retrieval = status?.retrieval && typeof status.retrieval === "object" ? status.retrieval : null;
+    const queries = num(retrieval?.manual_queries_per_scan);
+    const calls = num(retrieval?.manual_provider_calls_per_scan);
+    if (queries > 0 && calls > 0) {
+      meta.textContent = `${queries} 路检索 · 最多 ${calls} 次调用`;
+      return;
+    }
+    meta.textContent = status?.retrieval_version ? "多路检索 · 智能调度" : "多路检索";
+  }
+
   function ensurePanel() {
     let panel = document.getElementById("scanSummaryPanel");
     if (panel) return panel;
@@ -67,6 +80,9 @@
       : "没有帖子通过潜客筛选";
 
     const notes = [];
+    const queryCount = Array.isArray(result.queries) ? result.queries.length : (result.query ? 1 : 0);
+    const providerCalls = num(result.provider_calls);
+    if (queryCount > 0) notes.push(`${queryCount} 路检索${providerCalls > 0 ? ` · ${providerCalls} 次 API 调用` : ""}`);
     if (fresh > 0 && filtered > 0) notes.push(`${filtered} 条候选被规则 / AI 判定为非甲方需求`);
     if (duplicates > 0) notes.push(`${duplicates} 条已看过，已自动去重`);
     if (stored === 0 && scanned > 0) notes.push("机会列表只显示通过筛选的真实潜客，所以这里可能仍为 0");
@@ -96,6 +112,7 @@
       const response = await fetch(`${SCAN_API}/api/v1/status`, { cache: "no-store" });
       if (!response.ok) return;
       const data = await response.json();
+      renderRetrievalMeta(data);
       const latest = data?.latest_request || null;
       if (latest?.status === "failed") {
         renderFailure(latest, data);

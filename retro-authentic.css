@@ -1069,6 +1069,58 @@ button.taskbar-item:not(.is-active) {
 }
 
 /* ------------------------------------------------------------------ *
+ * 9c. 桌面图标
+ *
+ * styles.css 里这套样式一直都在，只是 HTML 里没有图标，等于睡着了。
+ * 现在唤醒它，并按深色主题重新配色。原来的规则在 900px 以下会整个隐藏，
+ * 但手机上窗口并不占满屏幕，图标该留着。
+ * ------------------------------------------------------------------ */
+
+.desktop-icons {
+  display: flex !important;
+  top: 22px;
+  left: 20px;
+  gap: 16px;
+}
+
+.desktop-shortcut {
+  width: 76px;
+  padding: 5px 3px 6px;
+  color: var(--r-ink);
+  text-shadow: 1px 1px 0 rgba(6, 4, 14, .9);
+  line-height: 1.3;
+}
+
+.desktop-shortcut:hover,
+.desktop-shortcut:focus-visible {
+  outline: 1px dotted rgba(255, 209, 102, .8);
+  outline-offset: -2px;
+  background: rgba(255, 209, 102, .10);
+  color: #fff;
+}
+
+.shortcut-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 7px;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+}
+
+@media (max-width: 620px) {
+  .desktop-icons {
+    top: 12px;
+    left: 10px;
+    gap: 10px;
+  }
+
+  .desktop-shortcut {
+    width: 68px;
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * 10. 小屏
  * ------------------------------------------------------------------ */
 

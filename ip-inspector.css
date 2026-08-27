@@ -1,0 +1,136 @@
+/*
+ * IP 检测器的样式。
+ *
+ * 全部走 retro-authentic.css 定义的令牌，不自带任何颜色常量 ——
+ * 以后主题再变一次，这个应用不用跟着改。
+ *
+ * 注意字号：retro-authentic.css 里有一条 .window * 的通配规则把字号锁死在 12px，
+ * 特异性是 (0,3,0)，普通类选择器压不过它，所以要用 10px 的地方必须带 !important。
+ */
+
+.ipx-app {
+  min-width: 0;
+}
+
+/* 顶部那条：当前 IP 是整个应用唯一需要一眼看到的东西，所以给它单独一块 */
+.ipx-hero {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  background: var(--r-face);
+  box-shadow: inset 0 0 0 1px var(--r-hairline);
+}
+
+.ipx-hero-label {
+  color: var(--r-muted);
+  font-family: "Ark Pixel 10px", var(--r-stack) !important;
+  font-size: 10px !important;
+}
+
+.ipx-hero-ip {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--r-accent);
+  font-size: 24px !important;
+  line-height: 32px !important;
+  letter-spacing: .02em;
+  word-break: break-all;
+}
+
+.ipx-hero-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+/* 一致性提示。正常情况是灰的一行注脚，对不上时才转成琥珀 */
+.ipx-note {
+  margin: 0 0 16px;
+  min-height: 15px;
+  color: var(--r-muted);
+  font-family: "Ark Pixel 10px", var(--r-stack) !important;
+  font-size: 10px !important;
+  line-height: 15px !important;
+}
+
+.ipx-note.is-warn {
+  color: var(--r-accent);
+}
+
+.ipx-group {
+  margin: 0 0 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--r-hairline);
+  color: var(--r-muted);
+  font-weight: 700;
+  font-family: "Ark Pixel 10px", var(--r-stack) !important;
+  font-size: 10px !important;
+  letter-spacing: .08em;
+}
+
+.ipx-group + .ipx-grid {
+  margin-bottom: 18px;
+}
+
+/*
+ * 属性表：左列标签定宽，右列取值。定宽是这类表看起来齐整的关键 ——
+ * 用 auto 的话每行按自己的字数各撑各的，右列会成为一条毛边。
+ */
+.ipx-grid {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+}
+
+.ipx-label,
+.ipx-value {
+  margin: 0;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--r-hairline);
+  line-height: 15px;
+}
+
+.ipx-label {
+  color: var(--r-muted);
+  font-family: "Ark Pixel 10px", var(--r-stack) !important;
+  font-size: 10px !important;
+}
+
+.ipx-value {
+  color: var(--r-ink);
+  word-break: break-word;
+}
+
+.ipx-grid > dt:nth-last-of-type(1),
+.ipx-grid > dd:nth-last-of-type(1) {
+  border-bottom: 0;
+}
+
+@media (max-width: 520px) {
+  .ipx-hero-ip {
+    flex: 1 1 100%;
+    font-size: 12px !important;
+    line-height: 18px !important;
+  }
+
+  .ipx-grid {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+}
+
+/*
+ * 桌面图标的图形：一个 16x16 的像素地球，按 2 倍放大到 32px。
+ * 用 SVG data URI 而不是 PNG，是为了让它跟主题的强调色绑在一起 ——
+ * 以后换色只改这一处的十六进制。
+ */
+.ipx-shortcut-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Cpath fill='%23ffd166' d='M5 1h6v1H5zM3 2h2v1H3zM11 2h2v1h-2zM2 3h1v1H2zM13 3h1v1h-1zM1 4h1v1H1zM14 4h1v1h-1zM1 5h1v1H1zM14 5h1v1h-1zM0 6h1v1H0zM15 6h1v1h-1zM0 7h1v1H0zM15 7h1v1h-1zM0 8h1v1H0zM15 8h1v1h-1zM1 9h1v1H1zM14 9h1v1h-1zM1 10h1v1H1zM14 10h1v1h-1zM2 11h1v1H2zM13 11h1v1h-1zM3 12h2v1H3zM11 12h2v1h-2zM5 13h6v1H5z'/%3E%3Cpath fill='%23ffd166' d='M0 7h16v1H0zM7 1h1v13H7zM3 3h1v1H3zM12 3h1v1h-1zM2 4h2v1H2zM12 4h2v1h-2zM2 10h2v1H2zM12 10h2v1h-2zM3 11h1v1H3zM12 11h1v1h-1z' opacity='.55'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 32px 32px;
+  image-rendering: pixelated;
+}

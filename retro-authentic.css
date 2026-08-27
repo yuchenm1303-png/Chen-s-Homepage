@@ -1069,34 +1069,7 @@ button.taskbar-item:not(.is-active) {
 }
 
 /* ------------------------------------------------------------------ *
- * 10. 指针：整套里最便宜也最出效果的一个复古信号
- *     不喜欢的话整块删掉即可，不影响其它任何样式。
- * ------------------------------------------------------------------ */
-
-.desktop,
-.desktop * {
-  cursor: url("assets/cursor-arrow.png") 0 0, default;
-}
-
-.desktop a,
-.desktop button,
-.desktop .pixel-link,
-.desktop .menu-item,
-.desktop .project-row,
-.desktop .desktop-shortcut,
-.desktop [role="button"] {
-  cursor: url("assets/cursor-hand.png") 10 0, pointer;
-}
-
-.desktop input,
-.desktop textarea,
-.desktop .content-scroll p,
-.desktop .content-scroll li {
-  cursor: text;
-}
-
-/* ------------------------------------------------------------------ *
- * 11. 小屏
+ * 10. 小屏
  * ------------------------------------------------------------------ */
 
 @media (max-width: 620px) {

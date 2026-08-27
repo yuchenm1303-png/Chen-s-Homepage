@@ -141,74 +141,51 @@
 }
 
 /*
- * 中文才是最出戏的一环。原来的像素字库只覆盖拉丁字母，中文全部掉回系统黑体，
- * 于是"START"是点阵的、正文却是 2020 年代的抗锯齿，两种时代混在一屏里。
+ * 字体：华文中宋
  *
- * 这里补一套真正的中文点阵字：方舟像素字体 12px（Ark Pixel，SIL OFL 1.1），
- * 已裁剪到「站内实际用字 + GB2312 一级字（3755 常用字）」，97 KB。
- * 关键约束：它按 12px 网格设计，字号必须是 12px 或其整数倍，否则会被缩放插值，
- * 边缘立刻糊掉 —— 下面所有字号写死 12px 就是这个原因。
+ * 这一节从「点阵」整体换成了「衬线」，前后的取舍是反的，值得写清楚为什么。
  *
- * 重新生成（换字体或补字时）：
- *   取 ark-pixel-font 12px proportional zh_cn 的 woff2，用 fonttools 子集化：
- *   pyftsubset src.woff2 --text-file=chars.txt --flavor=woff2 --layout-features='*'
+ * 之前用方舟像素 12px，为了让字模像素正好压住物理像素，附带了一整套约束：
+ * 字号锁死 12px、次级文字另配一套 10px 字模、关闭字重合成、关闭抗锯齿。
+ * 那些约束只对点阵成立。华文中宋是矢量衬线体，全部反过来：
+ *   - 字号要放开并提上去。衬线的笔画粗细对比在 12px 上会糊成一团，正文给到 14px。
+ *   - 行距要拉开。宋体字面方正，1.5 倍偏挤，给到 1.75。
+ *   - 抗锯齿必须开回来。关掉它衬线会碎成锯齿，这是当初为点阵才关的。
+ *   - 字重合成可以放开。华文中宋没有粗体字面，但衬线合成加粗不会像点阵那样毁边缘。
+ *
+ * 一个必须说明的限制：华文中宋是商业字体，不能自托管，只能引用访客本机已装的。
+ * 装了 Office 的 Windows 和 macOS 通常有；没有的会顺着下面的链退到宋体，
+ * 再退到系统衬线。所以这套排版必须在「拿不到华文中宋」时也成立 ——
+ * 后面的字号和行距是按宋体也能看得下去来定的。
+ *
+ * 方舟像素的两个 woff2 仍留在 assets/fonts/，只是不再被引用，方便随时退回去。
  */
-@font-face {
-  font-family: "Ark Pixel 12px";
-  src: url("assets/fonts/ark-pixel-12px-zh_cn-subset.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Ark Pixel 10px";
-  src: url("assets/fonts/ark-pixel-10px-zh_cn-subset.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
 
 :root {
-  /*
-   * 中英文都交给方舟像素。原来是"拉丁走 MS Sans Serif、中文走别的"，但那两套
-   * 点阵的原生尺寸不同（MS Sans 是 11px，方舟是 12px），同一个字号下必然有一边
-   * 被拉伸插值 —— 也就是必然有一边糊。统一成一套字，整屏才可能全部落在像素格上。
-   * MS Sans 留在末尾兜底；只要本地字体正常，它不会被下载，等于顺手去掉了一个 CDN 依赖。
-   */
-  --r-stack: "Ark Pixel 12px", "SimSun", "宋体", Arial, sans-serif;
+  --r-stack: "STZhongsong", "华文中宋", "STSong", "华文宋体", "SimSun", "宋体", "Songti SC", serif;
   --r-cjk: var(--r-stack);
   --pixel: var(--r-stack);
   --terminal: var(--r-stack);
 }
 
 /*
- * 字号必须锁死在 12px（或 24px）。站内原本散落着 8/9/10/11/15px 等尺寸，
- * 每一个都会让点阵字被缩放插值。Win98 的界面本来就是一个字号打天下，
- * 层级靠加粗而不是靠字号 —— 所以统一反而更对味。
+ * 字号：正文 14px，次级 12px，大标题 26px。
+ * 点阵时代是「一个字号打天下、层级靠颜色」，因为字号一动就糊。
+ * 衬线没有这个约束，层级可以重新交回字号和字重。
  * 博客正文（.article-*）自成一套阅读版式，这里放过它。
  */
 .window *:not([class*="article-"]):not([class*="article-"] *),
 .taskbar *,
 .closed-dialog * {
-  font-size: 12px;
+  font-size: 14px;
   font-family: var(--r-stack);
 }
 
 .profile-name {
-  font-size: 24px !important;
-  line-height: 32px !important;
+  font-size: 26px !important;
+  line-height: 38px !important;
+  letter-spacing: .02em;
 }
-
-/*
- * 关于高分屏：这里刻意不做字号补偿。
- *
- * 点阵字只有在「字号 × 设备像素比 = 12 的整数倍」时才会一个字模像素正好压一个
- * 物理像素。dpr 1.5 要满足这个条件得把字号提到 16px，但那样整个界面会比设计尺寸
- * 大三分之一，观感立刻变成"大字版"。清晰度和比例在分数倍 dpr 上无法兼得，
- * 这里选比例：全站一律 12px，1.25 / 1.5 / 1.75 的屏幕上边缘会略软一点，
- * 但字模仍是方块状的，比掉回系统字体好得多，界面尺寸也始终是对的。
- */
 
 .window,
 .taskbar,
@@ -223,14 +200,13 @@
 .titlebar,
 .status-bar {
   font-family: var(--r-stack);
-  font-size: 12px;
-  /* 方舟像素没有真正的粗体字重。开启合成粗体会让 Chrome 用描边加粗，
-     边缘立刻带上抗锯齿（实测文字区颜色数从 7 涨到 273），所以必须关掉。
-     层级改由字号（12 / 10）和颜色承担，不靠字重。 */
-  font-synthesis: none;
+  font-size: 14px;
+  /* 下面四条全部是把点阵时代的设置解掉：
+     衬线需要抗锯齿和正常的字形渲染，也允许合成加粗。 */
+  font-synthesis: weight;
   letter-spacing: 0;
-  text-rendering: optimizeSpeed;
-  -webkit-font-smoothing: none;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
@@ -251,12 +227,13 @@
 .clock,
 .desktop-shortcut {
   font-family: var(--r-stack);
-  font-size: 12px;
-  line-height: 1.5;
-  text-rendering: optimizeSpeed;
+  font-size: 14px;
+  /* 宋体字面方正，行距给足才不挤 */
+  line-height: 1.75;
+  text-rendering: auto;
 }
 
-/* 标题一律走加粗点阵，跟正文拉开层级但不改字族 */
+/* 标题靠字重拉开层级。点阵时代不能这么做（合成加粗会毁边缘），衬线可以。 */
 .section-title,
 .profile-name,
 .project-title,
@@ -270,12 +247,12 @@
 
 
 /*
- * 次级文字用同族的 10px 字模。
+ * 次级文字：12px。
  *
- * 站内原本的层级是靠字号拉开的：表头 8px、路径栏与筛选按钮 9px、列表描述 10px。
- * 全部拉平到 12px 之后层级消失，整屏读起来又大又平。但点阵字不能随便缩，
- * 12px 的字模拿去渲染 10px 一定发虚 —— 所以这里换的是另一套按 10px 网格
- * 设计的字模，而不是把 12px 那套缩小。两套都出自方舟像素，风格一致。
+ * 站内原本的层级是靠字号拉开的（表头 8px、路径栏 9px、列表描述 10px）。
+ * 点阵时代只能在 12 / 10 两档之间选，因为字号一旦偏离字模的设计网格就发虚，
+ * 所以当时专门另配了一套 10px 字模。衬线没有这个限制，
+ * 直接用 12px 对 14px 正文，两档之间的差距反而更自然。
  *
  * 这些规则需要 !important：上面那条 .window * 的通配规则特异性是 (0,3,0)，
  * 普通的类选择器压不过它。
@@ -300,9 +277,9 @@
 .note,
 .blog-index-hint,
 .contact-index-hint {
-  font-family: "Ark Pixel 10px", var(--r-stack) !important;
-  font-size: 10px !important;
-  line-height: 15px !important;
+  font-family: var(--r-stack) !important;
+  font-size: 12px !important;
+  line-height: 20px !important;
 }
 
 /* ------------------------------------------------------------------ *

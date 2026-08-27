@@ -4,8 +4,8 @@
  * 全部走 retro-authentic.css 定义的令牌，不自带任何颜色常量 ——
  * 以后主题再变一次，这个应用不用跟着改。
  *
- * 注意字号：retro-authentic.css 里有一条 .window * 的通配规则把字号锁死在 12px，
- * 特异性是 (0,3,0)，普通类选择器压不过它，所以要用 10px 的地方必须带 !important。
+ * 注意字号：retro-authentic.css 里有一条 .window * 的通配规则设定正文字号，
+ * 特异性是 (0,3,0)，普通类选择器压不过它，所以次级字号必须带 !important。
  */
 
 .ipx-app {
@@ -26,17 +26,18 @@
 
 .ipx-hero-label {
   color: var(--r-muted);
-  font-family: "Ark Pixel 10px", var(--r-stack) !important;
-  font-size: 10px !important;
+  font-family: var(--r-stack) !important;
+  font-size: 12px !important;
 }
 
 .ipx-hero-ip {
   flex: 1 1 auto;
   min-width: 0;
   color: var(--r-accent);
-  font-size: 24px !important;
-  line-height: 32px !important;
-  letter-spacing: .02em;
+  font-size: 28px !important;
+  line-height: 38px !important;
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
   word-break: break-all;
 }
 
@@ -51,9 +52,9 @@
   margin: 0 0 16px;
   min-height: 15px;
   color: var(--r-muted);
-  font-family: "Ark Pixel 10px", var(--r-stack) !important;
-  font-size: 10px !important;
-  line-height: 15px !important;
+  font-family: var(--r-stack) !important;
+  font-size: 12px !important;
+  line-height: 20px !important;
 }
 
 .ipx-note.is-warn {
@@ -66,8 +67,8 @@
   border-bottom: 1px solid var(--r-hairline);
   color: var(--r-muted);
   font-weight: 700;
-  font-family: "Ark Pixel 10px", var(--r-stack) !important;
-  font-size: 10px !important;
+  font-family: var(--r-stack) !important;
+  font-size: 12px !important;
   letter-spacing: .08em;
 }
 
@@ -96,8 +97,8 @@
 
 .ipx-label {
   color: var(--r-muted);
-  font-family: "Ark Pixel 10px", var(--r-stack) !important;
-  font-size: 10px !important;
+  font-family: var(--r-stack) !important;
+  font-size: 12px !important;
 }
 
 .ipx-value {
@@ -113,8 +114,8 @@
 @media (max-width: 520px) {
   .ipx-hero-ip {
     flex: 1 1 100%;
-    font-size: 12px !important;
-    line-height: 18px !important;
+    font-size: 18px !important;
+    line-height: 26px !important;
   }
 
   .ipx-grid {

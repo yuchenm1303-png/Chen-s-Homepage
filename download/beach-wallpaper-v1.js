@@ -3,11 +3,14 @@
   const STYLE_ID = "beach-wallpaper-v1-style";
   const STYLE_URL = `./beach-wallpaper-v1.css?v=${ASSET_VERSION}`;
   const pageWallpaperSrc = document.documentElement.dataset.wallpaperSrc || "";
-  const pageWallpaperParts = (document.documentElement.dataset.wallpaperParts || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
   const pageWallpaperId = document.documentElement.dataset.wallpaperId || "page-wallpaper";
+  const pageWallpaperParts = pageWallpaperId === "beach-blue"
+    ? [
+        "./wallpaper-beach-blue-v1.part1.b64?v=20260828-0915",
+        "./wallpaper-beach-blue-v1.part2.b64?v=20260828-0915",
+        "./wallpaper-beach-blue-v1.part3.b64?v=20260828-0915"
+      ]
+    : [];
   const WALLPAPER = pageWallpaperSrc || pageWallpaperParts.length
     ? {
         id: pageWallpaperId,

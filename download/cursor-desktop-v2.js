@@ -334,6 +334,14 @@
   const LIFT_Z = 22;
   const SHADOW_INTENSITY = 5;
   const PERSPECTIVE = 1000;
+  const REFERENCE_WIDTH = 360;
+  const REFERENCE_HEIGHT = 220;
+  const REFERENCE_DIAGONAL = Math.hypot(REFERENCE_WIDTH, REFERENCE_HEIGHT);
+  const MIN_SIZE_FACTOR = 0.48;
+  const MAX_SIZE_FACTOR = 1.1;
+  const HOVER_SCALE_DELTA = 0.016;
+  const ACTIVE_SCALE_DELTA = 0.012;
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const cards = document.querySelectorAll(
     ".release-card, .account-card, .utility-card, .modal-card"
   );
@@ -353,6 +361,8 @@
       --tilt-sx: 0px;
       --tilt-sy: 0px;
       --tilt-scale: 1;
+      --tilt-hover-scale: 1.01;
+      --tilt-active-scale: .985;
       --tilt-radius: 18px;
       --tilt-perspective: ${PERSPECTIVE}px;
       position: relative;
@@ -365,10 +375,8 @@
     }
 
     .advanced-tilt-card.utility-card { --tilt-radius: 14px; }
-    .advanced-tilt-card:hover { --tilt-scale: 1.01; }
-    .advanced-tilt-card.utility-card:hover { --tilt-scale: 1.02; }
-    .advanced-tilt-card:active { --tilt-scale: .985; }
-    .advanced-tilt-card.utility-card:active { --tilt-scale: 1; }
+    .advanced-tilt-card:hover { --tilt-scale: var(--tilt-hover-scale); }
+    .advanced-tilt-card:active { --tilt-scale: var(--tilt-active-scale); }
 
     .advanced-tilt-card.is-tilting {
       transition: transform .12s ease-out, box-shadow .35s ease !important;
@@ -478,18 +486,29 @@
       const halfHeight = Math.max(1, rect.height / 2);
       const centerX = rect.left + halfWidth;
       const centerY = rect.top + halfHeight;
-      const normalizedX = Math.max(-1, Math.min(1, (pointerX - centerX) / halfWidth));
-      const normalizedY = Math.max(-1, Math.min(1, (pointerY - centerY) / halfHeight));
+      const normalizedX = clamp((pointerX - centerX) / halfWidth, -1, 1);
+      const normalizedY = clamp((pointerY - centerY) / halfHeight, -1, 1);
+      const tiltXFactor = clamp(REFERENCE_HEIGHT / Math.max(1, rect.height), MIN_SIZE_FACTOR, MAX_SIZE_FACTOR);
+      const tiltYFactor = clamp(REFERENCE_WIDTH / Math.max(1, rect.width), MIN_SIZE_FACTOR, MAX_SIZE_FACTOR);
+      const sizeFactor = clamp(
+        REFERENCE_DIAGONAL / Math.max(1, Math.hypot(rect.width, rect.height)),
+        MIN_SIZE_FACTOR,
+        MAX_SIZE_FACTOR
+      );
+      const hoverScale = 1 + HOVER_SCALE_DELTA * sizeFactor;
+      const activeScale = 1 - ACTIVE_SCALE_DELTA * sizeFactor;
 
       card.style.setProperty("--tilt-mx", `${pointerX - rect.left}px`);
       card.style.setProperty("--tilt-my", `${pointerY - rect.top}px`);
-      card.style.setProperty("--tilt-rx", `${-normalizedY * MAX_TILT}deg`);
-      card.style.setProperty("--tilt-ry", `${normalizedX * MAX_TILT}deg`);
+      card.style.setProperty("--tilt-rx", `${-normalizedY * MAX_TILT * tiltXFactor}deg`);
+      card.style.setProperty("--tilt-ry", `${normalizedX * MAX_TILT * tiltYFactor}deg`);
       card.style.setProperty("--tilt-tx", `${normalizedX * MAGNET_STRENGTH}px`);
       card.style.setProperty("--tilt-ty", `${normalizedY * MAGNET_STRENGTH}px`);
-      card.style.setProperty("--tilt-tz", `${LIFT_Z}px`);
+      card.style.setProperty("--tilt-tz", `${LIFT_Z * sizeFactor}px`);
       card.style.setProperty("--tilt-sx", `${-normalizedX * SHADOW_INTENSITY}px`);
       card.style.setProperty("--tilt-sy", `${-normalizedY * SHADOW_INTENSITY}px`);
+      card.style.setProperty("--tilt-hover-scale", `${hoverScale}`);
+      card.style.setProperty("--tilt-active-scale", `${activeScale}`);
       card.classList.add("is-tilting");
     };
 

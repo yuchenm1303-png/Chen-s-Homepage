@@ -1,0 +1,39 @@
+name: Materialize original wallpaper
+on:
+  push:
+    branches: ["tmp-wallpaper-original-upload"]
+    paths: [".github/workflows/materialize-original-wallpaper.yml"]
+permissions:
+  contents: write
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tmp-wallpaper-original-upload
+      - name: Fetch original 2048x1152 source
+        env:
+          SOURCE_URL: "https://media.canva.com/v2/image-resize/format:PNG/height:1152/quality:100/uri:ifs%3A%2F%2FM%2Fa83553af-a2f6-4451-953f-5aa55e3a3a23/watermark:F/width:2048?csig=AAAAAAAAAAAAAAAAAAAAAKj6LzfCw5D1wOKqiBn69TEA6R9ZAv3bxI3CtodFMdpR&exp=1787912548&osig=AAAAAAAAAAAAAAAAAAAAACv68x57ras5tm5O4YTciKzHQzqFCrE1bfZKcSqtH8uf&signer=media-rpc&x-canva-quality=thumbnail"
+        run: |
+          set -euo pipefail
+          curl -fL --retry 2 "$SOURCE_URL" -o /tmp/wallpaper.png
+          python - <<'PY'
+          import struct
+          p='/tmp/wallpaper.png'
+          b=open(p,'rb').read(24)
+          if b[:8] != b'\x89PNG\r\n\x1a\n':
+              raise SystemExit('not png')
+          w,h=struct.unpack('>II',b[16:24])
+          print(f'{w}x{h}')
+          if (w,h)!=(2048,1152):
+              raise SystemExit(f'unexpected dimensions {w}x{h}')
+          PY
+          mv /tmp/wallpaper.png download/wallpaper-beach-blue-original-v1.png
+          sed -i 's#wallpaper-beach-blue-original-v1\.webp?v=20260828-1337-original#wallpaper-beach-blue-original-v1.png?v=20260828-1345-original-png#' download/index.html
+          rm .github/workflows/materialize-original-wallpaper.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(download): use original 2048x1152 beach wallpaper"
+          git push origin HEAD:tmp-wallpaper-original-upload

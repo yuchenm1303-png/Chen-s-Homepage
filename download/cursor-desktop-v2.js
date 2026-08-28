@@ -174,11 +174,9 @@
     let onMouseDown;
     let onResize;
 
-    const lightColors = ["102, 167, 221", "62, 131, 225", "33, 78, 194"];
     const darkColors = ["252, 146, 174", "202, 180, 190", "207, 198, 255"];
-    const darkAtMount = document.documentElement.classList.contains("dark");
     const config = {
-      colors: darkAtMount ? darkColors : lightColors,
+      colors: darkColors,
       numberOfParticles: 20,
       orbitRadius: {
         min: 50,
@@ -251,9 +249,7 @@
       return {
         x,
         y,
-        color: document.documentElement.classList.contains("dark")
-          ? "rgb(233, 179, 237)"
-          : "rgb(106, 159, 255)",
+        color: "rgb(233, 179, 237)",
         radius: .1,
         alpha: .5,
         lineWidth: 6,

@@ -325,3 +325,89 @@
 
   loadAnime321().then(setupOriginalFireworks).catch(() => {});
 })();
+
+(() => {
+  if (window.matchMedia("(pointer: coarse)").matches) return;
+
+  const TILT_DIVISOR = 22;
+  const cards = document.querySelectorAll(
+    ".release-card, .account-card, .utility-card, .modal-card"
+  );
+  if (!cards.length) return;
+
+  const style = document.createElement("style");
+  style.id = "reference-card-tilt-style";
+  style.textContent = `
+    .reference-tilt-card {
+      --reference-rx: 0deg;
+      --reference-ry: 0deg;
+      --reference-scale: 1;
+      transform: perspective(1000px) scale(var(--reference-scale)) rotateX(var(--reference-rx)) rotateY(var(--reference-ry)) !important;
+      transform-style: preserve-3d;
+      transition: backdrop-filter .3s, background-color .3s, transform .5s cubic-bezier(.34, 1.56, .64, 1) !important;
+      will-change: transform;
+    }
+
+    .reference-tilt-card:hover { --reference-scale: 1.01; }
+    .reference-tilt-card.utility-card:hover { --reference-scale: 1.02; }
+    .reference-tilt-card:active { --reference-scale: .98; }
+    .reference-tilt-card.utility-card:active { --reference-scale: 1; }
+
+    @media (max-width: 720px), (pointer: coarse), (prefers-reduced-motion: reduce) {
+      .reference-tilt-card {
+        --reference-rx: 0deg !important;
+        --reference-ry: 0deg !important;
+        transform: scale(var(--reference-scale)) !important;
+        will-change: auto;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const cleanups = [];
+
+  cards.forEach((card) => {
+    card.classList.add("reference-tilt-card");
+    let frame = 0;
+    let pointerX = 0;
+    let pointerY = 0;
+
+    const render = () => {
+      frame = 0;
+      const rect = card.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const rotateY = (pointerX - centerX) / TILT_DIVISOR;
+      const rotateX = -(pointerY - centerY) / TILT_DIVISOR;
+      card.style.setProperty("--reference-rx", `${rotateX}deg`);
+      card.style.setProperty("--reference-ry", `${rotateY}deg`);
+    };
+
+    const onMove = (event) => {
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      if (!frame) frame = requestAnimationFrame(render);
+    };
+
+    const onLeave = () => {
+      if (frame) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      card.style.setProperty("--reference-rx", "0deg");
+      card.style.setProperty("--reference-ry", "0deg");
+    };
+
+    card.addEventListener("mousemove", onMove, { passive: true });
+    card.addEventListener("mouseleave", onLeave, { passive: true });
+    cleanups.push(() => {
+      if (frame) cancelAnimationFrame(frame);
+      card.removeEventListener("mousemove", onMove);
+      card.removeEventListener("mouseleave", onLeave);
+    });
+  });
+
+  window.addEventListener("pagehide", () => {
+    cleanups.forEach((cleanup) => cleanup());
+  }, { once: true });
+})();

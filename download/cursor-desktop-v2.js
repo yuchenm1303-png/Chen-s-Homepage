@@ -329,36 +329,122 @@
 (() => {
   if (window.matchMedia("(pointer: coarse)").matches) return;
 
-  const TILT_DIVISOR = 22;
+  const MAX_TILT = 8;
+  const MAGNET_STRENGTH = 6;
+  const LIFT_Z = 22;
+  const SHADOW_INTENSITY = 5;
+  const PERSPECTIVE = 1000;
   const cards = document.querySelectorAll(
     ".release-card, .account-card, .utility-card, .modal-card"
   );
   if (!cards.length) return;
 
   const style = document.createElement("style");
-  style.id = "reference-card-tilt-style";
+  style.id = "advanced-card-tilt-style";
   style.textContent = `
-    .reference-tilt-card {
-      --reference-rx: 0deg;
-      --reference-ry: 0deg;
-      --reference-scale: 1;
-      transform: perspective(1000px) scale(var(--reference-scale)) rotateX(var(--reference-rx)) rotateY(var(--reference-ry)) !important;
-      transform-style: preserve-3d;
-      transition: backdrop-filter .3s, background-color .3s, transform .5s cubic-bezier(.34, 1.56, .64, 1) !important;
+    .advanced-tilt-card {
+      --tilt-mx: 50%;
+      --tilt-my: 50%;
+      --tilt-rx: 0deg;
+      --tilt-ry: 0deg;
+      --tilt-tx: 0px;
+      --tilt-ty: 0px;
+      --tilt-tz: 0px;
+      --tilt-sx: 0px;
+      --tilt-sy: 0px;
+      --tilt-scale: 1;
+      --tilt-radius: 18px;
+      --tilt-perspective: ${PERSPECTIVE}px;
+      position: relative;
+      min-width: 0;
+      box-sizing: border-box;
+      transform-style: flat;
+      transform: perspective(var(--tilt-perspective)) scale(var(--tilt-scale));
+      transition: transform .5s cubic-bezier(.25, .46, .45, .94), box-shadow .5s ease !important;
       will-change: transform;
     }
 
-    .reference-tilt-card:hover { --reference-scale: 1.01; }
-    .reference-tilt-card.utility-card:hover { --reference-scale: 1.02; }
-    .reference-tilt-card:active { --reference-scale: .98; }
-    .reference-tilt-card.utility-card:active { --reference-scale: 1; }
+    .advanced-tilt-card.utility-card { --tilt-radius: 14px; }
+    .advanced-tilt-card:hover { --tilt-scale: 1.01; }
+    .advanced-tilt-card.utility-card:hover { --tilt-scale: 1.02; }
+    .advanced-tilt-card:active { --tilt-scale: .985; }
+    .advanced-tilt-card.utility-card:active { --tilt-scale: 1; }
+
+    .advanced-tilt-card.is-tilting {
+      transition: transform .12s ease-out, box-shadow .35s ease !important;
+      transform:
+        perspective(var(--tilt-perspective))
+        scale(var(--tilt-scale))
+        rotateX(var(--tilt-rx))
+        rotateY(var(--tilt-ry))
+        translate3d(var(--tilt-tx), var(--tilt-ty), var(--tilt-tz)) !important;
+      box-shadow:
+        0 25px 60px rgba(0, 0, 0, .24),
+        0 0 0 1px rgba(233, 179, 237, .20),
+        var(--tilt-sx) var(--tilt-sy) 20px rgba(0, 0, 0, .08) !important;
+    }
+
+    .advanced-tilt-card.is-tilting * {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    .advanced-tilt-glow,
+    .advanced-tilt-border-light {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--tilt-radius);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .4s ease;
+    }
+
+    .advanced-tilt-glow {
+      background: radial-gradient(
+        circle 280px at var(--tilt-mx) var(--tilt-my),
+        rgba(255, 255, 255, .32) 0%,
+        rgba(233, 179, 237, .07) 30%,
+        transparent 70%
+      );
+      z-index: 10;
+    }
+
+    .advanced-tilt-border-light {
+      padding: 1.5px;
+      background: radial-gradient(
+        circle 220px at var(--tilt-mx) var(--tilt-my),
+        rgba(233, 179, 237, .55) 0%,
+        transparent 60%
+      );
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      z-index: 11;
+    }
+
+    .advanced-tilt-card.is-tilting > .advanced-tilt-glow,
+    .advanced-tilt-card.is-tilting > .advanced-tilt-border-light {
+      opacity: 1;
+      transition: opacity .15s ease;
+    }
 
     @media (max-width: 720px), (pointer: coarse), (prefers-reduced-motion: reduce) {
-      .reference-tilt-card {
-        --reference-rx: 0deg !important;
-        --reference-ry: 0deg !important;
-        transform: scale(var(--reference-scale)) !important;
+      .advanced-tilt-card,
+      .advanced-tilt-card.is-tilting {
+        --tilt-rx: 0deg !important;
+        --tilt-ry: 0deg !important;
+        --tilt-tx: 0px !important;
+        --tilt-ty: 0px !important;
+        --tilt-tz: 0px !important;
+        transform: scale(var(--tilt-scale)) !important;
+        box-shadow: inherit !important;
         will-change: auto;
+      }
+
+      .advanced-tilt-glow,
+      .advanced-tilt-border-light {
+        display: none !important;
       }
     }
   `;
@@ -367,7 +453,20 @@
   const cleanups = [];
 
   cards.forEach((card) => {
-    card.classList.add("reference-tilt-card");
+    card.classList.remove("reference-tilt-card");
+    card.classList.add("advanced-tilt-card");
+
+    const glow = document.createElement("div");
+    glow.className = "advanced-tilt-glow";
+    glow.setAttribute("aria-hidden", "true");
+
+    const borderLight = document.createElement("div");
+    borderLight.className = "advanced-tilt-border-light";
+    borderLight.setAttribute("aria-hidden", "true");
+
+    card.prepend(borderLight);
+    card.prepend(glow);
+
     let frame = 0;
     let pointerX = 0;
     let pointerY = 0;
@@ -375,12 +474,40 @@
     const render = () => {
       frame = 0;
       const rect = card.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const rotateY = (pointerX - centerX) / TILT_DIVISOR;
-      const rotateX = -(pointerY - centerY) / TILT_DIVISOR;
-      card.style.setProperty("--reference-rx", `${rotateX}deg`);
-      card.style.setProperty("--reference-ry", `${rotateY}deg`);
+      const halfWidth = Math.max(1, rect.width / 2);
+      const halfHeight = Math.max(1, rect.height / 2);
+      const centerX = rect.left + halfWidth;
+      const centerY = rect.top + halfHeight;
+      const normalizedX = Math.max(-1, Math.min(1, (pointerX - centerX) / halfWidth));
+      const normalizedY = Math.max(-1, Math.min(1, (pointerY - centerY) / halfHeight));
+
+      card.style.setProperty("--tilt-mx", `${pointerX - rect.left}px`);
+      card.style.setProperty("--tilt-my", `${pointerY - rect.top}px`);
+      card.style.setProperty("--tilt-rx", `${-normalizedY * MAX_TILT}deg`);
+      card.style.setProperty("--tilt-ry", `${normalizedX * MAX_TILT}deg`);
+      card.style.setProperty("--tilt-tx", `${normalizedX * MAGNET_STRENGTH}px`);
+      card.style.setProperty("--tilt-ty", `${normalizedY * MAGNET_STRENGTH}px`);
+      card.style.setProperty("--tilt-tz", `${LIFT_Z}px`);
+      card.style.setProperty("--tilt-sx", `${-normalizedX * SHADOW_INTENSITY}px`);
+      card.style.setProperty("--tilt-sy", `${-normalizedY * SHADOW_INTENSITY}px`);
+      card.classList.add("is-tilting");
+    };
+
+    const reset = () => {
+      if (frame) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      card.classList.remove("is-tilting");
+      card.style.setProperty("--tilt-mx", "50%");
+      card.style.setProperty("--tilt-my", "50%");
+      card.style.setProperty("--tilt-rx", "0deg");
+      card.style.setProperty("--tilt-ry", "0deg");
+      card.style.setProperty("--tilt-tx", "0px");
+      card.style.setProperty("--tilt-ty", "0px");
+      card.style.setProperty("--tilt-tz", "0px");
+      card.style.setProperty("--tilt-sx", "0px");
+      card.style.setProperty("--tilt-sy", "0px");
     };
 
     const onMove = (event) => {
@@ -389,21 +516,15 @@
       if (!frame) frame = requestAnimationFrame(render);
     };
 
-    const onLeave = () => {
-      if (frame) {
-        cancelAnimationFrame(frame);
-        frame = 0;
-      }
-      card.style.setProperty("--reference-rx", "0deg");
-      card.style.setProperty("--reference-ry", "0deg");
-    };
-
     card.addEventListener("mousemove", onMove, { passive: true });
-    card.addEventListener("mouseleave", onLeave, { passive: true });
+    card.addEventListener("mouseleave", reset, { passive: true });
+
     cleanups.push(() => {
       if (frame) cancelAnimationFrame(frame);
       card.removeEventListener("mousemove", onMove);
-      card.removeEventListener("mouseleave", onLeave);
+      card.removeEventListener("mouseleave", reset);
+      glow.remove();
+      borderLight.remove();
     });
   });
 

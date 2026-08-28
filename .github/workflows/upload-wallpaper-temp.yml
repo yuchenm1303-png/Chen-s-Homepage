@@ -1,0 +1,31 @@
+name: Upload wallpaper asset
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/upload-wallpaper-temp.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Replace download wallpaper with uploaded PNG
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 "https://at.adobe.com/ueYDvps4C0Yj7F5h" -o /tmp/wallpaper.png
+          echo "0931536773f88a77034599bfb12f56de7eb735ae02a8df45aebfc499323d4262  /tmp/wallpaper.png" | sha256sum -c -
+          cp /tmp/wallpaper.png download/wallpaper-beach-blue-v1-original.png
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add download/wallpaper-beach-blue-v1-original.png
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(download): replace wallpaper image"
+          git push origin HEAD:main

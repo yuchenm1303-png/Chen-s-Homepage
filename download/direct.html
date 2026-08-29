@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#91c7e3" />
+  <title>Listing Studio for Windows</title>
+  <script>
+    (() => {
+      const target = new URL("./", window.location.href);
+      const current = new URL(window.location.href);
+      current.searchParams.forEach((value, key) => target.searchParams.append(key, value));
+      target.searchParams.set("source", "direct");
+      target.hash = current.hash;
+      window.location.replace(target.toString());
+    })();
+  </script>
+</head>
+<body></body>
+</html>

@@ -1,3 +1,11 @@
+.usage-heading > div > p:not(.eyebrow) {
+  margin: 8px 0 0;
+  max-width: 680px;
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.55;
+}
+
 .tenant-scope-badge {
   display: inline-flex;
   align-items: center;

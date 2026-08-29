@@ -1,13 +1,28 @@
-const brandMark = document.querySelector(".brand-mark");
-if (brandMark) {
-  const icon = document.createElement("img");
-  icon.src = "./listing-studio-product-icon.png?v=20260829-monitor-direct-1";
-  icon.alt = "";
+const brandSlot = document.querySelector(".usage-shell .topbar .brand > :first-child");
+if (brandSlot) {
+  const icon = document.createElement("span");
   icon.setAttribute("aria-hidden", "true");
-  icon.width = 42;
-  icon.height = 42;
-  icon.style.cssText = "display:block;width:42px;height:42px;flex:0 0 42px;object-fit:contain;border:0;background:transparent;box-shadow:none;";
-  brandMark.replaceWith(icon);
+  icon.style.cssText = [
+    "display:block",
+    "width:42px",
+    "height:42px",
+    "flex:0 0 42px",
+    "padding:0",
+    "margin:0",
+    "border:0",
+    "border-radius:0",
+    "background-color:transparent",
+    "background-image:url('./listing-studio-product-icon.png?v=20260829-monitor-bg-1')",
+    "background-repeat:no-repeat",
+    "background-position:center",
+    "background-size:contain",
+    "box-shadow:none",
+    "opacity:1",
+    "visibility:visible",
+    "filter:none",
+    "mix-blend-mode:normal"
+  ].join(";");
+  brandSlot.replaceWith(icon);
 }
 
 import "./usage-task-history-v2.js?v=20260826-2359";

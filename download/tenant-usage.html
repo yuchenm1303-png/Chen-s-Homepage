@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN" class="wallpaper-pending" data-wallpaper-src="./wallpaper-rain-anime-v1.png?v=20260825-1540">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#91c7e3" />
+  <title>Listing Studio · Organization Monitor</title>
+  <link rel="stylesheet" href="./styles-v3.css" />
+  <link rel="stylesheet" href="./cosmic-bright-v1.css" />
+  <link rel="stylesheet" href="./portal-polish-v1.css" />
+  <link rel="stylesheet" href="./portal-polish-v2.css" />
+  <link rel="stylesheet" href="./portal-account-v1.css" />
+  <link rel="stylesheet" href="./portal-account-v2.css" />
+  <link rel="stylesheet" href="./layout-visual-restore-v1.css" />
+  <link rel="stylesheet" href="./cursor-reference-source-v1.css" />
+  <link rel="stylesheet" href="./usage-admin-v1.css?v=20260821-1800" />
+  <link rel="stylesheet" href="./usage-ops-v1.css?v=20260818-0950" />
+  <link rel="stylesheet" href="./usage-ops-layout-v2.css?v=20260819-1304" />
+  <link rel="stylesheet" href="./usage-tenant-v1.css?v=20260829-1" />
+  <link rel="preload" as="image" href="./wallpaper-rain-anime-v1.png?v=20260825-1540" />
+  <link rel="stylesheet" href="./beach-wallpaper-v1.css?v=20260829-first-paint-1" />
+  <link rel="stylesheet" href="./wallpaper-ready-v1.css?v=20260829-1521" />
+  <script defer src="./wallpaper-ready-v1.js?v=20260829-1521"></script>
+</head>
+<body class="beach-wallpaper-active">
+  <div class="cosmos beach-wallpaper-active" aria-hidden="true">
+    <div class="beach-wallpaper" data-wallpaper="rain-anime" style="--beach-image: url('./wallpaper-rain-anime-v1.png?v=20260825-1540'); --beach-position-x: 54%; --beach-position-mobile-x: 57%; --beach-veil-top: .17; --beach-veil-bottom: .28;"></div>
+    <div class="cosmos-sky"></div>
+    <div class="cosmos-glow"></div>
+    <div class="cosmos-nebula cosmos-nebula-cyan"></div>
+    <div class="cosmos-nebula cosmos-nebula-violet"></div>
+    <div class="parallax-layer parallax-layer-far">
+      <span class="small-star small-star--ivory s1"></span><span class="small-star small-star--cyan s2"></span><span class="small-star small-star--ivory s3"></span><span class="small-star small-star--rose s4"></span><span class="small-star small-star--ivory s5"></span><span class="small-star small-star--cyan s6"></span><span class="small-star small-star--ivory s7"></span><span class="small-star small-star--ivory s8"></span><span class="small-star small-star--cyan s9"></span><span class="small-star small-star--rose s10"></span><span class="small-star small-star--cyan s11"></span><span class="small-star small-star--ivory s12"></span><span class="small-star small-star--ivory s13"></span><span class="small-star small-star--cyan s14"></span>
+    </div>
+    <div class="parallax-layer parallax-layer-near">
+      <span class="major-star major-star--cyan m1"></span><span class="major-star major-star--ivory m2"></span><span class="major-star major-star--cyan m3"></span><span class="major-star major-star--rose m4"></span><span class="major-star major-star--cyan m5"></span>
+      <div class="upper-right-stars"><span class="hero-flare hero-flare-main"></span><span class="hero-flare hero-flare-secondary"></span><span class="hero-dot hero-dot-a"></span><span class="hero-dot hero-dot-b"></span><span class="hero-dot hero-dot-c"></span><span class="hero-trail"></span></div>
+    </div>
+    <div class="cosmos-vignette"></div>
+  </div>
+
+  <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+  <div class="cursor-follow" id="cursorFollow" aria-hidden="true"></div>
+
+  <main class="release-shell usage-shell">
+    <header class="topbar fade">
+      <a class="brand" href="/" aria-label="返回 Smirel 首页">
+        <span class="brand-mark">LS</span>
+        <span class="brand-copy"><strong>Listing Studio</strong><small>Organization Monitor</small></span>
+      </a>
+      <div class="topbar-right">
+        <nav class="portal-nav" aria-label="页面导航">
+          <a href="./">下载</a>
+          <a href="./#account">账户</a>
+          <a href="./tenant-usage.html" aria-current="page">服务状态</a>
+        </nav>
+        <div class="service-status"><i></i><span>Status</span></div>
+      </div>
+    </header>
+
+    <section class="usage-heading fade">
+      <div>
+        <p class="eyebrow">ORGANIZATION · LIVE STATUS</p>
+        <h1>Organization Monitor</h1>
+        <p>当前组织范围内的客户端状态、任务处理、版本与运行健康信息。</p>
+        <span class="tenant-scope-badge" id="tenantScopeName">正在确认组织范围</span>
+      </div>
+      <div class="usage-heading-actions">
+        <div class="usage-updated"><span>LAST UPDATE</span><strong id="generatedAt">等待读取</strong></div>
+        <button id="refreshButton" class="switch-account-button usage-refresh" type="button">刷新</button>
+      </div>
+    </section>
+
+    <section class="account-status-panel usage-status-panel fade" aria-live="polite">
+      <div class="account-status-line"><span>服务状态</span><strong id="statusPanel" data-state="neutral">正在加载服务数据…</strong></div>
+      <div class="account-status-line"><span>状态窗口</span><strong id="windowText" data-state="neutral">—</strong></div>
+    </section>
+
+    <section id="summaryGrid" class="usage-summary-grid fade" hidden>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">LIVE</span><h3 id="onlineCount">0</h3><p id="onlineRatio">当前在线</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">ACCOUNTS</span><h3 id="accountCount">0</h3><p>组织账户</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">APP</span><h3 id="launchCount">0</h3><p>客户端启动</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">DEVICES</span><h3 id="activeDeviceCount">0</h3><p id="deviceCapacityText">活跃设备</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">SINGLE</span><h3 id="singleDoneCount">0</h3><p>单商品完成</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">BATCH LINKS</span><h3 id="batchDoneCount">0</h3><p>批量商品完成</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">SUCCESS</span><h3 id="successRate">—</h3><p id="successRateMeta">暂无任务</p></article>
+      <article class="utility-card cards usage-summary-card"><span class="utility-overline">FAILED</span><h3 id="failureCount">0</h3><p>失败任务</p></article>
+    </section>
+
+    <section id="activitySection" class="usage-activity-section fade" hidden>
+      <article class="account-card cards usage-activity-card">
+        <div class="account-head usage-activity-head">
+          <div><p class="kicker" id="activityKicker">24H ACTIVITY</p><h2>运行概览</h2><p class="usage-account-email" id="activityMeta">过去 24 小时组织内客户端活动与任务处理记录</p></div>
+          <div id="activityRangeControl" class="usage-range-control" role="group" aria-label="运行概览时间范围">
+            <button type="button" data-range="24h" aria-pressed="true">24小时</button><button type="button" data-range="7d" aria-pressed="false">7天</button><button type="button" data-range="30d" aria-pressed="false">30天</button>
+          </div>
+        </div>
+        <div class="usage-monitor-grid">
+          <div class="usage-monitor-panel"><div class="usage-monitor-panel-head"><span>活动覆盖</span><strong id="presenceSummary">—</strong></div><div id="globalPresenceRail" class="usage-presence-rail" aria-label="活动覆盖"></div><div id="globalPresenceAxis" class="usage-monitor-axis" aria-hidden="true"></div></div>
+          <div class="usage-monitor-panel"><div class="usage-monitor-panel-head"><span>任务处理</span><strong id="throughputSummary">—</strong></div><div id="globalTaskSpark" class="usage-throughput-chart" aria-label="任务处理"></div><div id="globalTaskAxis" class="usage-monitor-axis" aria-hidden="true"></div></div>
+        </div>
+        <div class="account-footer usage-monitor-legend"><span><i class="usage-legend-dot is-active"></i>在线</span><span><i class="usage-legend-dot is-idle"></i>无记录</span><span><i class="usage-legend-dot is-failed"></i>存在失败</span><span>柱高表示对应时间段的任务数量</span></div>
+      </article>
+    </section>
+
+    <section id="accountsSection" class="usage-accounts-section fade" hidden>
+      <div class="usage-section-head"><div><p class="kicker">ACCOUNT ACTIVITY</p><h2>客户端状态</h2></div><span id="accountsHint">当前组织</span></div>
+      <div id="usersPanel" class="usage-account-grid"></div>
+    </section>
+
+    <section id="opsSection" class="usage-ops-section fade" hidden>
+      <div class="usage-section-head"><div><p class="kicker">SYSTEM HEALTH</p><h2>系统状态</h2></div><span>Device / Task / Version</span></div>
+      <div id="opsKpis" class="usage-ops-kpis"></div>
+      <div class="usage-ops-grid"><article id="deviceHealthPanel" class="account-card cards usage-ops-panel"></article><article id="taskPerformancePanel" class="account-card cards usage-ops-panel"></article><article id="versionHealthPanel" class="account-card cards usage-ops-panel"></article></div>
+    </section>
+
+    <section id="taskAuditSection" class="usage-accounts-section usage-task-audit-section fade" hidden>
+      <div class="usage-section-head usage-task-audit-head">
+        <div><p class="kicker">TASK HISTORY</p><h2>任务记录</h2></div>
+        <div class="usage-audit-tools"><input id="auditSearch" class="usage-audit-search" type="search" placeholder="搜索账户 / 链接 / Job" autocomplete="off" /><select id="auditFilter" class="usage-audit-filter" aria-label="任务记录筛选"><option value="all">全部任务</option><option value="single">Single</option><option value="batch">Batch</option><option value="running">运行中</option><option value="failed">失败</option><option value="completed">完成</option><option value="ready">Ready</option></select><span id="auditHint">暂无任务记录</span></div>
+      </div>
+      <div id="taskAuditPanel" class="usage-task-audit-list"></div>
+    </section>
+
+    <section id="diagnosticsSection" class="usage-diagnostics-section fade" hidden>
+      <div class="usage-section-head"><div><p class="kicker">DIAGNOSTICS</p><h2>诊断记录</h2></div><span id="diagnosticsHint">0 条</span></div>
+      <div id="diagnosticsPanel" class="usage-diagnostic-list"></div>
+    </section>
+
+    <footer class="footer fade usage-footer"><span>© 2026 Listing Studio · Organization Monitor</span><span>仅显示当前账户获授权的组织范围数据。</span></footer>
+  </main>
+
+  <script src="./config-v6.js"></script>
+  <script type="module" src="./usage-tenant-v1.js?v=20260829-1"></script>
+  <script src="./cursor-desktop-v2.js?v=20260813-2"></script>
+</body>
+</html>

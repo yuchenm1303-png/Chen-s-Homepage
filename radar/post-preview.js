@@ -1,7 +1,7 @@
 (() => {
   const SCAN_API = "https://nfzkphjbelyltrzgkdwt.supabase.co/functions/v1/lead-radar-scan";
   const API = "https://nfzkphjbelyltrzgkdwt.supabase.co/functions/v1/lead-radar-api";
-  let currentFilter = "all";
+  let currentFilter = "stored";
   let latestPosts = [];
   let latestResult = null;
   let latestFailure = "";
@@ -357,7 +357,7 @@
       ["filtered", "系统过滤"],
       ["seen", "已处理"],
     ].forEach(([key, label]) => {
-      const button = el("button", `release-badge scan-post-filter${key === "all" ? " active" : ""}`, label);
+      const button = el("button", `release-badge scan-post-filter${key === currentFilter ? " active" : ""}`, label);
       button.type = "button";
       button.dataset.filter = key;
       button.addEventListener("click", () => {

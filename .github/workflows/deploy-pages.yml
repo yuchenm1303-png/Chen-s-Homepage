@@ -25,6 +25,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build canonical Listing Studio icon
+        shell: python
+        run: |
+          import ast
+          import base64
+          import hashlib
+          import urllib.request
+          from pathlib import Path
+
+          source_url = "https://raw.githubusercontent.com/yuchenm1303-png/ecommerce-agent/feat/local-test-gui/app/app_icon_data.py"
+          source = urllib.request.urlopen(source_url, timeout=30).read().decode("utf-8")
+          module = ast.parse(source)
+
+          expected_sha = None
+          png_base64 = None
+          for node in module.body:
+              if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                  name = node.targets[0].id
+                  if name == "APP_ICON_SHA256":
+                      expected_sha = ast.literal_eval(node.value)
+                  elif name == "APP_ICON_PNG_BASE64":
+                      png_base64 = ast.literal_eval(node.value)
+
+          if not expected_sha or not png_base64:
+              raise RuntimeError("canonical Listing Studio icon data not found")
+
+          png = base64.b64decode(png_base64, validate=True)
+          actual_sha = hashlib.sha256(png).hexdigest()
+          if actual_sha != expected_sha:
+              raise RuntimeError(f"icon sha256 mismatch: expected {expected_sha}, got {actual_sha}")
+
+          output = Path("download/listing-studio-product-icon.png")
+          output.write_bytes(png)
+          print(f"wrote {output} ({len(png)} bytes, sha256={actual_sha})")
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 

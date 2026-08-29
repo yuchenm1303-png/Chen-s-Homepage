@@ -19,6 +19,10 @@
   document.head.appendChild(script);
 })();
 
+void import("./portal-brand-v1.js?v=20260829-2").catch((error) => {
+  console.warn("Listing Studio product branding failed", error);
+});
+
 // Registration v2 keeps email confirmation inside the original registration
 // window by verifying the email OTP in-place. No confirmation-page redirect is
 // required for the normal signup flow.

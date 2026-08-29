@@ -1,7 +1,7 @@
 const STYLE_ID = "listing-studio-product-brand";
 const ICON_CLASS = "has-product-icon";
 const ICON_SLOTS = ".brand-mark, .release-product-icon";
-const ICON_URL = new URL("./listing-studio-product-icon.png?v=20260829-2", import.meta.url).href;
+const ICON_URL = new URL("./listing-studio-product-icon.png?v=20260829-3", import.meta.url).href;
 
 const ensureBrandStyles = () => {
   if (document.getElementById(STYLE_ID)) return;
@@ -27,7 +27,8 @@ const ensureBrandStyles = () => {
       letter-spacing: .06em !important;
     }
 
-    ${ICON_SLOTS}.${ICON_CLASS} {
+    .brand-mark.${ICON_CLASS},
+    .release-product-icon.${ICON_CLASS} {
       color: transparent !important;
       font-size: 0 !important;
       letter-spacing: 0 !important;
@@ -37,7 +38,8 @@ const ensureBrandStyles = () => {
       overflow: hidden;
     }
 
-    ${ICON_SLOTS}.${ICON_CLASS} > img {
+    .brand-mark.${ICON_CLASS} > img,
+    .release-product-icon.${ICON_CLASS} > img {
       display: block;
       width: 100%;
       height: 100%;

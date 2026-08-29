@@ -1,0 +1,73 @@
+name: Fix wallpaper first paint
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/fix-wallpaper-first-paint-temp.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Make wallpaper the first-paint owner
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f"missing expected fragment: {label}")
+              if text.count(old) != 1:
+                  raise SystemExit(f"expected exactly one fragment: {label}")
+              return text.replace(old, new, 1)
+
+          index_path = Path("download/index.html")
+          index = index_path.read_text(encoding="utf-8")
+          index = replace_once(
+              index,
+              '  <script defer src="./beach-wallpaper-download-v1.js?v=20260828-1437"></script>',
+              '  <link rel="preload" as="image" href="./wallpaper-beach-blue-v1-original.png?v=20260828-1348-original-png" />\n  <link rel="stylesheet" href="./beach-wallpaper-v1.css?v=20260829-first-paint-1" />',
+              "download wallpaper loader",
+          )
+          index = replace_once(index, '<body>', '<body class="beach-wallpaper-active">', "download body")
+          index = replace_once(
+              index,
+              '  <div class="cosmos" aria-hidden="true">\n    <div class="cosmos-sky"></div>',
+              '  <div class="cosmos beach-wallpaper-active" aria-hidden="true">\n    <div class="beach-wallpaper is-ready" data-wallpaper="beach-blue" style="--beach-image: url(\'./wallpaper-beach-blue-v1-original.png?v=20260828-1348-original-png\'); --beach-position-x: 54%; --beach-position-mobile-x: 57%; --beach-veil-top: .17; --beach-veil-bottom: .28;"></div>\n    <div class="cosmos-sky"></div>',
+              "download cosmos",
+          )
+          index_path.write_text(index, encoding="utf-8")
+
+          usage_path = Path("download/usage.html")
+          usage = usage_path.read_text(encoding="utf-8")
+          usage = replace_once(
+              usage,
+              '  <script defer src="./beach-wallpaper-v1.js?v=20260825-1540"></script>',
+              '  <link rel="preload" as="image" href="./wallpaper-rain-anime-v1.png?v=20260825-1540" />\n  <link rel="stylesheet" href="./beach-wallpaper-v1.css?v=20260829-first-paint-1" />',
+              "monitor wallpaper loader",
+          )
+          usage = replace_once(usage, '<body>', '<body class="beach-wallpaper-active">', "monitor body")
+          usage = replace_once(
+              usage,
+              '  <div class="cosmos" aria-hidden="true">\n    <div class="cosmos-sky"></div>',
+              '  <div class="cosmos beach-wallpaper-active" aria-hidden="true">\n    <div class="beach-wallpaper is-ready" data-wallpaper="rain-anime" style="--beach-image: url(\'./wallpaper-rain-anime-v1.png?v=20260825-1540\'); --beach-position-x: 54%; --beach-position-mobile-x: 57%; --beach-veil-top: .17; --beach-veil-bottom: .28;"></div>\n    <div class="cosmos-sky"></div>',
+              "monitor cosmos",
+          )
+          usage_path.write_text(usage, encoding="utf-8")
+      - name: Commit root fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add download/index.html download/usage.html
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(download): own wallpaper from first paint"
+          git push origin HEAD:main

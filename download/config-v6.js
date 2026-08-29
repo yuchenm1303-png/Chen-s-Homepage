@@ -47,7 +47,9 @@ window.DOWNLOAD_PORTAL_CONFIG = {
   window.DOWNLOAD_PORTAL_REGISTRATION_CHANNEL = direct ? "direct" : "first-client";
 
   if (direct && url.searchParams.get("source") === "direct" && path !== "/download/direct.html") {
-    window.history.replaceState({}, "", "/download/direct.html" + window.location.hash);
+    url.searchParams.delete("source");
+    const search = url.searchParams.toString();
+    window.history.replaceState({}, "", `/download/direct.html${search ? `?${search}` : ""}${window.location.hash}`);
   }
 
   const importMap = document.createElement("script");

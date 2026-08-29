@@ -19,7 +19,7 @@
   document.head.appendChild(script);
 })();
 
-void import("./portal-brand-v1.js?v=20260829-2").catch((error) => {
+void import("./portal-brand-v1.js?v=20260829-3").catch((error) => {
   console.warn("Listing Studio product branding failed", error);
 });
 

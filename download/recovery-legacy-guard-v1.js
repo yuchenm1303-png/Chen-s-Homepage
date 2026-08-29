@@ -19,24 +19,32 @@
   document.head.appendChild(script);
 })();
 
-// Use the exact PNG source embedded by the packaged Listing Studio app.
+// Use the exact PNG source embedded by the packaged Listing Studio app for
+// every Listing Studio mark shown on the download page.
 (() => {
   const APP_ICON_SOURCE = "https://raw.githubusercontent.com/yuchenm1303-png/ecommerce-agent/feat/local-test-gui/app/app_icon_data.py";
+  const ICON_SLOT_SELECTOR = ".brand-mark, .release-product-icon";
 
-  const applyBrandIcon = async () => {
-    const mark = document.querySelector(".brand-mark");
-    if (!mark) return;
+  const prepareIconSlot = (slot) => {
+    slot.textContent = "";
+    slot.style.padding = "0";
+    slot.style.border = "0";
+    slot.style.overflow = "hidden";
+    slot.style.background = "transparent";
+    slot.style.boxShadow = "none";
 
-    mark.textContent = "";
-    mark.style.width = "42px";
-    mark.style.height = "42px";
-    mark.style.flex = "0 0 42px";
-    mark.style.padding = "0";
-    mark.style.border = "0";
-    mark.style.borderRadius = "12px";
-    mark.style.overflow = "hidden";
-    mark.style.background = "transparent";
-    mark.style.boxShadow = "none";
+    if (slot.classList.contains("brand-mark")) {
+      slot.style.width = "42px";
+      slot.style.height = "42px";
+      slot.style.flex = "0 0 42px";
+      slot.style.borderRadius = "12px";
+    }
+  };
+
+  const applyListingStudioIcons = async () => {
+    const slots = Array.from(document.querySelectorAll(ICON_SLOT_SELECTOR));
+    if (!slots.length) return;
+    slots.forEach(prepareIconSlot);
 
     try {
       const response = await fetch(APP_ICON_SOURCE, { cache: "force-cache" });
@@ -47,25 +55,28 @@
       const base64 = Array.from(block.matchAll(/"([^"]+)"/g), (match) => match[1]).join("");
       if (!base64) throw new Error("icon data empty");
 
-      const icon = document.createElement("img");
-      icon.src = `data:image/png;base64,${base64}`;
-      icon.alt = "";
-      icon.width = 42;
-      icon.height = 42;
-      icon.style.display = "block";
-      icon.style.width = "100%";
-      icon.style.height = "100%";
-      icon.style.objectFit = "contain";
-      mark.replaceChildren(icon);
+      const iconSource = `data:image/png;base64,${base64}`;
+      for (const slot of slots) {
+        const icon = document.createElement("img");
+        icon.src = iconSource;
+        icon.alt = "";
+        icon.setAttribute("aria-hidden", "true");
+        icon.draggable = false;
+        icon.style.display = "block";
+        icon.style.width = "100%";
+        icon.style.height = "100%";
+        icon.style.objectFit = "contain";
+        slot.replaceChildren(icon);
+      }
     } catch (error) {
       console.warn("Listing Studio icon load failed", error);
     }
   };
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", applyBrandIcon, { once: true });
+    document.addEventListener("DOMContentLoaded", applyListingStudioIcons, { once: true });
   } else {
-    applyBrandIcon();
+    applyListingStudioIcons();
   }
 })();
 

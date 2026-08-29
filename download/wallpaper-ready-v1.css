@@ -1,0 +1,16 @@
+html.wallpaper-pending {
+  background: #21313c;
+}
+
+html.wallpaper-pending body > :not(.cosmos) {
+  visibility: hidden !important;
+}
+
+html.wallpaper-pending .beach-wallpaper {
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+html.wallpaper-ready .beach-wallpaper.is-ready {
+  transition: none !important;
+}

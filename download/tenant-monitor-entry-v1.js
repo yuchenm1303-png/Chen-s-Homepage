@@ -86,8 +86,8 @@ async function startMonitor() {
   setStatus("正在加载客户监控数据…", "neutral");
   if (refreshButton) refreshButton.disabled = false;
   await Promise.all([
-    import("./usage-admin-v2.js?v=20260829-tenant-login-1"),
-    import("./usage-ops-v1.js?v=20260829-tenant-login-1")
+    import("./usage-admin-v2.js?v=20260830-0910"),
+    import("./usage-ops-v1.js?v=20260830-0910")
   ]);
 }
 

@@ -26,7 +26,7 @@ if (brandSlot) {
 }
 
 import "./usage-task-history-v2.js?v=20260826-2359";
-import "./usage-admin-v2-core.js?v=20260821-1800";
+import "./usage-admin-v2-core.js?v=20260830-0910";
 
 void Promise.allSettled([
   import("./usage-public-copy-v1.js?v=20260820-1645"),

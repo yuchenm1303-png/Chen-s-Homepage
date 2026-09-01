@@ -25,7 +25,7 @@ if (brandSlot) {
   brandSlot.replaceWith(icon);
 }
 
-import "./usage-task-history-v2.js?v=20260826-2359";
+import "./usage-task-history-v2.js?v=20260901-history-pagination-1";
 import "./usage-admin-v2-core.js?v=20260830-0910";
 
 void Promise.allSettled([

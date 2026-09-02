@@ -25,9 +25,18 @@
   color: #8fdcff;
 }
 
+.usage-task-status[data-state="waiting"],
+.usage-task-status[data-state="stale"],
 .usage-task-status[data-state="cancelled"],
 .usage-task-status[data-state="review"] {
   color: #9fa9b5;
+  text-shadow: none;
+  animation: none;
+}
+
+.usage-task-status[data-state="waiting"]::before,
+.usage-task-status[data-state="stale"]::before {
+  content: none;
 }
 
 .usage-task-status[data-state="failed"] {

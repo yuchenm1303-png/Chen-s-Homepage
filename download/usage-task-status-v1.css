@@ -3,21 +3,50 @@
 }
 
 .usage-task-status[data-state="running"] {
-  color: #ffd36f;
+  color: #b69cff;
+  text-shadow: 0 0 10px rgba(182, 156, 255, .38);
+  animation: usage-task-running-pulse 1.55s ease-in-out infinite;
+}
+
+.usage-task-status[data-state="running"]::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  margin-right: 5px;
+  display: inline-block;
+  vertical-align: 1px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px rgba(182, 156, 255, .55);
+  animation: usage-task-running-dot 1.3s ease-in-out infinite;
 }
 
 .usage-task-status[data-state="ready"] {
   color: #8fdcff;
 }
 
-.usage-task-status[data-state="cancelled"] {
-  color: #c9b7ff;
+.usage-task-status[data-state="cancelled"],
+.usage-task-status[data-state="review"] {
+  color: #9fa9b5;
 }
 
 .usage-task-status[data-state="failed"] {
   color: #ff91a6;
 }
 
-.usage-task-status[data-state="review"] {
-  color: #ffc58c;
+@keyframes usage-task-running-pulse {
+  0%, 100% { opacity: .72; text-shadow: 0 0 5px rgba(182, 156, 255, .2); }
+  50% { opacity: 1; text-shadow: 0 0 13px rgba(182, 156, 255, .62); }
+}
+
+@keyframes usage-task-running-dot {
+  0%, 100% { opacity: .5; transform: scale(.72); }
+  50% { opacity: 1; transform: scale(1.28); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usage-task-status[data-state="running"],
+  .usage-task-status[data-state="running"]::before {
+    animation: none;
+  }
 }

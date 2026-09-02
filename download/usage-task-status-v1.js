@@ -3,6 +3,8 @@ const STATUS_STATES = new Map([
   ["COMPLETED", "completed"],
   ["RUNNING", "running"],
   ["READY", "ready"],
+  ["WAITING", "waiting"],
+  ["STALE", "stale"],
   ["CANCELLED", "cancelled"],
   ["FAILED", "failed"],
   ["REVIEW", "review"]
@@ -13,7 +15,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = "usageTaskStatusStyles";
   link.rel = "stylesheet";
-  link.href = "./usage-task-status-v1.css?v=20260902-lifecycle-motion-2";
+  link.href = "./usage-task-status-v1.css?v=20260902-waiting-stale-1";
   document.head.append(link);
 }
 

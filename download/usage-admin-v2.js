@@ -1,4 +1,4 @@
-import "./usage-task-status-v1.js?v=20260902-lifecycle-motion-2";
+import "./usage-task-status-v1.js?v=20260902-waiting-stale-1";
 
 const brandSlot = document.querySelector(".usage-shell .topbar .brand > :first-child");
 if (brandSlot) {
@@ -29,13 +29,13 @@ if (brandSlot) {
 
 import "./usage-task-history-v2.js?v=20260901-history-pagination-1";
 import "./usage-admin-v2-core.js?v=20260902-lifecycle-1";
-import "./usage-task-activity-v1.js?v=20260902-lifecycle-motion-2";
+import "./usage-task-activity-v2.js?v=20260902-waiting-stale-1";
 import "./usage-running-motion-v1.js?v=20260902-seamless-1";
 
 void Promise.allSettled([
   import("./usage-public-copy-v1.js?v=20260820-1645"),
   import("./usage-copy-v1.js?v=20260819-1005"),
-  import("./usage-chart-tooltip-v1.js?v=20260902-lifecycle-tooltip-1"),
+  import("./usage-chart-tooltip-v1.js?v=20260902-waiting-stale-1"),
   import("./usage-daily-heatmap-v1.js?v=20260821-1705"),
   import("./usage-detail-modal-v1.js?v=20260826-2359")
 ]);

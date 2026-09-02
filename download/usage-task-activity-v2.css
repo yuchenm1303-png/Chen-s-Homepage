@@ -1,0 +1,22 @@
+@import url("./usage-task-activity-v1.css?v=20260902-lifecycle-motion-2");
+
+:root {
+  --usage-status-waiting: #9fa9b5;
+  --usage-status-stale: #7f8996;
+}
+
+.usage-throughput-state.is-waiting {
+  background: var(--usage-status-waiting);
+}
+
+.usage-throughput-state.is-stale {
+  background: var(--usage-status-stale);
+}
+
+.usage-legend-dot.is-waiting {
+  background: var(--usage-status-waiting);
+}
+
+.usage-legend-dot.is-stale {
+  background: var(--usage-status-stale);
+}

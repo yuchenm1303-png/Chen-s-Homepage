@@ -1,4 +1,4 @@
-import "./usage-task-status-v1.js?v=20260902-lifecycle-1";
+import "./usage-task-status-v1.js?v=20260902-lifecycle-motion-2";
 
 const brandSlot = document.querySelector(".usage-shell .topbar .brand > :first-child");
 if (brandSlot) {
@@ -29,7 +29,7 @@ if (brandSlot) {
 
 import "./usage-task-history-v2.js?v=20260901-history-pagination-1";
 import "./usage-admin-v2-core.js?v=20260902-lifecycle-1";
-import "./usage-task-activity-v1.js?v=20260902-lifecycle-charts-1";
+import "./usage-task-activity-v1.js?v=20260902-lifecycle-motion-2";
 
 void Promise.allSettled([
   import("./usage-public-copy-v1.js?v=20260820-1645"),

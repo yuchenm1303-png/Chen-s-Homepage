@@ -3,6 +3,7 @@ const STATUS_STATES = new Map([
   ["COMPLETED", "completed"],
   ["RUNNING", "running"],
   ["READY", "ready"],
+  ["QUEUED", "queued"],
   ["WAITING", "waiting"],
   ["STALE", "stale"],
   ["CANCELLED", "cancelled"],
@@ -15,7 +16,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = "usageTaskStatusStyles";
   link.rel = "stylesheet";
-  link.href = "./usage-task-status-v1.css?v=20260902-waiting-stale-1";
+  link.href = "./usage-task-status-v1.css?v=20260902-queued-1";
   document.head.append(link);
 }
 

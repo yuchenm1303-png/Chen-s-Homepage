@@ -25,6 +25,7 @@
   color: #8fdcff;
 }
 
+.usage-task-status[data-state="queued"],
 .usage-task-status[data-state="waiting"],
 .usage-task-status[data-state="stale"],
 .usage-task-status[data-state="cancelled"],
@@ -34,6 +35,7 @@
   animation: none;
 }
 
+.usage-task-status[data-state="queued"]::before,
 .usage-task-status[data-state="waiting"]::before,
 .usage-task-status[data-state="stale"]::before {
   content: none;

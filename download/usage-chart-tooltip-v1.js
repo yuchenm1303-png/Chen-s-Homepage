@@ -62,10 +62,33 @@ function ensureStyle() {
       color: #8ce9c8;
     }
     .usage-chart-tooltip-value[data-kind="failure"] {
-      color: #ffd09b;
+      color: #ff91a6;
+    }
+    .usage-chart-tooltip-value[data-kind="running"] {
+      color: #b69cff;
+      text-shadow: 0 0 8px rgba(182, 156, 255, .42);
+      animation: usage-tooltip-running-pulse 1.45s ease-in-out infinite;
+    }
+    .usage-chart-tooltip-value[data-kind="ready"] {
+      color: #8fdcff;
+    }
+    .usage-chart-tooltip-value[data-kind="cancelled"],
+    .usage-chart-tooltip-value[data-kind="review"] {
+      color: #9fa9b5;
+    }
+    @keyframes usage-tooltip-running-pulse {
+      0%, 100% {
+        opacity: .78;
+        text-shadow: 0 0 4px rgba(182, 156, 255, .22);
+      }
+      50% {
+        opacity: 1;
+        text-shadow: 0 0 10px rgba(182, 156, 255, .62);
+      }
     }
     @media (prefers-reduced-motion: reduce) {
       .usage-chart-tooltip { transition: none; }
+      .usage-chart-tooltip-value[data-kind="running"] { animation: none; }
     }
   `;
   document.head.append(style);
@@ -82,15 +105,26 @@ function createTooltip() {
 
 function labelFor(raw) {
   const label = String(raw || "").trim();
+  const normalized = label.toLowerCase();
   if (label === "启动") return "客户端启动";
   if (label === "完成" || label === "成功") return "成功商品任务";
   if (label === "失败") return "失败商品任务";
+  if (label === "运行中" || label === "运行") return "运行中";
+  if (label === "待执行" || normalized === "ready") return "待执行";
+  if (label === "已取消" || label === "取消" || normalized === "cancelled") return "已取消";
+  if (normalized === "review") return "Review";
   return label || "详情";
 }
 
-function kindFor(label) {
+function kindFor(raw) {
+  const label = String(raw || "").trim();
+  const normalized = label.toLowerCase();
   if (label === "完成" || label === "成功") return "success";
   if (label === "失败") return "failure";
+  if (label === "运行中" || label === "运行" || normalized === "running") return "running";
+  if (label === "待执行" || normalized === "ready") return "ready";
+  if (label === "已取消" || label === "取消" || normalized === "cancelled") return "cancelled";
+  if (normalized === "review") return "review";
   return "neutral";
 }
 

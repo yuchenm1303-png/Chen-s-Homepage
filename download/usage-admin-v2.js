@@ -1,4 +1,4 @@
-import "./usage-task-status-v1.js?v=20260902-waiting-stale-1";
+import "./usage-task-status-v1.js?v=20260902-queued-1";
 
 const brandSlot = document.querySelector(".usage-shell .topbar .brand > :first-child");
 if (brandSlot) {
@@ -29,7 +29,7 @@ if (brandSlot) {
 
 import "./usage-task-history-v2.js?v=20260901-history-pagination-1";
 import "./usage-admin-v2-core.js?v=20260902-lifecycle-1";
-import "./usage-task-activity-v2.js?v=20260902-waiting-stale-1";
+import "./usage-task-activity-v2.js?v=20260902-queued-1";
 import "./usage-running-motion-v1.js?v=20260902-seamless-1";
 
 void Promise.allSettled([

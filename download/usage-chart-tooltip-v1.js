@@ -30,10 +30,7 @@ function ensureStyle() {
       transition: opacity 90ms ease, transform 90ms ease;
       backdrop-filter: blur(12px);
     }
-    .usage-chart-tooltip.is-visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .usage-chart-tooltip.is-visible { opacity: 1; transform: translateY(0); }
     .usage-chart-tooltip-time {
       margin-bottom: 7px;
       color: var(--text, #eef7ff);
@@ -58,33 +55,25 @@ function ensureStyle() {
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
     }
-    .usage-chart-tooltip-value[data-kind="success"] {
-      color: #8ce9c8;
-    }
-    .usage-chart-tooltip-value[data-kind="failure"] {
-      color: #ff91a6;
-    }
+    .usage-chart-tooltip-value[data-kind="success"] { color: #8ce9c8; }
+    .usage-chart-tooltip-value[data-kind="failure"] { color: #ff91a6; }
     .usage-chart-tooltip-value[data-kind="running"] {
       color: #b69cff;
       text-shadow: 0 0 8px rgba(182, 156, 255, .42);
       animation: usage-tooltip-running-pulse 1.45s ease-in-out infinite;
     }
-    .usage-chart-tooltip-value[data-kind="ready"] {
-      color: #8fdcff;
-    }
+    .usage-chart-tooltip-value[data-kind="ready"] { color: #8fdcff; }
+    .usage-chart-tooltip-value[data-kind="waiting"],
+    .usage-chart-tooltip-value[data-kind="stale"],
     .usage-chart-tooltip-value[data-kind="cancelled"],
     .usage-chart-tooltip-value[data-kind="review"] {
       color: #9fa9b5;
+      text-shadow: none;
+      animation: none;
     }
     @keyframes usage-tooltip-running-pulse {
-      0%, 100% {
-        opacity: .78;
-        text-shadow: 0 0 4px rgba(182, 156, 255, .22);
-      }
-      50% {
-        opacity: 1;
-        text-shadow: 0 0 10px rgba(182, 156, 255, .62);
-      }
+      0%, 100% { opacity: .78; text-shadow: 0 0 4px rgba(182, 156, 255, .22); }
+      50% { opacity: 1; text-shadow: 0 0 10px rgba(182, 156, 255, .62); }
     }
     @media (prefers-reduced-motion: reduce) {
       .usage-chart-tooltip { transition: none; }
@@ -111,6 +100,8 @@ function labelFor(raw) {
   if (label === "失败") return "失败商品任务";
   if (label === "运行中" || label === "运行") return "运行中";
   if (label === "待执行" || normalized === "ready") return "待执行";
+  if (label === "等待操作" || label === "等待" || normalized === "waiting") return "等待操作";
+  if (label === "已停滞" || label === "停滞" || normalized === "stale") return "已停滞";
   if (label === "已取消" || label === "取消" || normalized === "cancelled") return "已取消";
   if (normalized === "review") return "Review";
   return label || "详情";
@@ -123,6 +114,8 @@ function kindFor(raw) {
   if (label === "失败") return "failure";
   if (label === "运行中" || label === "运行" || normalized === "running") return "running";
   if (label === "待执行" || normalized === "ready") return "ready";
+  if (label === "等待操作" || label === "等待" || normalized === "waiting") return "waiting";
+  if (label === "已停滞" || label === "停滞" || normalized === "stale") return "stale";
   if (label === "已取消" || label === "取消" || normalized === "cancelled") return "cancelled";
   if (normalized === "review") return "review";
   return "neutral";
@@ -132,11 +125,7 @@ function parseDetail(raw) {
   const text = String(raw || "").trim();
   const numeric = text.match(/^(.+?)\s+(-?\d+(?:\.\d+)?)$/);
   if (numeric) {
-    return {
-      label: labelFor(numeric[1]),
-      value: numeric[2],
-      kind: kindFor(numeric[1])
-    };
+    return { label: labelFor(numeric[1]), value: numeric[2], kind: kindFor(numeric[1]) };
   }
   return { label: "状态", value: text || "—", kind: "neutral" };
 }
@@ -155,12 +144,10 @@ function rawTooltipText(target) {
 function renderTooltip(tooltip, raw) {
   const parts = String(raw || "").split(" · ").map((item) => item.trim()).filter(Boolean);
   tooltip.replaceChildren();
-
   const time = document.createElement("div");
   time.className = "usage-chart-tooltip-time";
   time.textContent = parts.shift() || "任务详情";
   tooltip.append(time);
-
   if (!parts.length) return;
   const grid = document.createElement("div");
   grid.className = "usage-chart-tooltip-grid";
@@ -184,12 +171,8 @@ function positionTooltip(tooltip, clientX, clientY) {
   const rect = tooltip.getBoundingClientRect();
   let left = clientX + gap;
   let top = clientY + gap;
-  if (left + rect.width > window.innerWidth - viewportPadding) {
-    left = clientX - rect.width - gap;
-  }
-  if (top + rect.height > window.innerHeight - viewportPadding) {
-    top = clientY - rect.height - gap;
-  }
+  if (left + rect.width > window.innerWidth - viewportPadding) left = clientX - rect.width - gap;
+  if (top + rect.height > window.innerHeight - viewportPadding) top = clientY - rect.height - gap;
   tooltip.style.left = `${Math.max(viewportPadding, left)}px`;
   tooltip.style.top = `${Math.max(viewportPadding, top)}px`;
 }
@@ -226,12 +209,10 @@ document.addEventListener("pointerover", (event) => {
   if (!target || target === activeTarget) return;
   show(target, event);
 });
-
 document.addEventListener("pointermove", (event) => {
   if (!activeTarget || tooltip.hidden) return;
   positionTooltip(tooltip, event.clientX, event.clientY);
 });
-
 document.addEventListener("pointerout", (event) => {
   if (!activeTarget) return;
   const from = chartTarget(event.target);
@@ -240,6 +221,5 @@ document.addEventListener("pointerout", (event) => {
   if (next === activeTarget) return;
   hide();
 });
-
 window.addEventListener("blur", hide);
 window.addEventListener("pagehide", () => tooltip.remove());

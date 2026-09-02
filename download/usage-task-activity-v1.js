@@ -35,7 +35,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = "usageTaskActivityStyles";
   link.rel = "stylesheet";
-  link.href = "./usage-task-activity-v1.css?v=20260902-lifecycle-charts-1";
+  link.href = "./usage-task-activity-v1.css?v=20260902-lifecycle-motion-2";
   document.head.append(link);
 }
 
@@ -211,6 +211,7 @@ function renderPresence(rail, buckets, spec, clientActivity) {
     const clientActive = Boolean(clientActivity[index]);
     if (taskTotal > 0) {
       segment.classList.add("has-lifecycle");
+      if (asCount(bucket.counts.running) > 0) segment.classList.add("has-running");
       segment.style.setProperty("--usage-lifecycle-strip", statusGradient(bucket.counts));
     } else if (clientActive) {
       segment.classList.add("is-client-active");

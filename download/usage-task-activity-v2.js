@@ -2,10 +2,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2?bundle";
 
 const TIME_ZONE = "Asia/Shanghai";
 const HOUR_MS = 60 * 60 * 1000;
-const STATUS_ORDER = ["completed", "running", "ready", "waiting", "stale", "cancelled", "failed", "review"];
+const STATUS_ORDER = ["completed", "running", "queued", "ready", "waiting", "stale", "cancelled", "failed", "review"];
 const STATUS_LABELS = Object.freeze({
   completed: "完成",
   running: "运行中",
+  queued: "排队中",
   ready: "待执行",
   waiting: "等待操作",
   stale: "已停滞",
@@ -32,7 +33,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = "usageTaskActivityStyles";
   link.rel = "stylesheet";
-  link.href = "./usage-task-activity-v2.css?v=20260902-waiting-stale-1";
+  link.href = "./usage-task-activity-v2.css?v=20260902-queued-1";
   document.head.append(link);
 }
 
@@ -52,7 +53,7 @@ function asCount(value) {
 }
 
 function emptyCounts() {
-  return { completed: 0, running: 0, ready: 0, waiting: 0, stale: 0, cancelled: 0, failed: 0, review: 0 };
+  return { completed: 0, running: 0, queued: 0, ready: 0, waiting: 0, stale: 0, cancelled: 0, failed: 0, review: 0 };
 }
 
 function normalizedCounts(row) {
@@ -256,6 +257,7 @@ function compactSummary(totals, activeBuckets = null, spec = null) {
   if (activeBuckets !== null && spec) parts.push(`${activeBuckets}${spec.mode === "day" ? "天" : "h"} 活跃`);
   parts.push(`${totals.completed} 完成`);
   if (totals.running) parts.push(`${totals.running} 运行`);
+  if (totals.queued) parts.push(`${totals.queued} 排队`);
   if (totals.ready) parts.push(`${totals.ready} 待执行`);
   if (totals.waiting) parts.push(`${totals.waiting} 等待`);
   if (totals.stale) parts.push(`${totals.stale} 停滞`);
@@ -308,7 +310,7 @@ function renderLegend() {
   if (!legend) return;
   const entries = [
     ["is-client-active", "客户端活跃"], ["is-completed", "完成"], ["is-running", "运行中"],
-    ["is-ready", "待执行"], ["is-waiting", "等待操作"], ["is-stale", "已停滞"],
+    ["is-queued", "排队中"], ["is-ready", "待执行"], ["is-waiting", "等待操作"], ["is-stale", "已停滞"],
     ["is-cancelled", "已取消"], ["is-failed-lifecycle", "失败"], ["is-review", "Review"], ["is-idle", "无记录"]
   ];
   const nodes = entries.map(([state, label]) => {

@@ -1,6 +1,7 @@
 (() => {
   const root = document.documentElement;
   const endpoint = (root.dataset.apiEndpoint || '').trim();
+  const anonKey = (root.dataset.supabaseAnonKey || '').trim();
 
   const state = {
     style: 'clean',
@@ -8,6 +9,7 @@
     count: 1,
     imageFile: null,
     imageDataUrl: '',
+    serviceReady: false,
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -27,6 +29,15 @@
 
   let toastTimer = null;
 
+  function authHeaders(includeJson = false) {
+    const headers = {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+    };
+    if (includeJson) headers['Content-Type'] = 'application/json';
+    return headers;
+  }
+
   function showToast(message) {
     window.clearTimeout(toastTimer);
     toast.textContent = message;
@@ -35,26 +46,54 @@
     toastTimer = window.setTimeout(() => {
       toast.classList.remove('show');
       window.setTimeout(() => { toast.hidden = true; }, 220);
-    }, 2800);
+    }, 3200);
   }
 
-  function setEngineState() {
-    if (endpoint) {
-      engineState.classList.remove('is-offline');
-      engineState.querySelector('span').textContent = '生成服务已连接';
-      engineNoteText.textContent = '已配置在线生成接口，可直接提交商品图生成任务。';
-      return;
+  function setServiceStatus(ready, label, note) {
+    state.serviceReady = ready;
+    engineState.classList.toggle('is-offline', !ready);
+    engineState.querySelector('span').textContent = label;
+    engineNoteText.textContent = note;
+  }
+
+  async function checkHealth() {
+    if (!endpoint || !anonKey) {
+      setServiceStatus(false, '生成服务配置缺失', '网页尚未配置生成接口。');
+      return false;
     }
-    engineState.classList.add('is-offline');
-    engineState.querySelector('span').textContent = '生成服务待接入';
-    engineNoteText.textContent = '网站前端已部署；接入 GPU/Fooocus 后端后即可直接在线生成。';
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: authHeaders(false),
+        cache: 'no-store',
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data?.ready) {
+        setServiceStatus(true, 'MiniMax 已连接', 'MiniMax Image-01 在线，可直接提交商品图生成任务。');
+        return true;
+      }
+
+      if (data?.error === 'minimax_api_key_missing' || data?.ready === false) {
+        setServiceStatus(false, 'MiniMax Key 待配置', '生成后端已经部署，MiniMax API Key 尚未写入服务端。');
+        return false;
+      }
+
+      setServiceStatus(false, '生成服务异常', '生成服务已部署，但当前健康检查未通过。');
+      return false;
+    } catch (error) {
+      console.error('[AI Image Studio] health check failed', error);
+      setServiceStatus(false, '生成服务不可用', '暂时无法连接生成服务，请稍后刷新页面。');
+      return false;
+    }
   }
 
   function updateHint() {
     generateHint.textContent = `准备生成 ${state.count} 张 · ${state.ratio}`;
   }
 
-  function setupChoiceGroup(selector, key, parser = (v) => v) {
+  function setupChoiceGroup(selector, key, parser = (value) => value) {
     const host = $(selector);
     host.addEventListener('click', (event) => {
       const button = event.target.closest('.choice');
@@ -84,13 +123,24 @@
     for (let index = 0; index < state.count; index += 1) {
       const slot = document.createElement('div');
       slot.className = 'result-slot empty loading';
-      slot.innerHTML = `<span>${String(index + 1).padStart(2, '0')}</span><p>正在生成…</p>`;
+      slot.innerHTML = `<span>${String(index + 1).padStart(2, '0')}</span><p>MiniMax 正在生成…</p>`;
       resultGrid.appendChild(slot);
     }
   }
 
   function normalizeImages(payload) {
-    const raw = Array.isArray(payload) ? payload : (payload?.images || payload?.data || payload?.results || []);
+    const raw = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.images)
+        ? payload.images
+        : Array.isArray(payload?.data?.image_urls)
+          ? payload.data.image_urls
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload?.results)
+              ? payload.results
+              : [];
+
     return raw.map((item) => {
       if (typeof item === 'string') return item;
       return item?.url || item?.image || item?.data_url || item?.dataUrl || '';
@@ -102,6 +152,7 @@
       renderEmptySlots('接口未返回图片');
       return;
     }
+
     resultGrid.dataset.count = String(Math.min(images.length, 4));
     resultGrid.innerHTML = '';
     images.slice(0, 4).forEach((src, index) => {
@@ -145,12 +196,13 @@
 
   function applyImageFile(file) {
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
+    const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
+    if (!allowedTypes.has(file.type)) {
       showToast('请选择 PNG、JPG 或 WEBP 图片。');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('参考图请控制在 10 MB 以内。');
+    if (file.size > 8 * 1024 * 1024) {
+      showToast('参考图请控制在 8 MB 以内。');
       return;
     }
 
@@ -167,6 +219,28 @@
     reader.readAsDataURL(file);
   }
 
+  function errorMessage(response, data) {
+    if (response.status === 429 || data?.error === 'rate_limited') {
+      return '生成太频繁了，请稍后再试。';
+    }
+    if (data?.error === 'minimax_api_key_missing') {
+      return 'MiniMax API Key 尚未配置到生成后端。';
+    }
+    if (data?.error === 'generation_timeout') {
+      return '本次生成超时，请稍后重试。';
+    }
+    if (data?.error === 'reference_image_too_large') {
+      return '参考图超过 8 MB，请换一张较小的图片。';
+    }
+    if (data?.error === 'generation_failed') {
+      const detail = String(data?.providerMessage || '').trim();
+      return detail ? `MiniMax 生成失败：${detail}` : 'MiniMax 生成失败，请稍后重试。';
+    }
+    if (response.status === 401) return '生成接口认证失败，请刷新页面后重试。';
+    if (response.status === 503) return '生成服务暂不可用，请稍后重试。';
+    return '生成失败，请稍后重试。';
+  }
+
   async function generate() {
     const prompt = promptInput.value.trim();
     if (!prompt) {
@@ -175,9 +249,9 @@
       return;
     }
 
-    if (!endpoint) {
-      renderEmptySlots('等待接入生成后端');
-      showToast('网站前端已经可用，下一步需要接入 Fooocus / GPU 生成后端。');
+    if (!endpoint || !anonKey) {
+      renderEmptySlots('生成服务配置缺失');
+      showToast('生成接口尚未配置。');
       return;
     }
 
@@ -197,23 +271,25 @@
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(true),
         body: JSON.stringify(payload),
       });
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const detail = await response.text().catch(() => '');
-        throw new Error(detail || `HTTP ${response.status}`);
+        throw new Error(errorMessage(response, data));
       }
 
-      const data = await response.json();
       const images = normalizeImages(data);
       renderResults(images);
-      showToast(images.length ? `已生成 ${images.length} 张图片。` : '生成完成，但接口没有返回图片。');
+      if (!images.length) throw new Error('生成完成，但接口没有返回图片。');
+      setServiceStatus(true, 'MiniMax 已连接', 'MiniMax Image-01 在线，可直接提交商品图生成任务。');
+      showToast(`已生成 ${images.length} 张图片。`);
     } catch (error) {
       console.error('[AI Image Studio] generation failed', error);
       renderEmptySlots('生成失败，请稍后重试');
-      showToast('生成失败：请检查生成后端或网络状态。');
+      showToast(error instanceof Error ? error.message : '生成失败，请稍后重试。');
+      void checkHealth();
     } finally {
       generateButton.disabled = false;
       generateButton.querySelector('strong').textContent = '生成商品图';
@@ -246,18 +322,19 @@
       uploadZone.classList.add('is-dragover');
     });
   });
+
   ['dragleave', 'drop'].forEach((type) => {
     uploadZone.addEventListener(type, (event) => {
       event.preventDefault();
       uploadZone.classList.remove('is-dragover');
     });
   });
-  uploadZone.addEventListener('drop', (event) => applyImageFile(event.dataTransfer?.files?.[0]));
 
+  uploadZone.addEventListener('drop', (event) => applyImageFile(event.dataTransfer?.files?.[0]));
   generateButton.addEventListener('click', generate);
   clearResults.addEventListener('click', () => renderEmptySlots());
 
-  setEngineState();
   renderEmptySlots();
   updateHint();
+  void checkHealth();
 })();

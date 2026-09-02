@@ -13,7 +13,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = "usageTaskStatusStyles";
   link.rel = "stylesheet";
-  link.href = "./usage-task-status-v1.css?v=20260902-lifecycle-1";
+  link.href = "./usage-task-status-v1.css?v=20260902-lifecycle-motion-2";
   document.head.append(link);
 }
 

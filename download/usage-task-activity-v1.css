@@ -1,14 +1,15 @@
 :root {
   --usage-status-completed: #8ce9c8;
-  --usage-status-running: #ffd36f;
+  --usage-status-running: #b69cff;
   --usage-status-ready: #8fdcff;
-  --usage-status-cancelled: #c9b7ff;
+  --usage-status-cancelled: #9fa9b5;
   --usage-status-failed: #ff91a6;
-  --usage-status-review: #ffc58c;
+  --usage-status-review: #9fa9b5;
   --usage-client-active: #7fc4dc;
 }
 
 .usage-presence-segment.has-lifecycle::after {
+  z-index: 1;
   opacity: 1;
   background: var(--usage-lifecycle-strip, transparent);
 }
@@ -16,6 +17,22 @@
 .usage-presence-segment.is-client-active::after {
   opacity: var(--presence-opacity, 1);
   background: var(--usage-client-active);
+}
+
+.usage-presence-segment.has-running {
+  box-shadow: 0 0 0 1px rgba(182, 156, 255, .18), 0 0 9px rgba(182, 156, 255, .26);
+  animation: usage-running-presence-pulse 1.7s ease-in-out infinite;
+}
+
+.usage-presence-segment.has-running::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 18%, rgba(255, 255, 255, .5) 48%, transparent 78%);
+  transform: translateX(-145%);
+  animation: usage-running-presence-sweep 1.65s ease-in-out infinite;
 }
 
 .usage-throughput-state {
@@ -30,7 +47,10 @@
 }
 
 .usage-throughput-state.is-running {
-  background: var(--usage-status-running);
+  background: linear-gradient(90deg, #9f80ff 0%, var(--usage-status-running) 35%, #d6caff 50%, var(--usage-status-running) 65%, #9f80ff 100%);
+  background-size: 220% 100%;
+  box-shadow: 0 0 10px rgba(182, 156, 255, .32);
+  animation: usage-running-bar-flow 1.35s linear infinite, usage-running-bar-pulse 1.7s ease-in-out infinite;
 }
 
 .usage-throughput-state.is-ready {
@@ -72,6 +92,8 @@
 
 .usage-legend-dot.is-running {
   background: var(--usage-status-running);
+  box-shadow: 0 0 8px rgba(182, 156, 255, .42);
+  animation: usage-running-dot-pulse 1.45s ease-in-out infinite;
 }
 
 .usage-legend-dot.is-ready {
@@ -88,4 +110,45 @@
 
 .usage-legend-dot.is-review {
   background: var(--usage-status-review);
+}
+
+@keyframes usage-running-presence-pulse {
+  0%, 100% {
+    filter: brightness(.92);
+    box-shadow: 0 0 0 1px rgba(182, 156, 255, .14), 0 0 5px rgba(182, 156, 255, .14);
+  }
+  50% {
+    filter: brightness(1.16);
+    box-shadow: 0 0 0 1px rgba(202, 184, 255, .42), 0 0 12px rgba(182, 156, 255, .42);
+  }
+}
+
+@keyframes usage-running-presence-sweep {
+  0%, 18% { transform: translateX(-145%); opacity: 0; }
+  38% { opacity: .75; }
+  70%, 100% { transform: translateX(145%); opacity: 0; }
+}
+
+@keyframes usage-running-bar-flow {
+  from { background-position: 100% 0; }
+  to { background-position: -120% 0; }
+}
+
+@keyframes usage-running-bar-pulse {
+  0%, 100% { filter: brightness(.95); box-shadow: 0 0 6px rgba(182, 156, 255, .2); }
+  50% { filter: brightness(1.18); box-shadow: 0 0 13px rgba(182, 156, 255, .48); }
+}
+
+@keyframes usage-running-dot-pulse {
+  0%, 100% { opacity: .62; transform: scale(.88); }
+  50% { opacity: 1; transform: scale(1.24); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usage-presence-segment.has-running,
+  .usage-presence-segment.has-running::before,
+  .usage-throughput-state.is-running,
+  .usage-legend-dot.is-running {
+    animation: none;
+  }
 }

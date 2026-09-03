@@ -1,15 +1,16 @@
 <!doctype html>
 <html lang="zh-CN"
   data-api-endpoint="https://nfzkphjbelyltrzgkdwt.supabase.co/functions/v1/ai-image-generate"
+  data-background-api-endpoint="https://nfzkphjbelyltrzgkdwt.supabase.co/functions/v1/ai-image-background"
   data-supabase-anon-key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5memtwaGpiZWx5bHRyemdrZHd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTI2OTMsImV4cCI6MjA5Mzk4ODY5M30.iiaSsilBdzEXiJl4cEv2Ie74yeMZ7SlzNMA-hrPPYi0">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#88b9d7" />
-  <meta name="description" content="Smirel AI 商品图生成器：上传商品、描述场景并生成电商主图与场景图。" />
+  <meta name="description" content="Smirel AI 商品图生成器：锁定真实商品，生成电商背景与商业场景图。" />
   <title>AI 商品图生成器 · Smirel</title>
   <link rel="icon" href="../assets/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./styles.css?v=20260902-1" />
+  <link rel="stylesheet" href="./styles.css?v=20260903-lock-1" />
 </head>
 <body>
   <div class="wallpaper" aria-hidden="true"></div>
@@ -34,14 +35,25 @@
       <div>
         <p class="eyebrow">AI PRODUCT VISUALS</p>
         <h1>AI 商品图生成器</h1>
-        <p class="hero-copy">上传商品参考图，描述你想要的场景，快速生成电商主图、场景图与内容配图。</p>
+        <p class="hero-copy">上传真实商品图，本地自动抠出并锁定商品像素；AI 只生成背景，再自动合成商业场景图。</p>
       </div>
       <div class="hero-chips" aria-label="能力标签">
-        <span>商品主图</span>
-        <span>场景图</span>
+        <span>商品锁定</span>
+        <span>AI 场景</span>
         <span>多尺寸</span>
       </div>
     </section>
+
+    <nav class="mode-switch fade-in" aria-label="生成模式">
+      <a href="?mode=lock" data-mode-link="lock">
+        <strong>商品锁定</strong>
+        <small>保留原商品像素 · 推荐</small>
+      </a>
+      <a href="?mode=legacy" data-mode-link="legacy">
+        <strong>旧版图生图</strong>
+        <small>MiniMax 参考图重绘</small>
+      </a>
+    </nav>
 
     <section class="workspace">
       <article class="panel cards generator-panel fade-in">
@@ -55,8 +67,8 @@
 
         <div class="field-block">
           <div class="field-title-row">
-            <label class="field-title" for="imageInput">商品参考图</label>
-            <span>可选</span>
+            <label class="field-title" id="imageFieldTitle" for="imageInput">商品原图</label>
+            <span id="imageFieldHint">商品锁定模式必选</span>
           </div>
           <label class="upload-zone" id="uploadZone" for="imageInput">
             <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
@@ -65,18 +77,18 @@
               <strong>上传商品图片</strong>
               <small>PNG / JPG / WEBP · ≤ 8 MB</small>
             </div>
-            <img id="uploadPreview" alt="商品参考图预览" hidden />
+            <img id="uploadPreview" alt="商品图片预览" hidden />
             <button class="remove-image" id="removeImage" type="button" hidden>移除</button>
           </label>
         </div>
 
         <div class="field-block">
-          <label class="field-title" for="promptInput">商品与场景描述</label>
-          <textarea id="promptInput" maxlength="1100" placeholder="例如：白色香水瓶，放在浅灰色石材台面上，柔和侧光，高级商业摄影，干净背景"></textarea>
+          <label class="field-title" id="promptFieldTitle" for="promptInput">场景描述</label>
+          <textarea id="promptInput" maxlength="1100" placeholder="例如：自然户外场景，清晨柔光，真实摄影质感，干净的石材台面，中央留出商品摆放区域"></textarea>
           <div class="prompt-examples" aria-label="快速示例">
-            <button type="button" data-prompt="纯白背景，电商主图，柔和棚拍光线，主体居中，干净阴影">纯白主图</button>
-            <button type="button" data-prompt="高级商业摄影，浅色石材台面，自然窗光，极简生活方式场景">高级场景</button>
-            <button type="button" data-prompt="自然户外场景，清晨柔光，真实摄影质感，商品主体清晰突出">户外氛围</button>
+            <button type="button" data-prompt="纯白摄影棚背景，柔和棚拍光线，干净水平台面，中央留出商品摆放区域">纯白主图</button>
+            <button type="button" data-prompt="高级商业摄影场景，浅色石材台面，自然窗光，极简生活方式空间，中央留空">高级场景</button>
+            <button type="button" data-prompt="自然户外场景，清晨柔光，真实摄影质感，干净地面或台面，中央留出主体位置">户外氛围</button>
           </div>
         </div>
 
@@ -114,7 +126,7 @@
         <button class="generate-button cards" id="generateButton" type="button">
           <span class="generate-copy">
             <strong>生成商品图</strong>
-            <small id="generateHint">准备生成 1 张 · 1:1</small>
+            <small id="generateHint">请先上传商品 · 1 张 · 1:1</small>
           </span>
           <span class="generate-arrow">→</span>
         </button>
@@ -139,7 +151,7 @@
         <div class="engine-note">
           <div class="engine-note-icon">◎</div>
           <div>
-            <strong>MiniMax Image-01</strong>
+            <strong>商品锁定 · MiniMax Background</strong>
             <p id="engineNoteText">正在检查在线生成服务…</p>
           </div>
         </div>
@@ -148,13 +160,13 @@
 
     <section class="feature-grid fade-in" aria-label="网站能力">
       <article class="feature-card cards">
-        <span>01</span><strong>参考商品主体</strong><p>上传商品原图作为参考，生成新的商业背景与场景。</p>
+        <span>01</span><strong>锁定真实商品</strong><p>商品在浏览器本地抠图，生成时不交给 AI 重新绘制。</p>
       </article>
       <article class="feature-card cards">
-        <span>02</span><strong>一键多尺寸</strong><p>覆盖电商主图、横版详情图和竖版内容图。</p>
+        <span>02</span><strong>AI 只做场景</strong><p>MiniMax 生成留有商品摆放区域的背景，再与真实商品自动合成。</p>
       </article>
       <article class="feature-card cards">
-        <span>03</span><strong>批量出图</strong><p>单次生成 1–4 张候选图，直接预览和下载。</p>
+        <span>03</span><strong>旧版随时保留</strong><p>需要对比时可一键切换回原来的 MiniMax 参考图重绘流程。</p>
       </article>
     </section>
 
@@ -165,6 +177,6 @@
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-  <script src="./app.js?v=20260903-1"></script>
+  <script src="./bootstrap.js?v=20260903-lock-1"></script>
 </body>
 </html>

@@ -67,14 +67,26 @@
     setFeature(2, 'QA 与失败续跑', '生成后重点确认商品 Logo、颜色、结构与文字；不合格只重做这一张，成功结果保留。');
   }
 
-  const script = document.createElement('script');
-  if (mode === 'legacy') {
-    script.src = './app.js?v=20260903-legacy-1';
-  } else {
-    script.type = 'module';
-    script.src = mode === 'studio'
-      ? './studio-smart.js?v=20260903-smart-1'
-      : './product-lock.js?v=20260903-lock-1';
+  function appendWorkflowScript() {
+    const script = document.createElement('script');
+    if (mode === 'legacy') {
+      script.src = './app.js?v=20260903-legacy-1';
+    } else {
+      script.type = 'module';
+      script.src = mode === 'studio'
+        ? './studio-smart.js?v=20260903-smart-2'
+        : './product-lock.js?v=20260903-lock-1';
+    }
+    document.body.appendChild(script);
   }
-  document.body.appendChild(script);
+
+  if (mode === 'studio') {
+    const transport = document.createElement('script');
+    transport.src = './studio-transport.js?v=20260903-resilient-1';
+    transport.onload = appendWorkflowScript;
+    transport.onerror = appendWorkflowScript;
+    document.body.appendChild(transport);
+  } else {
+    appendWorkflowScript();
+  }
 })();

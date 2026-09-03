@@ -1,21 +1,66 @@
-/* Seamless in-page mode routing. The shell never reloads when changing modes. */
-.mode-frame-host {
+/*
+ * AI Image mode shell.
+ * Keep every visible card in the same document/backdrop sampling path as the
+ * wallpaper, exactly like the proven Download / Service Monitor pages.
+ */
+
+/* The wallpaper must not sit on a separately promoted transform layer. */
+.wallpaper {
+  transform: none !important;
+}
+
+/*
+ * Reuse the production Beach Glass surface from download/beach-wallpaper-v1.css.
+ * Do not replace this with opaque panels or iframe transparency hacks.
+ */
+.cards {
+  background-color: rgba(4, 18, 30, .42) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(120%) !important;
+  backdrop-filter: blur(22px) saturate(120%) !important;
+  transform: none;
+}
+
+.cards:hover {
+  transform: scale(1.01);
+}
+
+.cards:active {
+  transform: scale(.98);
+}
+
+/*
+ * A retained transform/filter from the entrance animation creates another
+ * compositor boundary and prevents descendants from sampling the wallpaper.
+ * The monitor page fixes the same Chromium behavior by releasing fill-mode.
+ */
+.page-shell .fade-in {
+  animation-fill-mode: none !important;
+}
+
+/* Studio and the single-image modes share one document; only the active stage
+ * is connected/visible. This preserves real backdrop-filter behavior. */
+.mode-inline-host {
   display: none;
   width: 100%;
   min-height: 650px;
-  overflow: hidden;
+  margin: 0;
+  padding: 0;
   border: 0;
   background: transparent;
 }
 
-html[data-image-mode="lock"] .mode-frame-host,
-html[data-image-mode="legacy"] .mode-frame-host {
+html[data-image-mode="lock"] .mode-inline-host,
+html[data-image-mode="legacy"] .mode-inline-host {
   display: block;
   view-transition-name: mode-stage;
 }
 
-html[data-image-mode="lock"] .workspace,
-html[data-image-mode="legacy"] .workspace {
+html[data-image-mode="lock"] .studio-workbench,
+html[data-image-mode="legacy"] .studio-workbench {
+  display: none !important;
+}
+
+html[data-image-mode="studio"] .mode-inline-host {
   display: none !important;
 }
 
@@ -23,17 +68,9 @@ html[data-image-mode="studio"] .studio-workbench {
   view-transition-name: mode-stage;
 }
 
-.mode-frame {
-  display: none;
+.mode-inline-workspace.workspace {
   width: 100%;
-  min-height: 650px;
-  border: 0;
-  background: transparent;
-  opacity: 1;
-}
-
-.mode-frame.is-active {
-  display: block;
+  margin: 0;
 }
 
 .mode-switch a.active {
@@ -46,20 +83,20 @@ html[data-image-mode="studio"] .studio-workbench {
 }
 
 ::view-transition-old(mode-stage) {
-  animation: smirelModeOut .16s cubic-bezier(.4,0,1,1) both;
+  animation: smirelModeOut .15s cubic-bezier(.4,0,1,1) both;
 }
 
 ::view-transition-new(mode-stage) {
-  animation: smirelModeIn .24s cubic-bezier(.18,.78,.26,1) both;
+  animation: smirelModeIn .22s cubic-bezier(.18,.78,.26,1) both;
 }
 
 @keyframes smirelModeOut {
-  to { opacity: 0; transform: translateY(-5px) scale(.995); filter: blur(2px); }
+  to { opacity: 0; transform: translateY(-4px) scale(.997); }
 }
 
 @keyframes smirelModeIn {
-  from { opacity: 0; transform: translateY(7px) scale(.995); filter: blur(3px); }
-  to { opacity: 1; transform: none; filter: none; }
+  from { opacity: 0; transform: translateY(6px) scale(.997); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

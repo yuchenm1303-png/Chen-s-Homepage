@@ -4,6 +4,18 @@
   const mode = ['studio', 'lock', 'legacy'].includes(requested) ? requested : 'studio';
   document.documentElement.dataset.imageMode = mode;
 
+  if (mode === 'studio') {
+    const glassStyle = document.createElement('link');
+    glassStyle.rel = 'stylesheet';
+    glassStyle.href = './studio-beach-glass.css?v=20260903-beach-glass-1';
+    document.head.appendChild(glassStyle);
+
+    document.querySelectorAll('.studio-sidebar, .studio-plan-panel').forEach((panel) => {
+      panel.classList.remove('cards');
+      panel.classList.add('studio-beach-glass-card');
+    });
+  }
+
   document.querySelectorAll('[data-mode-link]').forEach((link) => {
     link.classList.toggle('active', link.dataset.modeLink === mode);
   });

@@ -56,6 +56,12 @@
     engineNoteText.textContent = note;
   }
 
+  function regionLabel(region) {
+    if (region === 'cn') return '中国站';
+    if (region === 'global') return '国际站';
+    return '';
+  }
+
   async function checkHealth() {
     if (!endpoint || !anonKey) {
       setServiceStatus(false, '生成服务配置缺失', '网页尚未配置生成接口。');
@@ -71,12 +77,24 @@
       const data = await response.json().catch(() => ({}));
 
       if (response.ok && data?.ready) {
-        setServiceStatus(true, 'MiniMax 已连接', 'MiniMax Image-01 在线，可直接提交商品图生成任务。');
+        const region = regionLabel(data?.region);
+        setServiceStatus(
+          true,
+          region ? `MiniMax 已连接 · ${region}` : 'MiniMax 已连接',
+          region
+            ? `MiniMax Image-01 已通过${region}鉴权，可直接提交商品图生成任务。`
+            : 'MiniMax Image-01 在线，可直接提交商品图生成任务。',
+        );
         return true;
       }
 
-      if (data?.error === 'minimax_api_key_missing' || data?.ready === false) {
+      if (data?.error === 'minimax_api_key_missing') {
         setServiceStatus(false, 'MiniMax Key 待配置', '生成后端已经部署，MiniMax API Key 尚未写入服务端。');
+        return false;
+      }
+
+      if (data?.error === 'minimax_api_key_invalid') {
+        setServiceStatus(false, 'MiniMax Key 无效', '后端已同时检查 MiniMax 国际站与中国站，这枚 Key 当前未通过鉴权。');
         return false;
       }
 
@@ -226,6 +244,9 @@
     if (data?.error === 'minimax_api_key_missing') {
       return 'MiniMax API Key 尚未配置到生成后端。';
     }
+    if (data?.error === 'minimax_api_key_invalid') {
+      return 'MiniMax API Key 未通过鉴权；后端已同时检查国际站和中国站。';
+    }
     if (data?.error === 'generation_timeout') {
       return '本次生成超时，请稍后重试。';
     }
@@ -283,7 +304,12 @@
       const images = normalizeImages(data);
       renderResults(images);
       if (!images.length) throw new Error('生成完成，但接口没有返回图片。');
-      setServiceStatus(true, 'MiniMax 已连接', 'MiniMax Image-01 在线，可直接提交商品图生成任务。');
+      const region = regionLabel(data?.region);
+      setServiceStatus(
+        true,
+        region ? `MiniMax 已连接 · ${region}` : 'MiniMax 已连接',
+        region ? `MiniMax Image-01 已通过${region}鉴权。` : 'MiniMax Image-01 在线，可直接提交商品图生成任务。',
+      );
       showToast(`已生成 ${images.length} 张图片。`);
     } catch (error) {
       console.error('[AI Image Studio] generation failed', error);

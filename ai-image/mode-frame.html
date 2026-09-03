@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="./styles.css?v=20260902-1" />
+  <link rel="stylesheet" href="./product-lock.css?v=20260903-lock-1" />
+  <style>
+    html, body { width: 100%; min-height: 0 !important; background: transparent !important; }
+    body { overflow: hidden; padding: 0; }
+    .workspace { width: 100%; margin: 0; }
+    .frame-service-status { display: none !important; }
+    .toast { position: fixed; }
+  </style>
+</head>
+<body>
+  <div class="frame-service-status" aria-hidden="true">
+    <span class="engine-state is-offline" id="engineState"><i></i><span>正在检查生成服务</span></span>
+    <span id="engineNoteText"></span>
+  </div>
+  <div id="frameRoot"></div>
+  <div class="toast" id="toast" hidden></div>
+
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      const mode = params.get('mode') === 'legacy' ? 'legacy' : 'lock';
+      const root = document.documentElement;
+      root.dataset.imageMode = mode;
+
+      try {
+        const parentRoot = parent.document.documentElement;
+        root.dataset.apiEndpoint = parentRoot.dataset.apiEndpoint || '';
+        root.dataset.backgroundApiEndpoint = parentRoot.dataset.backgroundApiEndpoint || '';
+        root.dataset.supabaseAnonKey = parentRoot.dataset.supabaseAnonKey || '';
+      } catch (error) {
+        console.error('[AI Image Mode Frame] failed to inherit shell configuration', error);
+      }
+
+      const sourceWorkspace = parent.document.querySelector('.workspace');
+      const frameRoot = document.getElementById('frameRoot');
+      if (!sourceWorkspace || !frameRoot) return;
+
+      const workspace = sourceWorkspace.cloneNode(true);
+      workspace.classList.remove('fade-in');
+      frameRoot.appendChild(workspace);
+
+      const imageFieldTitle = document.getElementById('imageFieldTitle');
+      const imageFieldHint = document.getElementById('imageFieldHint');
+      const promptFieldTitle = document.getElementById('promptFieldTitle');
+      const promptInput = document.getElementById('promptInput');
+
+      if (mode === 'legacy') {
+        if (imageFieldTitle) imageFieldTitle.textContent = '商品参考图';
+        if (imageFieldHint) imageFieldHint.textContent = '可选';
+        if (promptFieldTitle) promptFieldTitle.textContent = '商品与场景描述';
+        if (promptInput) promptInput.placeholder = '例如：白色香水瓶，放在浅灰色石材台面上，柔和侧光，高级商业摄影，干净背景';
+      } else {
+        if (imageFieldTitle) imageFieldTitle.textContent = '商品原图';
+        if (imageFieldHint) imageFieldHint.textContent = '商品锁定模式必选';
+        if (promptFieldTitle) promptFieldTitle.textContent = '场景描述';
+      }
+
+      function postHeight() {
+        const height = Math.max(650, Math.ceil(document.documentElement.scrollHeight));
+        parent.postMessage({ type: 'smirel-mode-frame-height', mode, height }, location.origin);
+      }
+
+      function postStatus() {
+        const state = document.getElementById('engineState');
+        const note = document.getElementById('engineNoteText');
+        parent.postMessage({
+          type: 'smirel-mode-frame-status',
+          mode,
+          offline: state?.classList.contains('is-offline') ?? true,
+          label: state?.querySelector('span')?.textContent || '正在检查生成服务',
+          note: note?.textContent || '',
+        }, location.origin);
+      }
+
+      const statusNode = document.getElementById('engineState');
+      const noteNode = document.getElementById('engineNoteText');
+      const statusObserver = new MutationObserver(postStatus);
+      if (statusNode) statusObserver.observe(statusNode, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+      if (noteNode) statusObserver.observe(noteNode, { subtree: true, childList: true, characterData: true });
+
+      const resizeObserver = new ResizeObserver(() => requestAnimationFrame(postHeight));
+      resizeObserver.observe(document.body);
+      resizeObserver.observe(workspace);
+
+      window.addEventListener('message', (event) => {
+        if (event.origin !== location.origin) return;
+        if (event.data?.type === 'smirel-mode-frame-status-request') postStatus();
+      });
+
+      const script = document.createElement('script');
+      if (mode === 'legacy') {
+        script.src = './app.js?v=20260903-legacy-1';
+      } else {
+        script.type = 'module';
+        script.src = './product-lock.js?v=20260903-lock-1';
+      }
+      script.addEventListener('load', () => {
+        postHeight();
+        postStatus();
+      });
+      document.body.appendChild(script);
+
+      requestAnimationFrame(postHeight);
+    })();
+  </script>
+</body>
+</html>

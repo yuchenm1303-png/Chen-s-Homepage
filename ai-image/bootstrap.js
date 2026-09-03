@@ -60,11 +60,11 @@
     document.title = 'AI 电商视觉工作台 · Smirel';
     if (eyebrow) eyebrow.textContent = 'AI ECOMMERCE VISUAL WORKSPACE';
     if (heroTitle) heroTitle.textContent = 'AI 电商视觉工作台';
-    if (heroCopy) heroCopy.textContent = '先锁定商品事实和真实像素，再把整套电商图片拆成独立任务；逐张生成、逐张质检，失败只重做失败项。';
-    setChip(0, '商品档案'); setChip(1, '任务计划'); setChip(2, '逐图 QA');
-    setFeature(0, '商品事实与像素双锁', '先确认商品事实，再用真实商品像素合成，避免 AI 随意改色、改 Logo 或重设计结构。');
+    if (heroCopy) heroCopy.textContent = '上传商品图即可开始。默认直接用完整商品参考图生成，不要求抠图；只有需要更强商品保护时才启用严格像素锁定。';
+    setChip(0, '无需抠图'); setChip(1, '任务计划'); setChip(2, '逐图 QA');
+    setFeature(0, '智能一致性优先', '普通商品直接使用完整参考图生成；抠图与 Mask 只作为严格一致性的后台增强能力。');
     setFeature(1, 'Task / Plan 生产线', '套图拆成独立任务，每张图有自己的目标、Prompt、生成状态与结果。');
-    setFeature(2, 'QA 与失败续跑', '结构自动校验后再人工确认；不合格只重做这一张，成功结果保留。');
+    setFeature(2, 'QA 与失败续跑', '生成后重点确认商品 Logo、颜色、结构与文字；不合格只重做这一张，成功结果保留。');
   }
 
   const script = document.createElement('script');
@@ -73,7 +73,7 @@
   } else {
     script.type = 'module';
     script.src = mode === 'studio'
-      ? './studio.js?v=20260903-studio-1'
+      ? './studio-smart.js?v=20260903-smart-1'
       : './product-lock.js?v=20260903-lock-1';
   }
   document.body.appendChild(script);

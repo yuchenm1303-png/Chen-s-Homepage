@@ -1,0 +1,71 @@
+/* Seamless in-page mode routing. The shell never reloads when changing modes. */
+.mode-frame-host {
+  display: none;
+  width: 100%;
+  min-height: 650px;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+}
+
+html[data-image-mode="lock"] .mode-frame-host,
+html[data-image-mode="legacy"] .mode-frame-host {
+  display: block;
+  view-transition-name: mode-stage;
+}
+
+html[data-image-mode="lock"] .workspace,
+html[data-image-mode="legacy"] .workspace {
+  display: none !important;
+}
+
+html[data-image-mode="studio"] .studio-workbench {
+  view-transition-name: mode-stage;
+}
+
+.mode-frame {
+  display: none;
+  width: 100%;
+  min-height: 650px;
+  border: 0;
+  background: transparent;
+  opacity: 1;
+}
+
+.mode-frame.is-active {
+  display: block;
+}
+
+.mode-switch a.active {
+  view-transition-name: active-mode-tab;
+}
+
+::view-transition-group(active-mode-tab) {
+  animation-duration: .28s;
+  animation-timing-function: cubic-bezier(.22,.8,.24,1);
+}
+
+::view-transition-old(mode-stage) {
+  animation: smirelModeOut .16s cubic-bezier(.4,0,1,1) both;
+}
+
+::view-transition-new(mode-stage) {
+  animation: smirelModeIn .24s cubic-bezier(.18,.78,.26,1) both;
+}
+
+@keyframes smirelModeOut {
+  to { opacity: 0; transform: translateY(-5px) scale(.995); filter: blur(2px); }
+}
+
+@keyframes smirelModeIn {
+  from { opacity: 0; transform: translateY(7px) scale(.995); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(mode-stage),
+  ::view-transition-new(mode-stage),
+  ::view-transition-group(active-mode-tab) {
+    animation-duration: .01ms;
+  }
+}

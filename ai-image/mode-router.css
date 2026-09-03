@@ -1,20 +1,27 @@
 /*
  * AI Image mode shell.
- * Keep every visible card in the same document/backdrop sampling path as the
- * wallpaper, exactly like the proven Download / Service Monitor pages.
+ *
+ * Card visuals intentionally mirror the production Download / Service Monitor
+ * pages. Do not add a second tint/surface layer here: the shared production
+ * recipe is a single frosted backdrop surface.
  */
 
-/* The wallpaper must not sit on a separately promoted transform layer. */
+/* Keep the wallpaper on the same backdrop sampling path as the cards. */
 .wallpaper {
   transform: none !important;
 }
 
 /*
- * Reuse the production Beach Glass surface from download/beach-wallpaper-v1.css.
- * Do not replace this with opaque panels or iframe transparency hacks.
+ * Production Download/Monitor glass card:
+ * - styles-v3 base shape
+ * - layout-visual-restore final geometry
+ * - beach-wallpaper final frosted surface
  */
 .cards {
+  border: 0 !important;
+  border-radius: 6px !important;
   background-color: rgba(4, 18, 30, .42) !important;
+  box-shadow: none !important;
   -webkit-backdrop-filter: blur(22px) saturate(120%) !important;
   backdrop-filter: blur(22px) saturate(120%) !important;
   transform: none;
@@ -24,21 +31,30 @@
   transform: scale(1.01);
 }
 
+.utility-card.cards:hover,
+.feature-card.cards:hover {
+  transform: scale(1.02);
+}
+
 .cards:active {
   transform: scale(.98);
 }
 
+.utility-card.cards:active,
+.feature-card.cards:active {
+  transform: scale(1);
+}
+
 /*
- * A retained transform/filter from the entrance animation creates another
- * compositor boundary and prevents descendants from sampling the wallpaper.
- * The monitor page fixes the same Chromium behavior by releasing fill-mode.
+ * Release the entrance animation compositor after it finishes. A retained
+ * transform/filter prevents Chromium backdrop-filter from sampling the photo.
  */
 .page-shell .fade-in {
   animation-fill-mode: none !important;
 }
 
-/* Studio and the single-image modes share one document; only the active stage
- * is connected/visible. This preserves real backdrop-filter behavior. */
+/* Studio and single-image modes share one document so every card samples the
+ * same wallpaper. Only the active stage is visible. */
 .mode-inline-host {
   display: none;
   width: 100%;

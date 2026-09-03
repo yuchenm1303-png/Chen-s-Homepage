@@ -7,11 +7,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#88b9d7" />
-  <meta name="description" content="Smirel AI 商品图生成器：锁定真实商品，生成电商背景与商业场景图。" />
-  <title>AI 商品图生成器 · Smirel</title>
+  <meta name="description" content="Smirel AI 电商视觉工作台：锁定真实商品、规划成套任务、逐图生成与质检。" />
+  <title>AI 电商视觉工作台 · Smirel</title>
   <link rel="icon" href="../assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./styles.css?v=20260902-1" />
   <link rel="stylesheet" href="./product-lock.css?v=20260903-lock-1" />
+  <link rel="stylesheet" href="./studio.css?v=20260903-studio-1" />
 </head>
 <body>
   <div class="wallpaper" aria-hidden="true"></div>
@@ -34,27 +35,163 @@
 
     <section class="hero fade-in">
       <div>
-        <p class="eyebrow">AI PRODUCT VISUALS</p>
-        <h1>AI 商品图生成器</h1>
-        <p class="hero-copy">上传真实商品图，本地自动抠出并锁定商品像素；AI 只生成背景，再自动合成商业场景图。</p>
+        <p class="eyebrow">AI ECOMMERCE VISUAL WORKSPACE</p>
+        <h1>AI 电商视觉工作台</h1>
+        <p class="hero-copy">先锁定商品事实和真实像素，再把整套电商图片拆成独立任务；逐张生成、逐张质检，失败只重做失败项。</p>
       </div>
       <div class="hero-chips" aria-label="能力标签">
-        <span>商品锁定</span>
-        <span>AI 场景</span>
-        <span>多尺寸</span>
+        <span>商品档案</span>
+        <span>任务计划</span>
+        <span>逐图 QA</span>
       </div>
     </section>
 
     <nav class="mode-switch fade-in" aria-label="生成模式">
+      <a href="?mode=studio" data-mode-link="studio">
+        <strong>AI 电商工作台</strong>
+        <small>套图计划 · QA · 推荐</small>
+      </a>
       <a href="?mode=lock" data-mode-link="lock">
         <strong>商品锁定</strong>
-        <small>保留原商品像素 · 推荐</small>
+        <small>单次场景生成</small>
       </a>
       <a href="?mode=legacy" data-mode-link="legacy">
         <strong>旧版图生图</strong>
         <small>MiniMax 参考图重绘</small>
       </a>
     </nav>
+
+    <section class="studio-workbench fade-in" id="studioWorkbench">
+      <aside class="studio-sidebar cards">
+        <div class="panel-head">
+          <div>
+            <p class="kicker">PRODUCT</p>
+            <h2>商品档案</h2>
+          </div>
+          <span class="step-pill">01 · 锁事实</span>
+        </div>
+
+        <section class="studio-section">
+          <div class="studio-section-head">
+            <strong>商品主图</strong>
+            <span>真实像素将被锁定</span>
+          </div>
+          <label class="upload-zone studio-upload" id="studioUpload" for="studioImageInput">
+            <input id="studioImageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+            <div class="upload-empty" id="studioUploadEmpty">
+              <span class="upload-icon">＋</span>
+              <strong>上传商品原图</strong>
+              <small>PNG / JPG / WEBP · ≤ 8 MB</small>
+            </div>
+            <img id="studioPreview" alt="已锁定商品预览" hidden />
+            <button class="remove-image" id="studioRemoveImage" type="button" hidden>移除</button>
+            <span class="studio-cutout-state" id="studioCutoutState" hidden></span>
+          </label>
+        </section>
+
+        <section class="studio-section">
+          <div class="studio-section-head">
+            <strong>商品事实</strong>
+            <span>只填写能确认的内容</span>
+          </div>
+          <div class="studio-fields">
+            <div class="studio-field">
+              <label for="studioProductName">商品名</label>
+              <input id="studioProductName" maxlength="80" placeholder="例如：蓝色保温杯" />
+            </div>
+            <div class="studio-field">
+              <label for="studioBrand">品牌</label>
+              <input id="studioBrand" maxlength="60" placeholder="可选" />
+            </div>
+            <div class="studio-field full">
+              <label for="studioCategory">品类</label>
+              <input id="studioCategory" maxlength="80" placeholder="例如：保温杯 / 美妆 / 3C 配件" />
+            </div>
+            <div class="studio-field full">
+              <label for="studioFacts">不可改动事实</label>
+              <textarea id="studioFacts" maxlength="600" placeholder="例如：杯身深蓝色；白色 Logo；黑色旋盖；比例和 Logo 位置不能变化。看不清的内容不要填写。"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="studio-section">
+          <div class="studio-section-head">
+            <strong>工作流</strong>
+            <span>先决定要产什么图</span>
+          </div>
+          <div class="studio-option-grid">
+            <button class="studio-option active" type="button" data-studio-workflow="hero5"><strong>商品主图套装</strong><small>5 张主图 / 场景候选</small></button>
+            <button class="studio-option" type="button" data-studio-workflow="lifestyle4"><strong>生活场景套装</strong><small>4 张不同真实语境</small></button>
+            <button class="studio-option" type="button" data-studio-workflow="social3"><strong>社媒广告套装</strong><small>3 张构图用于 A/B 测试</small></button>
+            <button class="studio-option" type="button" data-studio-workflow="quick1"><strong>自定义单图</strong><small>按补充要求生成一张</small></button>
+          </div>
+        </section>
+
+        <section class="studio-section">
+          <div class="studio-section-head">
+            <strong>Campaign Style Lock</strong>
+            <span>整套图统一视觉合同</span>
+          </div>
+          <div class="studio-compact-options">
+            <button class="studio-chip active" type="button" data-studio-campaign="clean">极简商业</button>
+            <button class="studio-chip" type="button" data-studio-campaign="studio">影棚目录</button>
+            <button class="studio-chip" type="button" data-studio-campaign="luxury">轻奢品牌</button>
+            <button class="studio-chip" type="button" data-studio-campaign="lifestyle">真实生活</button>
+          </div>
+        </section>
+
+        <section class="studio-section">
+          <div class="studio-section-head">
+            <strong>画幅与补充要求</strong>
+            <span>计划生成后仍可逐图改 Prompt</span>
+          </div>
+          <div class="studio-compact-options">
+            <button class="studio-chip active" type="button" data-studio-ratio="1:1">1:1</button>
+            <button class="studio-chip" type="button" data-studio-ratio="4:3">4:3</button>
+            <button class="studio-chip" type="button" data-studio-ratio="16:9">16:9</button>
+            <button class="studio-chip" type="button" data-studio-ratio="9:16">9:16</button>
+          </div>
+          <div class="studio-field full" style="margin-top:12px">
+            <label for="studioExtra">全局补充要求</label>
+            <textarea id="studioExtra" maxlength="420" placeholder="例如：整体偏冷调、不要花朵、右侧多留白、适合独立站首页。"></textarea>
+          </div>
+        </section>
+
+        <button class="studio-primary" id="studioPlanButton" type="button">创建生成计划</button>
+      </aside>
+
+      <section class="studio-plan-panel cards">
+        <div class="studio-plan-head">
+          <div>
+            <p class="kicker">PLAN · GENERATE · QA</p>
+            <h2>任务生产线</h2>
+            <p class="studio-muted" id="studioProviderNote" style="margin-top:7px">MiniMax 只负责背景；商品主体保持真实像素。</p>
+          </div>
+          <div class="studio-plan-actions">
+            <span class="step-pill" id="studioPlanLabel">未创建计划</span>
+            <button class="studio-secondary" id="studioReset" type="button">新建项目</button>
+          </div>
+        </div>
+
+        <div class="studio-progress">
+          <div class="studio-progress-row">
+            <strong>项目进度</strong>
+            <span id="studioProgressText">尚未创建任务</span>
+          </div>
+          <div class="studio-progress-track"><i id="studioProgressBar"></i></div>
+        </div>
+
+        <div class="studio-empty-plan" id="studioEmptyPlan">
+          <div>
+            <strong>先建立商品档案，再创建计划</strong>
+            <p>工作台会把套图拆成独立 Task。每张都有自己的目标、Prompt、状态和 QA；成功项不会因为另一张失败而被覆盖。</p>
+          </div>
+        </div>
+
+        <div class="studio-task-list" id="studioTaskList" hidden></div>
+        <button class="studio-primary studio-run-all" id="studioRunAll" type="button" disabled>确认计划并生成待处理任务</button>
+      </section>
+    </section>
 
     <section class="workspace">
       <article class="panel cards generator-panel fade-in">
@@ -161,13 +298,13 @@
 
     <section class="feature-grid fade-in" aria-label="网站能力">
       <article class="feature-card cards">
-        <span>01</span><strong>锁定真实商品</strong><p>商品在浏览器本地抠图，生成时不交给 AI 重新绘制。</p>
+        <span>01</span><strong>商品事实与像素双锁</strong><p>先确认商品事实，再用真实商品像素合成，避免 AI 随意改色、改 Logo 或重设计结构。</p>
       </article>
       <article class="feature-card cards">
-        <span>02</span><strong>AI 只做场景</strong><p>MiniMax 生成留有商品摆放区域的背景，再与真实商品自动合成。</p>
+        <span>02</span><strong>Task / Plan 生产线</strong><p>套图拆成独立任务，每张图有自己的目标、Prompt、生成状态与结果。</p>
       </article>
       <article class="feature-card cards">
-        <span>03</span><strong>旧版随时保留</strong><p>需要对比时可一键切换回原来的 MiniMax 参考图重绘流程。</p>
+        <span>03</span><strong>QA 与失败续跑</strong><p>结构自动校验后再人工确认；不合格只重做这一张，成功结果保留。</p>
       </article>
     </section>
 
@@ -178,6 +315,6 @@
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-  <script src="./bootstrap.js?v=20260903-lock-1"></script>
+  <script src="./bootstrap.js?v=20260903-studio-1"></script>
 </body>
 </html>

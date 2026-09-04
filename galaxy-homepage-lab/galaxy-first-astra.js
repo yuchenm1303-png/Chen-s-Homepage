@@ -17,8 +17,8 @@ const floatLinear = gl.getExtension('OES_texture_float_linear');
 const useHDR = Boolean(colorBufferFloat);
 
 // First-composition field + Astra star material.
-// The geometry, paths, density, dust lane and right-biased composition stay from
-// the first Galaxy Lab. Only the optical material / bloom pipeline is replaced.
+// The authored galaxy geometry and particle hierarchy stay intact. This pass only
+// expands that same field across the viewport while retaining Astra optics.
 
 const STAR_VERTEX = `#version 300 es
 precision highp float;
@@ -67,9 +67,16 @@ void main() {
 
   p.xy = rotate2d(-0.017 + uPointer.x * 0.006) * p.xy;
 
+  // Expand the exact first-version field into a viewport-spanning Milky Way.
+  // The old composition was intentionally biased to the right for UI copy; now
+  // its visual centre is moved to the screen centre and its authored path is
+  // stretched horizontally instead of rebuilding the galaxy from scratch.
+  p.x = (p.x - 0.535) * 1.72;
+  p.y *= 1.035;
+
   // Preserve the first prototype's mobile composition compression.
   float compact = 1.0 - smoothstep(0.78, 1.08, uAspect);
-  p.x = mix(p.x, p.x * 0.58 - 0.04, compact);
+  p.x = mix(p.x, p.x * 0.76, compact);
   gl_Position = vec4(p.x / max(uAspect, 0.62), p.y, 0.0, 1.0);
 
   // Astra's twinkle envelope: 0.86 + 0.14*sin(...), with the official .62 speed.
@@ -334,7 +341,7 @@ function pickColor(scale = 1) {
   return entry.color.map(channel => Math.min(1, channel * temperatureNoise * scale));
 }
 
-// Preserve the first prototype's authored right-biased galaxy paths exactly.
+// Preserve the first prototype's authored galaxy paths exactly.
 const PRIMARY_PATH = [
   [-0.46, -1.30],
   [-0.16, -0.98],
@@ -415,17 +422,17 @@ function addBackground(count) {
 
 function streamWidth(t, secondary = false) {
   const pulse = 0.5 + 0.5 * Math.sin(t * Math.PI * 4.6 + 0.9);
-  const body = secondary ? 0.055 : 0.082;
-  const swell = secondary ? 0.055 : 0.105;
+  const body = secondary ? 0.082 : 0.125;
+  const swell = secondary ? 0.080 : 0.155;
   return body + pulse * swell;
 }
 
 function dustLaneOffset(t) {
-  return -0.018 + Math.sin(t * 8.4 + 0.6) * 0.025;
+  return -0.026 + Math.sin(t * 8.4 + 0.6) * 0.038;
 }
 
 function dustLaneWidth(t) {
-  return 0.020 + (0.5 + 0.5 * Math.sin(t * 5.8 + 2.1)) * 0.016;
+  return 0.032 + (0.5 + 0.5 * Math.sin(t * 5.8 + 2.1)) * 0.024;
 }
 
 function addStream(count, points, secondary = false) {
@@ -462,7 +469,7 @@ function addHaze(count) {
   for (let i = 0; i < count; i++) {
     const t = random();
     const frame = pathFrame(PRIMARY_PATH, t);
-    const offset = gaussian() * (streamWidth(t, false) * 1.28);
+    const offset = gaussian() * (streamWidth(t, false) * 1.46);
     const x = frame.x + frame.nx * offset + gaussian() * 0.025;
     const y = frame.y + frame.ny * offset + gaussian() * 0.025;
     const z = -0.55 + random() * 0.52;
@@ -478,7 +485,7 @@ function addMidStars(count) {
   for (let i = 0; i < count; i++) {
     const t = 0.04 + random() * 0.92;
     const frame = pathFrame(PRIMARY_PATH, t);
-    const offset = gaussian() * (streamWidth(t, false) * 0.86);
+    const offset = gaussian() * (streamWidth(t, false) * 0.92);
     const x = frame.x + frame.nx * offset;
     const y = frame.y + frame.ny * offset;
     const z = -0.35 + random() * 1.10;
@@ -493,7 +500,7 @@ function addBrightStars(count) {
     const t = 0.05 + random() * 0.90;
     const frame = pathFrame(random() < 0.78 ? PRIMARY_PATH : SECONDARY_PATH, t);
     const width = streamWidth(t, false);
-    const offset = gaussian() * width * 0.78;
+    const offset = gaussian() * width * 0.82;
     const x = frame.x + frame.nx * offset;
     const y = frame.y + frame.ny * offset;
     const z = -0.12 + random() * 1.00;
@@ -524,7 +531,7 @@ function addHeroStars() {
   });
 }
 
-// Exact first-prototype population: 12,080 particles total.
+// Keep the original population and hierarchy; only its spatial footprint grows.
 addBackground(5000);
 addStream(4300, PRIMARY_PATH, false);
 addStream(1450, SECONDARY_PATH, true);

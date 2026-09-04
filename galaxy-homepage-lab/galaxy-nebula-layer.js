@@ -165,19 +165,17 @@ void main() {
   float middleMass = 0.30 + 0.70 * smoothstep(0.30, 0.72, middle);
   float clumpMass = envelope * macroMass * middleMass;
 
-  // Unresolved stellar glow is strongest inside the broad central complexes but
-  // still visibly granular, like the reference long-exposure Milky Way.
+  // Raise the unresolved stellar body without changing its silhouette. The added
+  // energy stays inside actual cloud complexes instead of becoming a global veil.
   float stellarCloud = clumpMass
-    * (0.46 + 0.54 * smoothstep(0.36, 0.72, ridges));
+    * (0.57 + 0.63 * smoothstep(0.33, 0.70, ridges));
   float granularCloud = envelope
-    * smoothstep(0.42, 0.76, middle)
-    * smoothstep(0.34, 0.71, fine);
+    * smoothstep(0.37, 0.73, middle)
+    * smoothstep(0.29, 0.68, fine);
 
-  // A soft central stellar-density bulge is present, but it is neither circular
-  // nor bright enough to resemble a synthetic glow blob.
-  float bulge = gaussian(along + 0.02, 0.54)
-    * gaussian(warpedAcross - (macroB - 0.5) * 0.045, 0.29)
-    * (0.48 + 0.52 * macroMass);
+  float bulge = gaussian(along + 0.02, 0.58)
+    * gaussian(warpedAcross - (macroB - 0.5) * 0.045, 0.31)
+    * (0.56 + 0.60 * macroMass);
 
   // Real photographs show broad irregular absorption patches, not just razor-thin
   // lanes. The main rift meanders through the luminous body and partially breaks.
@@ -197,7 +195,6 @@ void main() {
     0.055
   ) * (1.0 - smoothstep(0.43, 0.70, fine));
 
-  // Opaque molecular-cloud pockets are deliberately broad and soft-edged.
   float pocketNoise = fbm(vec2(along * 3.35, warpedAcross * 7.25) + vec2(-12.6, 5.4));
   float darkPockets = envelope * smoothstep(0.55, 0.76, pocketNoise);
 
@@ -210,76 +207,89 @@ void main() {
     1.0
   );
 
-  // The reference is predominantly neutral brown/olive-grey. Saturated orange,
-  // cyan and large red patches are intentionally avoided.
   float warmWindow = gaussian(along + 0.03, 0.68)
     * (0.52 + 0.48 * smoothstep(0.38, 0.73, macroA));
   float warmDust = stellarCloud * warmWindow;
   float neutralDust = clumpMass * (0.54 + 0.46 * (1.0 - warmWindow));
-  float stellarHaze = clamp(granularCloud * 0.74 + bulge * 0.52, 0.0, 1.0);
+  float stellarHaze = clamp(granularCloud * 0.82 + bulge * 0.62, 0.0, 1.0);
 
-  // Two tiny low-saturation reddish complexes hint at HII regions without turning
-  // the whole Milky Way pink.
-  float hiiA = gaussian(along + 0.43, 0.15)
-    * gaussian(warpedAcross - 0.055, 0.105);
-  float hiiB = gaussian(along - 0.36, 0.17)
-    * gaussian(warpedAcross + 0.070, 0.115);
-  float hii = max(hiiA, hiiB) * smoothstep(0.57, 0.80, fine) * envelope;
+  // Localised cool scattering gives the field richer depth without creating a
+  // synthetic blue fog bank. It lives mainly in outer stellar-cloud knots.
+  float coolCloud = envelope
+    * smoothstep(0.55, 0.80, macroB)
+    * smoothstep(0.40, 0.74, ridges)
+    * (0.28 + 0.72 * (1.0 - warmWindow));
 
-  vec3 neutralColor = vec3(0.255, 0.235, 0.190);
-  vec3 warmColor = vec3(0.355, 0.245, 0.155);
-  vec3 stellarColor = vec3(0.305, 0.300, 0.255);
-  vec3 hiiColor = vec3(0.315, 0.185, 0.165);
+  // Small HII-like knots provide restrained magenta/red complexity in the dense
+  // body while still occupying only a tiny part of the whole field.
+  float hiiA = gaussian(along + 0.43, 0.17)
+    * gaussian(warpedAcross - 0.055, 0.115);
+  float hiiB = gaussian(along - 0.36, 0.19)
+    * gaussian(warpedAcross + 0.070, 0.125);
+  float hii = max(hiiA, hiiB) * smoothstep(0.53, 0.78, fine) * envelope;
+
+  // Richer photographic palette: warm amber/brown dominates, cool blue stays
+  // local, and HII colour is present but never turns the whole galaxy pink.
+  vec3 neutralColor = vec3(0.300, 0.260, 0.205);
+  vec3 warmColor = vec3(0.485, 0.255, 0.125);
+  vec3 stellarColor = vec3(0.345, 0.330, 0.285);
+  vec3 coolColor = vec3(0.115, 0.170, 0.275);
+  vec3 hiiColor = vec3(0.430, 0.155, 0.150);
   vec3 dustColor = vec3(0.0030, 0.0034, 0.0033);
 
-  float neutralWeight = neutralDust * 0.80;
-  float warmWeight = warmDust * 0.70;
-  float stellarWeight = stellarHaze * 0.55;
-  float hiiWeight = hii * 0.12;
-  float totalWeight = neutralWeight + warmWeight + stellarWeight + hiiWeight;
+  float neutralWeight = neutralDust * 0.88;
+  float warmWeight = warmDust * 0.96;
+  float stellarWeight = stellarHaze * 0.66;
+  float coolWeight = coolCloud * 0.30;
+  float hiiWeight = hii * 0.24;
+  float totalWeight = neutralWeight + warmWeight + stellarWeight + coolWeight + hiiWeight;
 
   vec3 emissionColor = (
       neutralColor * neutralWeight
     + warmColor * warmWeight
     + stellarColor * stellarWeight
+    + coolColor * coolWeight
     + hiiColor * hiiWeight
   ) / max(totalWeight, 0.0001);
 
-  // Visibility is carried by localized cloud complexes instead of a global veil.
-  // On black this produces the same low-contrast brown mass seen in the phone photo.
+  // Roughly one stop more visible than the previous pass, but the added opacity is
+  // still structure-driven so the Milky Way keeps black gaps and dark rifts.
   float emissionAlpha = clamp(
-      clumpMass * 0.105
-    + stellarCloud * 0.095
-    + granularCloud * 0.050
-    + bulge * 0.070
-    + hii * 0.026
-    + diffuseSpine * macroMass * 0.018,
+      envelope * macroMass * 0.030
+    + clumpMass * 0.145
+    + stellarCloud * 0.135
+    + granularCloud * 0.078
+    + bulge * 0.095
+    + coolCloud * 0.045
+    + hii * 0.060
+    + diffuseSpine * macroMass * 0.026,
     0.0,
-    0.265
+    0.345
   );
 
-  // Black dust is allowed to remain visible as absorption even where emission falls
-  // away, which creates the deep layered structure missing from the previous pass.
-  float dustAlpha = dust * (0.090 + envelope * 0.105);
-  float alpha = clamp(emissionAlpha + dustAlpha, 0.0, 0.285);
+  float dustAlpha = dust * (0.105 + envelope * 0.115);
+  float alpha = clamp(emissionAlpha + dustAlpha, 0.0, 0.365);
 
   float dustMix = dustAlpha / max(alpha, 0.0001);
   vec3 color = mix(emissionColor, dustColor, dustMix);
 
-  // Local contrast only. Avoid global saturation/brightness tricks.
+  // Preserve dust contrast while adding a modest photographic colour/luminance
+  // lift only where real nebular emission exists.
   float textureContrast = smoothstep(0.40, 0.76, ridges) * clumpMass;
-  color *= 0.94 + textureContrast * 0.18;
-  color *= 1.0 - dust * 0.18;
+  color *= 0.96 + textureContrast * 0.22;
+  color *= 1.0 - dust * 0.19;
 
-  // Stable, tiny luminance grain helps the broad cloud mass resemble a camera
-  // exposure rather than smooth procedural fog.
+  float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+  float colorLift = smoothstep(0.045, 0.24, emissionAlpha);
+  color = mix(vec3(luma), color, 1.0 + colorLift * 0.24);
+  color *= 1.0 + colorLift * 0.16;
+
   float grain = hash21(gl_FragCoord.xy + 41.37) - 0.5;
-  color += vec3(grain * 0.0024);
+  color += vec3(grain * 0.0026);
 
-  // Dissolve viewport boundaries and preserve large areas of true black sky.
   vec2 edgeUv = abs(vUv - 0.5) * 2.0;
   float edgeFade = 1.0 - smoothstep(0.79, 1.05, max(edgeUv.x, edgeUv.y));
-  alpha *= mix(0.76, 1.0, edgeFade);
+  alpha *= mix(0.78, 1.0, edgeFade);
 
   if (alpha <= 0.001) discard;
   outColor = vec4(max(color, vec3(0.0)), alpha);

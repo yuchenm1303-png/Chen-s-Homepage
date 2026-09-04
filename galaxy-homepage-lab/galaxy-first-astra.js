@@ -149,6 +149,8 @@ in float vRayStrength;
 in float vParticleDiameter;
 flat in float vKind;
 
+uniform float uBloomOnly;
+
 out vec4 outColor;
 
 float astraCubicCoverage(float coordinate) {
@@ -164,32 +166,29 @@ float astraFilteredCore(vec2 pixel, float area) {
 }
 
 void main() {
-  // Haze remains the first prototype's soft coreless material. It is field body,
-  // not a star, so it intentionally does not receive Astra diffraction rays.
-  if (vKind > 3.5) {
-    vec2 uv = gl_PointCoord * 2.0 - 1.0;
-    float r2 = dot(uv, uv);
-    if (r2 > 1.0) discard;
-    float haze = exp(-r2 * 3.2) * (1.0 - smoothstep(0.62, 1.0, sqrt(r2)));
-    float alpha = vOpacity * haze;
-    vec3 hazeColor = vColor * (0.32 + haze * 0.72);
-    outColor = vec4(hazeColor, alpha);
-    return;
-  }
+  if (uBloomOnly > 0.5 && (vKind < 1.5 || vKind > 3.5)) discard;
 
-  // Astra production material: filtered sub-pixel core, resolved disc/rays,
-  // luminance-dependent white nucleus, and colour-energy compensation.
+  // Haze is never allowed into the optical pass. The current tuning keeps the
+  // field itself sharp; broad galaxy atmosphere can be reintroduced later.
+  if (vKind > 3.5) discard;
+
   vec2 pixel = (gl_PointCoord - vec2(0.5)) * max(vParticleDiameter, 4.0);
   vec2 point = pixel * 2.0 / max(vParticleDiameter, 0.0001);
   float distanceToCenter = length(point);
-  float disc = 1.0 - smoothstep(0.08, 1.0, distanceToCenter);
-  float core = pow(disc, 2.2);
 
-  float horizontalRay = exp(-abs(point.y) * 28.0)
-    * (1.0 - smoothstep(0.18, 1.0, abs(point.x)));
-  float verticalRay = exp(-abs(point.x) * 28.0)
-    * (1.0 - smoothstep(0.18, 1.0, abs(point.y)));
-  float rays = max(horizontalRay, verticalRay) * 0.28 * vRayStrength;
+  // Tight stellar body: the eye should lock onto a hot point first, not a blur.
+  float disc = 1.0 - smoothstep(0.04, 0.74, distanceToCenter);
+  float core = pow(disc, 3.4);
+  float hotCore = exp(-distanceToCenter * distanceToCenter * 48.0);
+
+  // Diffraction is reserved for hero stars and only when the sprite resolves large.
+  float heroMask = step(2.5, vKind) * (1.0 - step(3.5, vKind));
+  float rayGate = heroMask * smoothstep(5.8, 8.5, vParticleDiameter);
+  float horizontalRay = exp(-abs(point.y) * 38.0)
+    * (1.0 - smoothstep(0.14, 0.92, abs(point.x)));
+  float verticalRay = exp(-abs(point.x) * 38.0)
+    * (1.0 - smoothstep(0.14, 0.92, abs(point.y)));
+  float rays = max(horizontalRay, verticalRay) * 0.18 * vRayStrength * rayGate;
 
   float resolved = smoothstep(2.0, 4.0, vParticleDiameter);
   float alpha = mix(
@@ -200,13 +199,24 @@ void main() {
 
   if (alpha <= 0.0) discard;
 
-  float whiteCore = mix(0.59228, core, resolved)
-    * smoothstep(0.9, 2.8, vBrightness)
-    * 0.82;
+  // White-hot nucleus, coloured inner fringe, nearly neutral outer edge.
+  float innerTint = smoothstep(0.12, 0.58, distanceToCenter);
+  vec3 localColor = mix(vec3(1.0), vColor, innerTint);
+  float localLuma = dot(localColor, vec3(0.2126, 0.7152, 0.0722));
+  float outerNeutral = smoothstep(0.56, 1.0, distanceToCenter) * 0.42;
+  localColor = mix(localColor, vec3(localLuma), outerNeutral);
+
+  float whiteCore = (0.72 * hotCore + 0.28 * core)
+    * smoothstep(0.85, 2.6, vBrightness);
+  localColor = mix(localColor, vec3(1.0), clamp(whiteCore, 0.0, 0.94));
+
   float colorEnergy = clamp(1.0 - min(vColor.r, min(vColor.g, vColor.b)), 0.0, 1.0);
-  vec3 emission = mix(vColor, vec3(1.0), whiteCore)
+  vec3 emission = localColor
     * vBrightness
-    * (1.0 + colorEnergy * 0.42);
+    * (1.0 + colorEnergy * 0.34);
+
+  // The bloom-only pass carries less raw energy so post blur stays compact.
+  if (uBloomOnly > 0.5) emission *= mix(0.72, 0.90, heroMask);
 
   outColor = vec4(emission, alpha);
 }
@@ -239,7 +249,7 @@ vec3 sourceAt(vec2 uv) {
   vec3 c = texture(uSource, clamp(uv, vec2(0.001), vec2(0.999))).rgb;
   if (uExtract > 0.5) {
     float l = max(c.r, max(c.g, c.b));
-    float gate = smoothstep(uThreshold, uThreshold + 0.18, l);
+    float gate = smoothstep(uThreshold, uThreshold + 0.12, l);
     c *= gate;
   }
   return c;
@@ -247,11 +257,11 @@ vec3 sourceAt(vec2 uv) {
 
 void main() {
   vec2 stepUv = uTexel * uDirection;
-  vec3 c = sourceAt(vUv) * 0.2270270270;
-  c += (sourceAt(vUv + stepUv * 1.3846153846)
-      + sourceAt(vUv - stepUv * 1.3846153846)) * 0.3162162162;
-  c += (sourceAt(vUv + stepUv * 3.2307692308)
-      + sourceAt(vUv - stepUv * 3.2307692308)) * 0.0702702703;
+  vec3 c = sourceAt(vUv) * 0.2941176471;
+  c += (sourceAt(vUv + stepUv * 1.05)
+      + sourceAt(vUv - stepUv * 1.05)) * 0.2941176471;
+  c += (sourceAt(vUv + stepUv * 2.15)
+      + sourceAt(vUv - stepUv * 2.15)) * 0.0588235294;
   outColor = vec4(c, 1.0);
 }
 `;
@@ -279,11 +289,11 @@ vec3 acesFilmic(vec3 x) {
 
 void main() {
   vec3 scene = texture(uScene, vUv).rgb;
-  vec3 bloom = texture(uBloom0, vUv).rgb * 0.32
+  vec3 bloom = texture(uBloom0, vUv).rgb * 0.58
              + texture(uBloom1, vUv).rgb * 0.26
-             + texture(uBloom2, vUv).rgb * 0.20
-             + texture(uBloom3, vUv).rgb * 0.14
-             + texture(uBloom4, vUv).rgb * 0.08;
+             + texture(uBloom2, vUv).rgb * 0.11
+             + texture(uBloom3, vUv).rgb * 0.04
+             + texture(uBloom4, vUv).rgb * 0.01;
 
   vec3 hdr = scene + bloom * uBloomIntensity;
   vec3 mapped = acesFilmic(hdr);
@@ -554,7 +564,9 @@ function addHeroStars() {
 addBackground(5000);
 addStream(4300, PRIMARY_PATH, false);
 addStream(1450, SECONDARY_PATH, true);
-addHaze(620);
+// Temporarily remove the old soft haze particles: they were reading as defocused
+// bokeh rather than stellar depth once the field became fullscreen.
+addHaze(0);
 addMidStars(650);
 addBrightStars(52);
 addHeroStars();
@@ -591,6 +603,7 @@ const starUniforms = {
   exposure: gl.getUniformLocation(starProgram, 'uExposure'),
   pointerActive: gl.getUniformLocation(starProgram, 'uPointerActive'),
   pointer: gl.getUniformLocation(starProgram, 'uPointer'),
+  bloomOnly: gl.getUniformLocation(starProgram, 'uBloomOnly'),
 };
 
 const bloomUniforms = {
@@ -639,6 +652,7 @@ function destroyTarget(target) {
 }
 
 let sceneTarget = null;
+let bloomSourceTarget = null;
 let bloomLevels = [];
 
 const state = {
@@ -656,12 +670,14 @@ const state = {
 
 function rebuildTargets() {
   destroyTarget(sceneTarget);
+  destroyTarget(bloomSourceTarget);
   for (const level of bloomLevels) {
     destroyTarget(level.a);
     destroyTarget(level.b);
   }
 
   sceneTarget = createTarget(state.width, state.height);
+  bloomSourceTarget = createTarget(state.width, state.height);
   bloomLevels = [];
   const scales = [0.5, 0.25, 0.125, 0.0625, 0.03125];
   for (const scale of scales) {
@@ -729,13 +745,13 @@ function bloomPass(source, target, direction, extract) {
   gl.uniform1i(bloomUniforms.source, 0);
   gl.uniform2f(bloomUniforms.texel, 1 / source.width, 1 / source.height);
   gl.uniform2f(bloomUniforms.direction, direction[0], direction[1]);
-  gl.uniform1f(bloomUniforms.threshold, useHDR ? 0.08 : 0.06);
+  gl.uniform1f(bloomUniforms.threshold, useHDR ? 0.18 : 0.14);
   gl.uniform1f(bloomUniforms.extract, extract ? 1 : 0);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
 function renderBloom() {
-  let source = sceneTarget;
+  let source = bloomSourceTarget;
   for (let i = 0; i < bloomLevels.length; i++) {
     const level = bloomLevels[i];
     bloomPass(source, level.a, [1, 0], i === 0);
@@ -759,7 +775,7 @@ function composite() {
     gl.uniform1i(compositeUniforms.blooms[index], index + 1);
   });
 
-  gl.uniform1f(compositeUniforms.bloomIntensity, 0.86);
+  gl.uniform1f(compositeUniforms.bloomIntensity, 0.62);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
@@ -768,6 +784,29 @@ resize();
 gl.disable(gl.DEPTH_TEST);
 gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
 gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+function drawStarPass(target, bloomOnly, seconds, exposure) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+  gl.viewport(0, 0, state.width, state.height);
+  gl.clearColor(0.0015, 0.0030, 0.0060, bloomOnly ? 0 : 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gl.enable(gl.BLEND);
+  gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
+  gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.useProgram(starProgram);
+  gl.bindVertexArray(starVao);
+  gl.uniform1f(starUniforms.aspect, state.aspect);
+  gl.uniform1f(starUniforms.time, reducedMotion ? 0 : seconds);
+  gl.uniform1f(starUniforms.dpr, state.dpr);
+  gl.uniform1f(starUniforms.exposure, exposure);
+  gl.uniform1f(starUniforms.pointerActive, state.pointerActive);
+  gl.uniform2f(starUniforms.pointer, state.pointer[0], state.pointer[1]);
+  gl.uniform1f(starUniforms.bloomOnly, bloomOnly ? 1 : 0);
+  gl.drawArrays(gl.POINTS, 0, starCount);
+  gl.bindVertexArray(null);
+  gl.disable(gl.BLEND);
+}
 
 function render(now) {
   resize();
@@ -790,25 +829,12 @@ function render(now) {
     ? 1
     : easeInOut(Math.max(0, Math.min(1, (seconds - 0.10) / 2.45)));
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, sceneTarget.framebuffer);
-  gl.viewport(0, 0, state.width, state.height);
-  gl.clearColor(0.0015, 0.0030, 0.0060, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  // Sharp scene pass first; no broad haze particles.
+  drawStarPass(sceneTarget, false, seconds, exposure);
 
-  gl.enable(gl.BLEND);
-  gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
-  gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-  gl.useProgram(starProgram);
-  gl.bindVertexArray(starVao);
-  gl.uniform1f(starUniforms.aspect, state.aspect);
-  gl.uniform1f(starUniforms.time, reducedMotion ? 0 : seconds);
-  gl.uniform1f(starUniforms.dpr, state.dpr);
-  gl.uniform1f(starUniforms.exposure, exposure);
-  gl.uniform1f(starUniforms.pointerActive, state.pointerActive);
-  gl.uniform2f(starUniforms.pointer, state.pointer[0], state.pointer[1]);
-  gl.drawArrays(gl.POINTS, 0, starCount);
-  gl.bindVertexArray(null);
-  gl.disable(gl.BLEND);
+  // Optical pass renders only Bright + Hero stars. Background and stream stars can
+  // never enter the blur chain, preventing the screen-wide soft oval/bokeh look.
+  drawStarPass(bloomSourceTarget, true, seconds, exposure);
 
   renderBloom();
   composite();

@@ -112,7 +112,7 @@ void main() {
               + 0.018 * sin(along * 5.20 - 0.40);
   across -= curve;
 
-  float drift = reducedMotion ? 0.0 : uTime * 0.0017;
+  float drift = uTime * 0.0017;
   vec2 slowDrift = vec2(drift, -drift * 0.46);
 
   // Large-scale domain warp gives the band a photographic irregularity while

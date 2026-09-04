@@ -1,0 +1,10 @@
+.scene-noise {
+  opacity: .018;
+  background-size: 4px 4px;
+}
+
+.scene-vignette {
+  background:
+    radial-gradient(ellipse at 68% 50%, transparent 0 40%, rgba(1,3,6,.045) 63%, rgba(1,2,5,.25) 100%),
+    linear-gradient(90deg, rgba(2,4,7,.76) 0%, rgba(2,4,7,.33) 29%, rgba(2,4,7,.055) 48%, transparent 69%, rgba(1,3,6,.075) 100%);
+}

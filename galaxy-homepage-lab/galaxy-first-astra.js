@@ -669,14 +669,19 @@ function addBrightStars(count) {
 }
 
 const HERO_STARS = [
+  { t: .10, offset:  .118, size: 7.3, color: [0.97, 0.99, 1.00] },
   { t: .18, offset: -.072, size: 8.3, color: [0.47, 0.77, 1.00] },
+  { t: .26, offset: -.138, size: 7.9, color: [0.62, 0.84, 1.00] },
   { t: .31, offset:  .098, size: 6.7, color: [1.00, 0.63, 0.28] },
   { t: .42, offset: -.115, size: 9.6, color: [0.40, 0.70, 1.00] },
+  { t: .48, offset:  .132, size: 7.5, color: [1.00, 0.84, 0.62] },
   { t: .53, offset:  .055, size: 7.4, color: [0.97, 0.98, 1.00] },
   { t: .61, offset: -.083, size: 10.2, color: [1.00, 0.57, 0.20] },
   { t: .70, offset:  .092, size: 7.8, color: [0.45, 0.74, 1.00] },
+  { t: .73, offset: -.126, size: 8.1, color: [0.98, 0.99, 1.00] },
   { t: .79, offset: -.048, size: 8.8, color: [0.95, 0.97, 1.00] },
   { t: .88, offset:  .061, size: 6.8, color: [1.00, 0.68, 0.34] },
+  { t: .94, offset: -.094, size: 7.6, color: [0.70, 0.87, 1.00] },
 ];
 
 function addHeroStars() {

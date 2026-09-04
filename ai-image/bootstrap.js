@@ -263,7 +263,7 @@
       };
 
       const transport = document.createElement('script');
-      transport.src = './studio-transport.js?v=20260903-resilient-1';
+      transport.src = './studio-transport.js?v=20260904-auth-proxy-1';
       transport.addEventListener('load', appendWorkflow, { once: true });
       transport.addEventListener('error', appendWorkflow, { once: true });
       document.body.appendChild(transport);

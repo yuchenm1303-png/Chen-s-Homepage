@@ -60,8 +60,8 @@ void main() {
   float bright = step(1.5, aKind) * (1.0 - step(2.5, aKind));
   float hero = step(2.5, aKind) * (1.0 - step(3.5, aKind));
 
-  // Slow depth-dependent flow. This preserves the authored path while preventing
-  // the field from reading as a static wallpaper.
+  // Slow depth-dependent flow. This belongs to the galaxy itself and remains
+  // independent from pointer input.
   float flowSpeed = mix(0.36, 0.76, depth) * (0.72 + 0.28 * aRate);
   float flowAmount = mix(0.0045, 0.020, depth);
   float phaseX = aPhase * 0.71 + aPosition.x * 4.2 + aPosition.y * 1.8;
@@ -77,15 +77,19 @@ void main() {
     * flowAmount * 0.42 * flowMask;
   p.xy += flowDirection * alongFlow + flowAcross * acrossFlow;
 
-  // Restrained observation parallax.
-  p.xy += uPointer * mix(0.0035, 0.021, depth);
-  vec2 pointerWorld = vec2(uPointer.x * uAspect, uPointer.y);
-  vec2 delta = p.xy - pointerWorld;
-  float repel = exp(-dot(delta, delta) * 15.0)
-    * uPointerActive * (0.002 + 0.013 * depth);
-  p.xy += normalize(delta + vec2(0.0001)) * repel;
+  // Camera-like observation parallax. Pointer input changes the viewpoint instead
+  // of pushing particles around. Far stars barely move; resolved stars carry the
+  // largest, still restrained, opposite-direction parallax.
+  float classParallax = background * 0.28
+    + stream * 0.58
+    + bright * 0.82
+    + hero;
+  float depthParallax = mix(0.0020, 0.0088, depth) * classParallax;
+  depthParallax *= mix(0.92, 1.0, uPointerActive);
+  p.xy -= uPointer * depthParallax;
 
-  p.xy = rotate2d(-0.017 + uPointer.x * 0.006) * p.xy;
+  // Keep the authored baseline angle fixed. Pointer no longer rotates the galaxy.
+  p.xy = rotate2d(-0.017) * p.xy;
 
   // First-version galaxy composition, expanded to the whole viewport.
   p.x = (p.x - 0.535) * 1.72;
@@ -832,6 +836,7 @@ const state = {
   height: 1,
   aspect: 1,
   pointerTarget: [0, 0],
+  pointerIntent: [0, 0],
   pointer: [0, 0],
   pointerActiveTarget: 0,
   pointerActive: 0,
@@ -884,15 +889,29 @@ function resize() {
   rebuildTargets();
 }
 
+function shapePointerAxis(value) {
+  const deadZone = 0.06;
+  const magnitude = Math.abs(value);
+  if (magnitude <= deadZone) return 0;
+
+  const normalized = Math.min(1, (magnitude - deadZone) / (1 - deadZone));
+  const eased = normalized * normalized * (3 - 2 * normalized);
+  return Math.sign(value) * eased * 0.86;
+}
+
 function onPointerMove(event) {
-  state.pointerTarget[0] =
-    (event.clientX / Math.max(window.innerWidth, 1)) * 2 - 1;
-  state.pointerTarget[1] =
-    -((event.clientY / Math.max(window.innerHeight, 1)) * 2 - 1);
+  const rawX = (event.clientX / Math.max(window.innerWidth, 1)) * 2 - 1;
+  const rawY = -((event.clientY / Math.max(window.innerHeight, 1)) * 2 - 1);
+
+  state.pointerTarget[0] = shapePointerAxis(rawX);
+  state.pointerTarget[1] = shapePointerAxis(rawY);
   state.pointerActiveTarget = 1;
 }
 
 function onPointerLeave() {
+  // Return the virtual camera to center rather than leaving the last pointer pose.
+  state.pointerTarget[0] = 0;
+  state.pointerTarget[1] = 0;
   state.pointerActiveTarget = 0;
 }
 
@@ -1057,26 +1076,44 @@ function render(now) {
   state.lastFrame = now;
 
   if (reducedMotion) {
+    state.pointerTarget[0] = 0;
+    state.pointerTarget[1] = 0;
+    state.pointerIntent[0] = 0;
+    state.pointerIntent[1] = 0;
     state.pointer[0] = 0;
     state.pointer[1] = 0;
     state.pointerActive = 0;
   } else {
+    // Stage 1: pointer intent reacts reasonably quickly without tracking every
+    // tiny hand movement. Stage 2: the virtual camera follows with heavier inertia.
+    state.pointerIntent[0] = damp(
+      state.pointerIntent[0],
+      state.pointerTarget[0],
+      7.0,
+      dt,
+    );
+    state.pointerIntent[1] = damp(
+      state.pointerIntent[1],
+      state.pointerTarget[1],
+      7.0,
+      dt,
+    );
     state.pointer[0] = damp(
       state.pointer[0],
-      state.pointerTarget[0],
-      5.2,
+      state.pointerIntent[0],
+      3.0,
       dt,
     );
     state.pointer[1] = damp(
       state.pointer[1],
-      state.pointerTarget[1],
-      5.2,
+      state.pointerIntent[1],
+      3.0,
       dt,
     );
     state.pointerActive = damp(
       state.pointerActive,
       state.pointerActiveTarget,
-      4.4,
+      3.0,
       dt,
     );
   }

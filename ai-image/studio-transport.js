@@ -39,15 +39,21 @@
   window.fetch = async function resilientStudioFetch(input, init = {}) {
     const sourceUrl = typeof input === 'string' || input instanceof URL ? String(input) : input?.url || '';
     const method = String(init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
-    const targetUrl = method === 'POST' ? transportTarget(sourceUrl) : '';
+    const targetUrl = transportTarget(sourceUrl);
     if (!targetUrl) return nativeFetch(input, init);
+
+    // Health checks must go through the same proxy path as generation. The
+    // direct legacy Edge endpoints still use Supabase's older JWT gate, while
+    // the studio proxies authenticate the browser key inside the function and
+    // forward upstream using the project's current publishable key.
+    if (method !== 'POST') return nativeFetch(targetUrl, init);
 
     const rawBody = await bodyText(input, init);
     let payload;
     try {
       payload = JSON.parse(rawBody || '{}');
     } catch {
-      return nativeFetch(input, init);
+      return nativeFetch(targetUrl, init);
     }
 
     const keyHash = await fingerprint(`${targetUrl}\n${rawBody}`);

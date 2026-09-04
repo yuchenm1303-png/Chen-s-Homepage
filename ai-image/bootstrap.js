@@ -6,6 +6,7 @@
   let navigationBusy = false;
   let pendingMode = null;
   let statusEpoch = 0;
+  let modeEnterTimer = null;
 
   root.dataset.imageMode = currentMode;
 
@@ -55,6 +56,17 @@
     if (strong) strong.textContent = title;
     if (paragraph) paragraph.textContent = copy;
   };
+
+  function pulseModeEntry() {
+    root.classList.remove('mode-enter');
+    void root.offsetWidth;
+    root.classList.add('mode-enter');
+    if (modeEnterTimer) window.clearTimeout(modeEnterTimer);
+    modeEnterTimer = window.setTimeout(() => {
+      root.classList.remove('mode-enter');
+      modeEnterTimer = null;
+    }, 220);
+  }
 
   function setShellStatus(offline, label) {
     if (!engineState) return;
@@ -168,6 +180,7 @@
   function configureWorkspace(workspace, mode) {
     workspace.classList.remove('fade-in');
     workspace.classList.add('mode-inline-workspace');
+    workspace.querySelectorAll('.panel.cards.fade-in').forEach((panel) => panel.classList.remove('fade-in'));
     const q = (selector) => workspace.querySelector(selector);
     const imageFieldTitle = q('#imageFieldTitle');
     const imageFieldHint = q('#imageFieldHint');
@@ -282,6 +295,7 @@
 
     if (mode === 'studio') {
       detachInlineWorkspace();
+      pulseModeEntry();
       navigationBusy = true;
       const ok = await ensureStudioRuntime();
       navigationBusy = false;
@@ -293,6 +307,7 @@
         inlineHost.appendChild(workspace);
         activeInlineMode = mode;
       }
+      pulseModeEntry();
       navigationBusy = true;
       const ok = await loadSingleRuntime(mode);
       navigationBusy = false;
@@ -322,12 +337,7 @@
       return;
     }
 
-    const run = () => activateMode(mode, options);
-    if (typeof document.startViewTransition === 'function') {
-      document.startViewTransition(run);
-    } else {
-      void run();
-    }
+    void activateMode(mode, options);
   }
 
   document.querySelectorAll('[data-mode-link]').forEach((link) => {

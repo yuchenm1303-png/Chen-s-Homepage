@@ -121,8 +121,8 @@ void main() {
   float warpB = fbm(vec2(along * 1.25, across * 2.10) + vec2(-5.2, 4.1) - slowDrift * 0.5);
   float warpedAcross = across + (warpA - 0.5) * 0.115 + (warpB - 0.5) * 0.045;
 
-  float broadBand = exp(-pow(abs(warpedAcross) / 0.365, 1.75));
-  float innerBand = exp(-pow(abs(warpedAcross) / 0.220, 1.55));
+  float broadBand = exp(-pow(abs(warpedAcross) / 0.405, 1.72));
+  float innerBand = exp(-pow(abs(warpedAcross) / 0.245, 1.52));
 
   // Three spatial frequencies: broad molecular cloud mass, granular filaments,
   // and a high-frequency ridge signal for dark dust structure.
@@ -131,85 +131,96 @@ void main() {
   float fineDust = fbm(vec2(along * 4.60, warpedAcross * 10.0) + vec2(5.4, -9.2));
 
   float structure = clamp(cloudMass * 0.66 + filament * 0.34, 0.0, 1.0);
-  float cloudVeil = smoothstep(0.40, 0.78, structure) * broadBand;
-  float denseCloud = smoothstep(0.55, 0.86, structure) * innerBand;
+  float cloudVeil = smoothstep(0.33, 0.70, structure) * broadBand;
+  float denseCloud = smoothstep(0.47, 0.80, structure) * innerBand;
+  float stellarMist = smoothstep(0.29, 0.66, structure)
+    * broadBand
+    * (0.62 + 0.38 * ridge(filament));
 
-  // Warm stellar-density regions are deliberately localised. This avoids the
-  // old problem where the whole band became a beige/grey fog.
-  float coreWindow = exp(-pow((along - 0.12) / 0.72, 2.0));
-  float warmWindow = exp(-pow((along + 0.14) / 0.92, 2.0));
+  // Warm stellar-density regions are localised, but are now lifted enough to be
+  // perceptible on a normal desktop display without turning into a beige fog bank.
+  float coreWindow = exp(-pow((along - 0.12) / 0.76, 2.0));
+  float warmWindow = exp(-pow((along + 0.14) / 0.96, 2.0));
   float coolWindow = 0.42
-    + 0.58 * exp(-pow((along - 0.68) / 0.78, 2.0));
+    + 0.58 * exp(-pow((along - 0.68) / 0.82, 2.0));
 
   float warmEmission = cloudVeil * coreWindow
-    * (0.42 + 0.58 * ridge(filament));
+    * (0.40 + 0.60 * ridge(filament));
   float coolEmission = cloudVeil * coolWindow
-    * smoothstep(0.46, 0.82, warpB);
+    * smoothstep(0.42, 0.78, warpB);
 
-  // A primary dust lane plus broken secondary lanes. These are absorption layers,
-  // so they actually darken stars/clouds behind them rather than looking like glow.
+  // A primary dust lane plus broken secondary lanes. These remain absorption
+  // structures so the added visibility comes from depth, not from generic glow.
   float laneMeander = (filament - 0.5) * 0.072
     + (fineDust - 0.5) * 0.030;
   float laneDistance = abs(warpedAcross + 0.018 + laneMeander);
-  float primaryLane = exp(-pow(laneDistance / 0.052, 2.0));
+  float primaryLane = exp(-pow(laneDistance / 0.055, 2.0));
 
   float secondaryLaneA = exp(-pow(
-    abs(warpedAcross - 0.105 + (warpB - 0.5) * 0.055) / 0.035,
+    abs(warpedAcross - 0.105 + (warpB - 0.5) * 0.055) / 0.037,
     2.0
   ));
   float secondaryLaneB = exp(-pow(
-    abs(warpedAcross + 0.145 + (cloudMass - 0.5) * 0.060) / 0.043,
+    abs(warpedAcross + 0.145 + (cloudMass - 0.5) * 0.060) / 0.045,
     2.0
   ));
 
-  float broken = smoothstep(0.44, 0.72, fineDust);
+  float broken = smoothstep(0.42, 0.70, fineDust);
   float dust = innerBand * clamp(
     primaryLane * (0.58 + 0.42 * broken)
-      + secondaryLaneA * 0.36 * broken
-      + secondaryLaneB * 0.25 * (1.0 - broken),
+      + secondaryLaneA * 0.40 * broken
+      + secondaryLaneB * 0.29 * (1.0 - broken),
     0.0,
     1.0
   );
 
-  // Extremely faint diffuse outskirts make the Milky Way read as a volume rather
-  // than a line while preserving large areas of true black sky.
-  float outskirts = broadBand * smoothstep(0.34, 0.68, cloudMass) * 0.48;
+  float outskirts = broadBand * smoothstep(0.30, 0.64, cloudMass) * 0.56;
 
-  vec3 warmColor = vec3(0.195, 0.092, 0.044);
-  vec3 neutralDustGlow = vec3(0.083, 0.071, 0.064);
-  vec3 coolColor = vec3(0.035, 0.068, 0.112);
-  vec3 dustColor = vec3(0.0025, 0.0034, 0.0048);
+  // Slightly richer photographic Milky Way palette: warm molecular-cloud mass,
+  // cool scattering, and neutral brown-grey dust between them.
+  vec3 warmColor = vec3(0.335, 0.150, 0.070);
+  vec3 neutralDustGlow = vec3(0.145, 0.108, 0.082);
+  vec3 coolColor = vec3(0.055, 0.105, 0.175);
+  vec3 mistColor = vec3(0.090, 0.078, 0.070);
+  vec3 dustColor = vec3(0.0020, 0.0028, 0.0040);
 
   vec3 emissionColor = vec3(0.0);
-  emissionColor += warmColor * warmEmission * warmWindow;
-  emissionColor += coolColor * coolEmission;
-  emissionColor += neutralDustGlow * denseCloud * 0.24;
-  emissionColor += vec3(0.025, 0.030, 0.037) * outskirts;
+  emissionColor += warmColor * warmEmission * warmWindow * 1.12;
+  emissionColor += coolColor * coolEmission * 0.92;
+  emissionColor += neutralDustGlow * denseCloud * 0.46;
+  emissionColor += mistColor * stellarMist * 0.34;
+  emissionColor += vec3(0.038, 0.043, 0.050) * outskirts;
 
+  // Lift the layer by roughly one stop, while preserving enough black sky and
+  // enough local contrast for the dust lanes to remain readable.
   float emissionAlpha = clamp(
-      cloudVeil * 0.070
-    + denseCloud * 0.038
-    + outskirts * 0.018,
+      cloudVeil * 0.145
+    + denseCloud * 0.082
+    + stellarMist * 0.052
+    + outskirts * 0.035,
     0.0,
-    0.115
+    0.245
   );
 
-  float dustAlpha = dust * (0.075 + denseCloud * 0.075);
-  float alpha = clamp(emissionAlpha + dustAlpha, 0.0, 0.165);
+  float dustAlpha = dust * (0.105 + denseCloud * 0.095);
+  float alpha = clamp(emissionAlpha + dustAlpha, 0.0, 0.295);
 
   float dustMix = dustAlpha / max(alpha, 0.0001);
-  vec3 color = mix(emissionColor / max(emissionAlpha, 0.018), dustColor, dustMix);
+  vec3 color = mix(emissionColor / max(emissionAlpha, 0.022), dustColor, dustMix);
 
-  // Gentle photographic grain breaks up procedural smoothness without adding
-  // visible animated noise. It is stable in screen space.
+  // Mild local contrast gives cloud knots a real photographic hierarchy instead
+  // of simply raising the whole layer uniformly.
+  float knotContrast = smoothstep(0.48, 0.82, filament) * innerBand;
+  color *= 1.06 + knotContrast * 0.16;
+
   float grain = hash21(gl_FragCoord.xy + 19.73) - 0.5;
-  color += grain * 0.0045;
+  color += grain * 0.0040;
 
   // Fade the procedural layer toward the viewport edges so no rectangular or
   // synthetic boundary can be perceived.
   vec2 edgeUv = abs(vUv - 0.5) * 2.0;
-  float edgeFade = 1.0 - smoothstep(0.76, 1.04, max(edgeUv.x, edgeUv.y));
-  alpha *= mix(0.76, 1.0, edgeFade);
+  float edgeFade = 1.0 - smoothstep(0.78, 1.05, max(edgeUv.x, edgeUv.y));
+  alpha *= mix(0.82, 1.0, edgeFade);
 
   if (alpha <= 0.001) discard;
   outColor = vec4(max(color, vec3(0.0)), alpha);

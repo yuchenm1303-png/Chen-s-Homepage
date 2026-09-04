@@ -5,8 +5,9 @@ if (!starCanvas) {
   throw new Error('Galaxy canvas is required before the nebula layer can mount.');
 }
 
-// Keep the nebula independent from the stellar material so it can be tuned as a
-// low-frequency Milky Way structure layer without disturbing the approved stars.
+// Deep Milky Way structure is deliberately isolated from the approved stellar
+// renderer. This layer is not a generic fog: it is a clumpy mixture of unresolved
+// starlight, warm molecular-cloud mass, and dark dust rifts.
 const canvas = document.createElement('canvas');
 canvas.id = 'galaxyNebulaCanvas';
 canvas.setAttribute('aria-hidden', 'true');
@@ -78,149 +79,212 @@ float valueNoise(vec2 p) {
 float fbm(vec2 p) {
   float value = 0.0;
   float amplitude = 0.52;
-  mat2 octave = mat2(1.72, 1.12, -1.12, 1.72);
+  mat2 octave = mat2(1.73, 1.08, -1.08, 1.73);
 
   for (int i = 0; i < 5; i++) {
     value += valueNoise(p) * amplitude;
-    p = octave * p + 0.17;
+    p = octave * p + vec2(0.19, -0.13);
     amplitude *= 0.49;
   }
 
   return value;
 }
 
-float ridge(float x) {
-  return 1.0 - abs(x * 2.0 - 1.0);
+float ridgedFbm(vec2 p) {
+  float value = 0.0;
+  float amplitude = 0.54;
+  mat2 octave = mat2(1.61, 1.17, -1.17, 1.61);
+
+  for (int i = 0; i < 5; i++) {
+    float n = valueNoise(p);
+    float ridge = 1.0 - abs(n * 2.0 - 1.0);
+    value += ridge * ridge * amplitude;
+    p = octave * p + vec2(-0.23, 0.31);
+    amplitude *= 0.50;
+  }
+
+  return value;
+}
+
+float gaussian(float x, float width) {
+  return exp(-pow(x / max(width, 0.0001), 2.0));
 }
 
 void main() {
   float aspect = uResolution.x / max(uResolution.y, 1.0);
   vec2 p = (vUv - 0.5) * vec2(aspect, 1.0);
 
-  // The nebula follows the same observer-camera model as the star field, but at
-  // a smaller amplitude so it reads as a deeper layer rather than a glued overlay.
-  p += vec2(uCamera.x * 0.0060, uCamera.y * 0.0045);
+  // The nebula is deeper than the resolved stars, so its camera parallax is tiny.
+  p += vec2(uCamera.x * 0.0046, uCamera.y * 0.0035);
 
-  // Bottom-left -> top-right Milky Way axis. Curvature is structural, not animated;
-  // the field only drifts microscopically over time to avoid a smoke simulation.
   vec2 axis = normalize(vec2(0.69, 0.724));
   vec2 normal = vec2(-axis.y, axis.x);
   float along = dot(p, axis);
   float across = dot(p, normal);
 
-  float curve = 0.052 * sin(along * 2.15 + 0.55)
-              + 0.018 * sin(along * 5.20 - 0.40);
+  // Preserve the authored sweep, but remove the visual impression of a perfect
+  // diagonal tube by bending it at two independent spatial frequencies.
+  float curve = 0.050 * sin(along * 1.86 + 0.42)
+              + 0.015 * sin(along * 4.85 - 0.72);
   across -= curve;
 
-  float drift = uTime * 0.0017;
-  vec2 slowDrift = vec2(drift, -drift * 0.46);
+  float drift = uTime * 0.00042;
+  vec2 slowDrift = vec2(drift, -drift * 0.37);
 
-  // Large-scale domain warp gives the band a photographic irregularity while
-  // keeping the silhouette coherent and recognisably galactic.
-  float warpA = fbm(vec2(along * 0.72, across * 1.35) + vec2(3.8, -1.7) + slowDrift);
-  float warpB = fbm(vec2(along * 1.25, across * 2.10) + vec2(-5.2, 4.1) - slowDrift * 0.5);
-  float warpedAcross = across + (warpA - 0.5) * 0.115 + (warpB - 0.5) * 0.045;
+  // Low-frequency warp describes the large galactic mass; secondary warp breaks
+  // the centerline so the cloud body never reads as a blurred stripe.
+  float warpLow = fbm(vec2(along * 0.54, across * 1.08) + vec2(2.9, -3.7) + slowDrift);
+  float warpMid = fbm(vec2(along * 1.28, across * 2.25) + vec2(-4.6, 5.2) - slowDrift * 0.45);
+  float warpedAcross = across
+    + (warpLow - 0.5) * 0.145
+    + (warpMid - 0.5) * 0.050;
 
-  float broadBand = exp(-pow(abs(warpedAcross) / 0.405, 1.72));
-  float innerBand = exp(-pow(abs(warpedAcross) / 0.245, 1.52));
+  float broadBand = gaussian(warpedAcross, 0.445);
+  float innerBand = gaussian(warpedAcross, 0.255);
+  float coreBand = gaussian(warpedAcross, 0.165);
 
-  // Three spatial frequencies: broad molecular cloud mass, granular filaments,
-  // and a high-frequency ridge signal for dark dust structure.
-  float cloudMass = fbm(vec2(along * 0.82, warpedAcross * 1.55) + vec2(1.1, 7.4) + slowDrift);
-  float filament = fbm(vec2(along * 2.10, warpedAcross * 4.40) + vec2(-8.3, 2.6) - slowDrift * 0.35);
-  float fineDust = fbm(vec2(along * 4.60, warpedAcross * 10.0) + vec2(5.4, -9.2));
+  // Different scales are multiplied rather than simply summed. Real Milky Way
+  // structure is intermittent: large dark voids coexist with dense knots.
+  float macroA = fbm(vec2(along * 0.61, warpedAcross * 1.22) + vec2(7.1, 1.8) + slowDrift);
+  float macroB = fbm(vec2(along * 0.93, warpedAcross * 1.82) + vec2(-2.4, 9.6) - slowDrift * 0.32);
+  float middle = fbm(vec2(along * 2.05, warpedAcross * 4.35) + vec2(-8.8, 3.5));
+  float fine = fbm(vec2(along * 5.20, warpedAcross * 10.8) + vec2(4.3, -7.9));
+  float ridges = ridgedFbm(vec2(along * 2.85, warpedAcross * 6.4) + vec2(11.2, -5.1));
 
-  float structure = clamp(cloudMass * 0.66 + filament * 0.34, 0.0, 1.0);
-  float cloudVeil = smoothstep(0.33, 0.70, structure) * broadBand;
-  float denseCloud = smoothstep(0.47, 0.80, structure) * innerBand;
-  float stellarMist = smoothstep(0.29, 0.66, structure)
-    * broadBand
-    * (0.62 + 0.38 * ridge(filament));
+  float macroMass = clamp(macroA * 0.58 + macroB * 0.42, 0.0, 1.0);
+  float brokenMass = smoothstep(0.37, 0.71, macroMass)
+    * (0.48 + 0.52 * smoothstep(0.30, 0.73, middle));
+  float cloudBody = broadBand * brokenMass;
 
-  // Warm stellar-density regions are localised, but are now lifted enough to be
-  // perceptible on a normal desktop display without turning into a beige fog bank.
-  float coreWindow = exp(-pow((along - 0.12) / 0.76, 2.0));
-  float warmWindow = exp(-pow((along + 0.14) / 0.96, 2.0));
-  float coolWindow = 0.42
-    + 0.58 * exp(-pow((along - 0.68) / 0.82, 2.0));
+  // Two offset stellar-cloud shelves prevent a symmetric glowing ribbon. Their
+  // visibility changes independently along the galactic axis.
+  float shelfAOffset = 0.118 + (macroA - 0.5) * 0.070;
+  float shelfBOffset = -0.155 + (macroB - 0.5) * 0.085;
+  float shelfA = gaussian(warpedAcross - shelfAOffset, 0.135)
+    * smoothstep(0.38, 0.72, middle)
+    * broadBand;
+  float shelfB = gaussian(warpedAcross - shelfBOffset, 0.165)
+    * smoothstep(0.35, 0.69, macroA)
+    * broadBand;
 
-  float warmEmission = cloudVeil * coreWindow
-    * (0.40 + 0.60 * ridge(filament));
-  float coolEmission = cloudVeil * coolWindow
-    * smoothstep(0.42, 0.78, warpB);
+  // Filamentary unresolved starlight. It is still low-frequency enough not to
+  // compete with the actual point-star renderer above it.
+  float filamentLight = innerBand
+    * smoothstep(0.40, 0.74, ridges)
+    * (0.42 + 0.58 * brokenMass);
+  float granularLight = coreBand
+    * smoothstep(0.48, 0.77, middle)
+    * smoothstep(0.34, 0.70, fine);
 
-  // A primary dust lane plus broken secondary lanes. These remain absorption
-  // structures so the added visibility comes from depth, not from generic glow.
-  float laneMeander = (filament - 0.5) * 0.072
-    + (fineDust - 0.5) * 0.030;
-  float laneDistance = abs(warpedAcross + 0.018 + laneMeander);
-  float primaryLane = exp(-pow(laneDistance / 0.055, 2.0));
+  // Wide, meandering dark rift plus secondary fragmented lanes and opaque cloud
+  // pockets. These are what make the band read as Galactic dust rather than haze.
+  float riftOffset = (middle - 0.5) * 0.095
+    + (fine - 0.5) * 0.026
+    + sin(along * 2.65 - 0.30) * 0.014;
+  float primaryRift = gaussian(warpedAcross + 0.010 + riftOffset, 0.050)
+    * (0.58 + 0.42 * smoothstep(0.40, 0.72, macroB));
 
-  float secondaryLaneA = exp(-pow(
-    abs(warpedAcross - 0.105 + (warpB - 0.5) * 0.055) / 0.037,
-    2.0
-  ));
-  float secondaryLaneB = exp(-pow(
-    abs(warpedAcross + 0.145 + (cloudMass - 0.5) * 0.060) / 0.045,
-    2.0
-  ));
+  float secondaryRiftA = gaussian(
+    warpedAcross - 0.095 + (macroA - 0.5) * 0.060,
+    0.032
+  ) * smoothstep(0.47, 0.74, fine);
 
-  float broken = smoothstep(0.42, 0.70, fineDust);
-  float dust = innerBand * clamp(
-    primaryLane * (0.58 + 0.42 * broken)
-      + secondaryLaneA * 0.40 * broken
-      + secondaryLaneB * 0.29 * (1.0 - broken),
+  float secondaryRiftB = gaussian(
+    warpedAcross + 0.175 + (middle - 0.5) * 0.065,
+    0.042
+  ) * (1.0 - smoothstep(0.42, 0.69, fine));
+
+  float darkClouds = innerBand
+    * smoothstep(0.58, 0.79, fbm(
+      vec2(along * 3.55, warpedAcross * 7.6) + vec2(-13.0, 6.1)
+    ));
+
+  float dust = clamp(
+      primaryRift * 0.88
+    + secondaryRiftA * 0.46
+    + secondaryRiftB * 0.34
+    + darkClouds * 0.40,
     0.0,
     1.0
   );
 
-  float outskirts = broadBand * smoothstep(0.30, 0.64, cloudMass) * 0.56;
+  // Concentrate warm molecular-cloud colour around the denser middle of the field.
+  // Outside it, the Milky Way is mostly neutral grey-brown, as in long-exposure sky.
+  float centerWindow = gaussian(along - 0.08, 0.78);
+  float warmWindow = centerWindow * (0.50 + 0.50 * smoothstep(0.42, 0.74, middle));
+  float warmKnots = cloudBody * warmWindow * smoothstep(0.47, 0.75, ridges);
 
-  // Slightly richer photographic Milky Way palette: warm molecular-cloud mass,
-  // cool scattering, and neutral brown-grey dust between them.
-  vec3 warmColor = vec3(0.335, 0.150, 0.070);
-  vec3 neutralDustGlow = vec3(0.145, 0.108, 0.082);
-  vec3 coolColor = vec3(0.055, 0.105, 0.175);
-  vec3 mistColor = vec3(0.090, 0.078, 0.070);
-  vec3 dustColor = vec3(0.0020, 0.0028, 0.0040);
+  // Very small HII-like patches, deliberately sparse and low saturation.
+  float hiiWindowA = gaussian(along + 0.42, 0.20);
+  float hiiWindowB = gaussian(along - 0.38, 0.24);
+  float hii = innerBand
+    * smoothstep(0.66, 0.86, fine)
+    * max(hiiWindowA, hiiWindowB);
 
-  vec3 emissionColor = vec3(0.0);
-  emissionColor += warmColor * warmEmission * warmWindow * 1.12;
-  emissionColor += coolColor * coolEmission * 0.92;
-  emissionColor += neutralDustGlow * denseCloud * 0.46;
-  emissionColor += mistColor * stellarMist * 0.34;
-  emissionColor += vec3(0.038, 0.043, 0.050) * outskirts;
+  // Cool scattering is kept secondary; it should never form a large blue cloud.
+  float coolScattering = shelfA
+    * smoothstep(0.54, 0.80, macroB)
+    * (0.20 + 0.80 * (1.0 - centerWindow));
 
-  // Lift the layer by roughly one stop, while preserving enough black sky and
-  // enough local contrast for the dust lanes to remain readable.
+  float neutralMass = cloudBody * (0.55 + 0.45 * filamentLight)
+    + shelfB * 0.52;
+  float unresolved = filamentLight * 0.70 + granularLight * 0.58;
+
+  vec3 neutralColor = vec3(0.205, 0.185, 0.165);
+  vec3 warmColor = vec3(0.315, 0.165, 0.095);
+  vec3 coolColor = vec3(0.090, 0.125, 0.165);
+  vec3 hiiColor = vec3(0.250, 0.105, 0.095);
+  vec3 stellarColor = vec3(0.225, 0.220, 0.205);
+  vec3 dustColor = vec3(0.0020, 0.0027, 0.0038);
+
+  float neutralWeight = neutralMass * 0.72;
+  float warmWeight = warmKnots * 0.56;
+  float coolWeight = coolScattering * 0.20;
+  float hiiWeight = hii * 0.16;
+  float stellarWeight = unresolved * 0.40;
+  float emissionWeight = neutralWeight + warmWeight + coolWeight + hiiWeight + stellarWeight;
+
+  vec3 emissionColor = (
+      neutralColor * neutralWeight
+    + warmColor * warmWeight
+    + coolColor * coolWeight
+    + hiiColor * hiiWeight
+    + stellarColor * stellarWeight
+  ) / max(emissionWeight, 0.0001);
+
+  // Broad haze is intentionally almost absent. Most opacity comes from actual
+  // clumps and filaments, giving the eye readable depth instead of coloured fog.
   float emissionAlpha = clamp(
-      cloudVeil * 0.145
-    + denseCloud * 0.082
-    + stellarMist * 0.052
-    + outskirts * 0.035,
+      broadBand * brokenMass * 0.026
+    + neutralMass * 0.070
+    + warmKnots * 0.060
+    + unresolved * 0.052
+    + shelfA * 0.026
+    + hii * 0.030,
     0.0,
-    0.245
+    0.175
   );
 
-  float dustAlpha = dust * (0.105 + denseCloud * 0.095);
-  float alpha = clamp(emissionAlpha + dustAlpha, 0.0, 0.295);
+  float dustAlpha = dust * (0.095 + coreBand * 0.085);
+  float alpha = clamp(emissionAlpha + dustAlpha, 0.0, 0.225);
 
   float dustMix = dustAlpha / max(alpha, 0.0001);
-  vec3 color = mix(emissionColor / max(emissionAlpha, 0.022), dustColor, dustMix);
+  vec3 color = mix(emissionColor, dustColor, dustMix);
 
-  // Mild local contrast gives cloud knots a real photographic hierarchy instead
-  // of simply raising the whole layer uniformly.
-  float knotContrast = smoothstep(0.48, 0.82, filament) * innerBand;
-  color *= 1.06 + knotContrast * 0.16;
+  // Dark rifts should feel denser than the surrounding emission. This local
+  // contrast is much more important to realism than increasing global brightness.
+  color *= 0.90 + 0.18 * smoothstep(0.40, 0.76, ridges);
+  color *= 1.0 - dust * 0.20;
 
-  float grain = hash21(gl_FragCoord.xy + 19.73) - 0.5;
-  color += grain * 0.0040;
+  // Stable fine photographic grain prevents the procedural clouds from becoming
+  // plasticky while remaining visually static frame-to-frame.
+  float grain = hash21(gl_FragCoord.xy + 37.17) - 0.5;
+  color += grain * 0.0030;
 
-  // Fade the procedural layer toward the viewport edges so no rectangular or
-  // synthetic boundary can be perceived.
+  // Keep black sky around the structure and avoid any rectangular edge signature.
   vec2 edgeUv = abs(vUv - 0.5) * 2.0;
-  float edgeFade = 1.0 - smoothstep(0.78, 1.05, max(edgeUv.x, edgeUv.y));
-  alpha *= mix(0.82, 1.0, edgeFade);
+  float edgeFade = 1.0 - smoothstep(0.80, 1.05, max(edgeUv.x, edgeUv.y));
+  alpha *= mix(0.80, 1.0, edgeFade);
 
   if (alpha <= 0.001) discard;
   outColor = vec4(max(color, vec3(0.0)), alpha);

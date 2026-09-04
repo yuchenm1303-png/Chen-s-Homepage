@@ -1,22 +1,19 @@
 /*
  * AI Image mode shell.
  *
- * Card visuals intentionally mirror the production Download / Service Monitor
- * pages. Do not add a second tint/surface layer here: the shared production
- * recipe is a single frosted backdrop surface.
+ * Important: the Download page has two visually different outcomes even when
+ * elements share the .cards class. Its large release/account cards sit directly
+ * on the backdrop sampling path and render as true frosted glass; utility cards
+ * nested inside an animated parent can fall back to a clear translucent fill in
+ * Chromium. AI Image primary panels must follow the former path.
  */
 
-/* Keep the wallpaper on the same backdrop sampling path as the cards. */
+/* Keep the photographic wallpaper on the same sampling path as every card. */
 .wallpaper {
   transform: none !important;
 }
 
-/*
- * Production Download/Monitor glass card:
- * - styles-v3 base shape
- * - layout-visual-restore final geometry
- * - beach-wallpaper final frosted surface
- */
+/* Exact production Download / Monitor beach-glass surface. */
 .cards {
   border: 0 !important;
   border-radius: 6px !important;
@@ -27,34 +24,77 @@
   transform: none;
 }
 
-.cards:hover {
-  transform: scale(1.01);
+.cards:hover { transform: scale(1.01); }
+.cards:active { transform: scale(.98); }
+
+/*
+ * Studio used to wrap both primary glass cards in .studio-workbench.fade-in.
+ * That parent retained transform/filter animation state and isolated the
+ * descendants' backdrop-filter, which is exactly the clear-glass behaviour
+ * visible on the Download page's lower utility row. Primary glass must never
+ * have an animated/composited ancestor.
+ */
+.studio-workbench.fade-in,
+.feature-grid.fade-in {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
 }
 
-.utility-card.cards:hover,
-.feature-card.cards:hover {
-  transform: scale(1.02);
-}
-
-.cards:active {
-  transform: scale(.98);
-}
-
-.utility-card.cards:active,
-.feature-card.cards:active {
-  transform: scale(1);
+.studio-workbench {
+  isolation: auto !important;
+  contain: none !important;
+  transform: none !important;
+  filter: none !important;
+  perspective: none !important;
 }
 
 /*
- * Release the entrance animation compositor after it finishes. A retained
- * transform/filter prevents Chromium backdrop-filter from sampling the photo.
+ * studio.css originally supplied its own gradient/tint/backdrop recipe.
+ * Remove that second visual system entirely: these two are the equivalents of
+ * Download's release-card and account-card, not utility-card tiles.
  */
+.studio-sidebar.cards,
+.studio-plan-panel.cards,
+.mode-inline-workspace > .panel.cards,
+.feature-card.cards {
+  background-image: none !important;
+  background-color: rgba(4, 18, 30, .42) !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: blur(22px) saturate(120%) !important;
+  backdrop-filter: blur(22px) saturate(120%) !important;
+}
+
+/* Sticky positioning commonly promotes the sidebar into its own compositor
+ * layer. The Download primary cards are ordinary flow items, so mirror that. */
+.studio-sidebar {
+  position: relative !important;
+  top: auto !important;
+}
+
+/* Single-image panels already carry fade-in on the glass element itself. Do
+ * not retain that animation's transform/filter after the first paint. */
+.mode-inline-workspace > .panel.cards.fade-in,
+.panel.cards.fade-in {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
+}
+
+/* Any other entrance animation may run, but must release its compositor after
+ * completion so it cannot isolate a descendant glass surface. */
 .page-shell .fade-in {
   animation-fill-mode: none !important;
 }
 
-/* Studio and single-image modes share one document so every card samples the
- * same wallpaper. Only the active stage is visible. */
+/* Studio and single-image modes share one document so every active panel can
+ * sample the exact same wallpaper. */
 .mode-inline-host {
   display: none;
   width: 100%;
@@ -63,6 +103,9 @@
   padding: 0;
   border: 0;
   background: transparent;
+  transform: none;
+  filter: none;
+  isolation: auto;
 }
 
 html[data-image-mode="lock"] .mode-inline-host,
@@ -87,6 +130,9 @@ html[data-image-mode="studio"] .studio-workbench {
 .mode-inline-workspace.workspace {
   width: 100%;
   margin: 0;
+  transform: none;
+  filter: none;
+  isolation: auto;
 }
 
 .mode-switch a.active {

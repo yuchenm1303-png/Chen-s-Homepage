@@ -1,11 +1,11 @@
 /*
  * AI Image mode shell.
  *
- * Important: the Download page has two visually different outcomes even when
- * elements share the .cards class. Its large release/account cards sit directly
- * on the backdrop sampling path and render as true frosted glass; utility cards
- * nested inside an animated parent can fall back to a clear translucent fill in
- * Chromium. AI Image primary panels must follow the former path.
+ * Primary cards intentionally mirror the production Download / Service Monitor
+ * frosted surface. The critical rule is architectural: no ancestor of a glass
+ * card may carry a non-none view-transition-name, because CSS View Transitions
+ * make that element a Backdrop Root and stop descendant backdrop-filter from
+ * sampling the wallpaper outside it.
  */
 
 /* Keep the photographic wallpaper on the same sampling path as every card. */
@@ -27,13 +27,18 @@
 .cards:hover { transform: scale(1.01); }
 .cards:active { transform: scale(.98); }
 
-/*
- * Studio used to wrap both primary glass cards in .studio-workbench.fade-in.
- * That parent retained transform/filter animation state and isolated the
- * descendants' backdrop-filter, which is exactly the clear-glass behaviour
- * visible on the Download page's lower utility row. Primary glass must never
- * have an animated/composited ancestor.
- */
+/* Never turn a mode container into a View Transition capture. A named view
+ * transition forms a Backdrop Root by specification, which is incompatible
+ * with descendant cards that need to blur the page wallpaper. */
+.studio-workbench,
+.mode-inline-host,
+.mode-inline-workspace,
+.mode-switch a {
+  view-transition-name: none !important;
+}
+
+/* Studio's historic entrance animation used filter/opacity/transform on the
+ * parent of both primary cards. Keep the parent completely neutral. */
 .studio-workbench.fade-in,
 .feature-grid.fade-in {
   animation: none !important;
@@ -51,11 +56,8 @@
   perspective: none !important;
 }
 
-/*
- * studio.css originally supplied its own gradient/tint/backdrop recipe.
- * Remove that second visual system entirely: these two are the equivalents of
- * Download's release-card and account-card, not utility-card tiles.
- */
+/* studio.css has an older independent gradient/tint recipe. Remove its image
+ * layers so the primary panels use only the Download production card surface. */
 .studio-sidebar.cards,
 .studio-plan-panel.cards,
 .mode-inline-workspace > .panel.cards,
@@ -69,15 +71,7 @@
   backdrop-filter: blur(22px) saturate(120%) !important;
 }
 
-/* Sticky positioning commonly promotes the sidebar into its own compositor
- * layer. The Download primary cards are ordinary flow items, so mirror that. */
-.studio-sidebar {
-  position: relative !important;
-  top: auto !important;
-}
-
-/* Single-image panels already carry fade-in on the glass element itself. Do
- * not retain that animation's transform/filter after the first paint. */
+/* Single-image panels must not retain their old fade/filter animation state. */
 .mode-inline-workspace > .panel.cards.fade-in,
 .panel.cards.fade-in {
   animation: none !important;
@@ -87,8 +81,8 @@
   will-change: auto !important;
 }
 
-/* Any other entrance animation may run, but must release its compositor after
- * completion so it cannot isolate a descendant glass surface. */
+/* Other non-card entrance animations may run, but release their compositor
+ * after completion. */
 .page-shell .fade-in {
   animation-fill-mode: none !important;
 }
@@ -106,12 +100,12 @@
   transform: none;
   filter: none;
   isolation: auto;
+  contain: none;
 }
 
 html[data-image-mode="lock"] .mode-inline-host,
 html[data-image-mode="legacy"] .mode-inline-host {
   display: block;
-  view-transition-name: mode-stage;
 }
 
 html[data-image-mode="lock"] .studio-workbench,
@@ -123,48 +117,32 @@ html[data-image-mode="studio"] .mode-inline-host {
   display: none !important;
 }
 
-html[data-image-mode="studio"] .studio-workbench {
-  view-transition-name: mode-stage;
-}
-
 .mode-inline-workspace.workspace {
   width: 100%;
   margin: 0;
   transform: none;
   filter: none;
   isolation: auto;
+  contain: none;
 }
 
-.mode-switch a.active {
-  view-transition-name: active-mode-tab;
+/* Lightweight no-refresh transition. Animate the glass cards themselves, not
+ * a parent capture layer, so backdrop sampling remains intact. */
+html.mode-enter[data-image-mode="studio"] .studio-workbench > .cards,
+html.mode-enter[data-image-mode="lock"] .mode-inline-workspace > .panel.cards,
+html.mode-enter[data-image-mode="legacy"] .mode-inline-workspace > .panel.cards {
+  animation: smirelModeCardIn .18s cubic-bezier(.2,.78,.24,1) both;
 }
 
-::view-transition-group(active-mode-tab) {
-  animation-duration: .28s;
-  animation-timing-function: cubic-bezier(.22,.8,.24,1);
-}
-
-::view-transition-old(mode-stage) {
-  animation: smirelModeOut .15s cubic-bezier(.4,0,1,1) both;
-}
-
-::view-transition-new(mode-stage) {
-  animation: smirelModeIn .22s cubic-bezier(.18,.78,.26,1) both;
-}
-
-@keyframes smirelModeOut {
-  to { opacity: 0; transform: translateY(-4px) scale(.997); }
-}
-
-@keyframes smirelModeIn {
-  from { opacity: 0; transform: translateY(6px) scale(.997); }
-  to { opacity: 1; transform: none; }
+@keyframes smirelModeCardIn {
+  from { transform: translateY(5px) scale(.997); }
+  to { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(mode-stage),
-  ::view-transition-new(mode-stage),
-  ::view-transition-group(active-mode-tab) {
-    animation-duration: .01ms;
+  html.mode-enter[data-image-mode="studio"] .studio-workbench > .cards,
+  html.mode-enter[data-image-mode="lock"] .mode-inline-workspace > .panel.cards,
+  html.mode-enter[data-image-mode="legacy"] .mode-inline-workspace > .panel.cards {
+    animation: none !important;
   }
 }

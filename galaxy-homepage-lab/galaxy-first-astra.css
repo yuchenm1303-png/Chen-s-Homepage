@@ -15,4 +15,5 @@ body { min-width: 320px; }
   height: 100vh;
   display: block;
   background: #030509;
+  filter: brightness(1.16) saturate(1.08) contrast(1.02);
 }

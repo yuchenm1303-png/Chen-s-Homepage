@@ -17,8 +17,8 @@ const floatLinear = gl.getExtension('OES_texture_float_linear');
 const useHDR = Boolean(colorBufferFloat);
 
 // First-composition field + Astra star material.
-// The authored galaxy geometry and particle hierarchy stay intact. This pass only
-// expands that same field across the viewport while retaining Astra optics.
+// The authored galaxy geometry and particle hierarchy stay intact. This pass adds
+// Astra-style ambient flow, stronger independent twinkle and more vivid hero stars.
 
 const STAR_VERTEX = `#version 300 es
 precision highp float;
@@ -55,6 +55,29 @@ void main() {
   vec3 p = aPosition;
   float depth = clamp((p.z + 1.0) * 0.5, 0.0, 1.0);
 
+  float background = 1.0 - step(0.5, aKind);
+  float stream = step(0.5, aKind) * (1.0 - step(1.5, aKind));
+  float bright = step(1.5, aKind) * (1.0 - step(2.5, aKind));
+  float hero = step(2.5, aKind) * (1.0 - step(3.5, aKind));
+  float haze = step(3.5, aKind);
+
+  // Astra-inspired dispersed motion: every particle has its own phase and depth-
+  // dependent speed, while the whole field still follows the authored Milky Way.
+  // The difference-of-sines form starts with zero offset and avoids a first-frame jump.
+  float flowSpeed = mix(0.38, 0.78, depth) * (0.72 + 0.28 * aRate);
+  float flowAmount = mix(0.005, 0.022, depth);
+  float flowPhaseX = aPhase * 0.71 + aPosition.x * 4.2 + aPosition.y * 1.8;
+  float flowPhaseY = aPhase * 1.13 - aPosition.x * 2.6 + aPosition.y * 3.4;
+  float structural = clamp(stream + bright + hero + haze, 0.0, 1.0);
+  float flowMask = mix(0.22, 1.0, structural) * mix(1.0, 0.52, hero);
+  vec2 flowDirection = normalize(vec2(0.70, 1.00));
+  vec2 flowAcross = vec2(-flowDirection.y, flowDirection.x);
+  float alongFlow = (sin(flowPhaseX + uTime * flowSpeed) - sin(flowPhaseX))
+    * flowAmount * flowMask;
+  float acrossFlow = (cos(flowPhaseY + uTime * flowSpeed * 0.73) - cos(flowPhaseY))
+    * flowAmount * 0.46 * flowMask;
+  p.xy += flowDirection * alongFlow + flowAcross * acrossFlow;
+
   // Keep the first prototype's restrained observation parallax.
   float parallax = mix(0.0035, 0.021, depth);
   p.xy += uPointer * parallax;
@@ -68,9 +91,6 @@ void main() {
   p.xy = rotate2d(-0.017 + uPointer.x * 0.006) * p.xy;
 
   // Expand the exact first-version field into a viewport-spanning Milky Way.
-  // The old composition was intentionally biased to the right for UI copy; now
-  // its visual centre is moved to the screen centre and its authored path is
-  // stretched horizontally instead of rebuilding the galaxy from scratch.
   p.x = (p.x - 0.535) * 1.72;
   p.y *= 1.035;
 
@@ -79,39 +99,42 @@ void main() {
   p.x = mix(p.x, p.x * 0.76, compact);
   gl_Position = vec4(p.x / max(uAspect, 0.62), p.y, 0.0, 1.0);
 
-  // Astra's twinkle envelope: 0.86 + 0.14*sin(...), with the official .62 speed.
-  float twinkle = 0.86 + 0.14 * sin(aPhase + uTime * 0.62 * aRate);
+  // Keep Astra's base twinkle cadence but expose more of it on structural stars.
+  // Background stars stay calm; bright and hero stars get a second independent pulse.
+  float basePulse = sin(aPhase + uTime * 0.62 * aRate);
+  float secondaryPulse = sin(aPhase * 1.73 + uTime * (0.36 + 0.27 * aRate));
+  float twinkle = 0.93 + 0.07 * basePulse;
+  twinkle = mix(twinkle, 0.88 + 0.12 * basePulse + 0.03 * secondaryPulse, stream);
+  twinkle = mix(twinkle, 0.76 + 0.21 * basePulse + 0.07 * secondaryPulse, clamp(bright + hero, 0.0, 1.0));
 
-  // Keep first-version size hierarchy, but render it through Astra's filtered
-  // sub-pixel core by preserving the physical diameter before the 4px sprite floor.
+  // Keep first-version size hierarchy and Astra's 4px filtered-core sprite floor.
   float particleDiameter = max(0.15, aSize * uDpr)
-    * (0.97 + twinkle * 0.03)
-    * mix(0.82, 1.22, depth);
+    * (0.99 + twinkle * 0.015)
+    * mix(0.82, 1.22, depth)
+    * (1.0 + bright * 0.08 + hero * 0.14);
 
-  float background = 1.0 - step(0.5, aKind);
-  float stream = step(0.5, aKind) * (1.0 - step(1.5, aKind));
-  float bright = step(1.5, aKind) * (1.0 - step(2.5, aKind));
-  float hero = step(2.5, aKind) * (1.0 - step(3.5, aKind));
-
-  // Map the first field's size tiers onto Astra's brightness regime.
-  float starBrightness = (0.52 + aSize * 0.20) * background;
-  starBrightness += (0.62 + aSize * 0.28) * stream;
-  starBrightness += (1.65 + aSize * 0.24) * bright;
-  starBrightness += (3.35 + min(aSize, 10.0) * 0.03) * hero;
-  starBrightness += 0.18 * step(3.5, aKind);
+  // Main stars are deliberately promoted while the background remains restrained.
+  float starBrightness = (0.48 + aSize * 0.20) * background;
+  starBrightness += (0.82 + aSize * 0.34) * stream;
+  starBrightness += (2.35 + aSize * 0.34) * bright;
+  starBrightness += (4.60 + min(aSize, 10.0) * 0.06) * hero;
+  starBrightness += 0.16 * haze;
 
   float sequence = fract(aPhase * 0.173 + aPosition.x * 0.071 + aPosition.y * 0.113);
   float reveal = smoothstep(0.0, 1.0, clamp(uExposure * 1.22 - sequence * 0.36, 0.0, 1.0));
 
-  vColor = aColor;
-  vOpacity = aAlpha * reveal * (0.92 + twinkle * 0.08);
+  // Push colour separation on the galaxy body and especially on bright/hero stars.
+  float luma = dot(aColor, vec3(0.2126, 0.7152, 0.0722));
+  float saturation = 1.08 + stream * 0.18 + bright * 0.48 + hero * 0.62;
+  vColor = clamp(mix(vec3(luma), aColor, saturation), 0.0, 1.35);
+
+  float opacityBoost = 1.0 + bright * 0.12 + hero * 0.08;
+  vOpacity = min(1.0, aAlpha * reveal * (0.91 + twinkle * 0.09) * opacityBoost);
   vBrightness = starBrightness * twinkle;
   vRayStrength = smoothstep(1.45, 2.8, starBrightness);
   vParticleDiameter = particleDiameter;
   vKind = aKind;
 
-  // Astra keeps a minimum 4px point sprite but reconstructs sub-pixel energy in
-  // the fragment shader using vParticleDiameter.
   gl_PointSize = max(particleDiameter, 4.0);
 }
 `;
@@ -180,7 +203,7 @@ void main() {
   float whiteCore = mix(0.59228, core, resolved)
     * smoothstep(0.9, 2.8, vBrightness)
     * 0.82;
-  float colorEnergy = 1.0 - min(vColor.r, min(vColor.g, vColor.b));
+  float colorEnergy = clamp(1.0 - min(vColor.r, min(vColor.g, vColor.b)), 0.0, 1.0);
   vec3 emission = mix(vColor, vec3(1.0), whiteCore)
     * vBrightness
     * (1.0 + colorEnergy * 0.42);
@@ -216,7 +239,6 @@ vec3 sourceAt(vec2 uv) {
   vec3 c = texture(uSource, clamp(uv, vec2(0.001), vec2(0.999))).rgb;
   if (uExtract > 0.5) {
     float l = max(c.r, max(c.g, c.b));
-    // Astra: luminanceThreshold .08 with luminanceSmoothing .18.
     float gate = smoothstep(uThreshold, uThreshold + 0.18, l);
     c *= gate;
   }
@@ -263,7 +285,6 @@ void main() {
              + texture(uBloom3, vUv).rgb * 0.14
              + texture(uBloom4, vUv).rgb * 0.08;
 
-  // Astra production config: additive bloom intensity .7, then ACES Filmic.
   vec3 hdr = scene + bloom * uBloomIntensity;
   vec3 mapped = acesFilmic(hdr);
   mapped = pow(mapped, vec3(1.0 / 2.2));
@@ -325,23 +346,22 @@ function gaussian() {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(Math.PI * 2 * v);
 }
 
-// Preserve the first prototype palette exactly.
+// Astra production palette and weights: blue-white, warm orange and neutral white.
 const PALETTE = [
-  { limit: 0.68, color: [0.97, 0.975, 1.00] },
-  { limit: 0.82, color: [1.00, 0.90, 0.74] },
-  { limit: 0.93, color: [0.76, 0.87, 1.00] },
-  { limit: 0.98, color: [0.63, 0.73, 0.88] },
-  { limit: 1.00, color: [1.00, 0.61, 0.55] },
+  { limit: 0.15, color: [0.427, 0.796, 0.957] },
+  { limit: 0.33, color: [0.478, 0.694, 0.996] },
+  { limit: 0.40, color: [0.973, 0.475, 0.082] },
+  { limit: 0.48, color: [0.980, 0.600, 0.298] },
+  { limit: 1.00, color: [0.961, 0.965, 0.984] },
 ];
 
 function pickColor(scale = 1) {
   const value = random();
-  const entry = PALETTE.find(item => value <= item.limit) || PALETTE[0];
-  const temperatureNoise = 0.955 + random() * 0.09;
-  return entry.color.map(channel => Math.min(1, channel * temperatureNoise * scale));
+  const entry = PALETTE.find(item => value <= item.limit) || PALETTE[PALETTE.length - 1];
+  const temperatureNoise = 0.965 + random() * 0.07;
+  return entry.color.map(channel => Math.min(1.15, channel * temperatureNoise * scale));
 }
 
-// Preserve the first prototype's authored galaxy paths exactly.
 const PRIMARY_PATH = [
   [-0.46, -1.30],
   [-0.16, -0.98],
@@ -458,7 +478,7 @@ function addStream(count, points, secondary = false) {
     const densityCenter = Math.exp(-Math.pow((t - 0.52) / 0.34, 2));
     const size = 0.58 + random() * (1.12 + densityCenter * 0.42);
     const alpha = (0.075 + random() * 0.27) * (0.78 + densityCenter * 0.28) * (secondary ? 0.80 : 1);
-    const color = pickColor(secondary ? 0.84 : 0.92);
+    const color = pickColor(secondary ? 0.88 : 0.98);
 
     pushStar(x, y, z, color, size, alpha, random() * 57, 0.55 + random() * 1.25, 1);
     created++;
@@ -491,7 +511,7 @@ function addMidStars(count) {
     const z = -0.35 + random() * 1.10;
     const size = 1.35 + Math.pow(random(), 2.1) * 1.75;
     const alpha = 0.30 + random() * 0.46;
-    pushStar(x, y, z, pickColor(1.00), size, alpha, random() * 73, 0.58 + random() * 1.15, 1);
+    pushStar(x, y, z, pickColor(1.06), size, alpha, random() * 73, 0.58 + random() * 1.15, 1);
   }
 }
 
@@ -505,20 +525,20 @@ function addBrightStars(count) {
     const y = frame.y + frame.ny * offset;
     const z = -0.12 + random() * 1.00;
     const size = 2.8 + Math.pow(random(), 1.6) * 3.2;
-    const alpha = 0.58 + random() * 0.34;
-    pushStar(x, y, z, pickColor(1.04), size, alpha, random() * 91, 0.48 + random() * 0.95, 2);
+    const alpha = 0.68 + random() * 0.30;
+    pushStar(x, y, z, pickColor(1.14), size, alpha, random() * 91, 0.48 + random() * 0.95, 2);
   }
 }
 
 const HERO_STARS = [
-  { t: .18, offset: -.072, size: 7.6, color: [0.96, 0.98, 1.00] },
-  { t: .31, offset:  .098, size: 5.8, color: [1.00, 0.90, 0.73] },
-  { t: .42, offset: -.115, size: 8.8, color: [0.76, 0.88, 1.00] },
-  { t: .53, offset:  .055, size: 6.5, color: [0.98, 0.98, 1.00] },
-  { t: .61, offset: -.083, size: 9.4, color: [1.00, 0.89, 0.70] },
-  { t: .70, offset:  .092, size: 6.9, color: [0.78, 0.88, 1.00] },
-  { t: .79, offset: -.048, size: 7.9, color: [0.98, 0.99, 1.00] },
-  { t: .88, offset:  .061, size: 5.9, color: [1.00, 0.93, 0.80] },
+  { t: .18, offset: -.072, size: 7.6, color: [0.47, 0.77, 1.00] },
+  { t: .31, offset:  .098, size: 5.8, color: [1.00, 0.63, 0.28] },
+  { t: .42, offset: -.115, size: 8.8, color: [0.40, 0.70, 1.00] },
+  { t: .53, offset:  .055, size: 6.5, color: [0.97, 0.98, 1.00] },
+  { t: .61, offset: -.083, size: 9.4, color: [1.00, 0.57, 0.20] },
+  { t: .70, offset:  .092, size: 6.9, color: [0.45, 0.74, 1.00] },
+  { t: .79, offset: -.048, size: 7.9, color: [0.95, 0.97, 1.00] },
+  { t: .88, offset:  .061, size: 5.9, color: [1.00, 0.68, 0.34] },
 ];
 
 function addHeroStars() {
@@ -527,11 +547,10 @@ function addHeroStars() {
     const x = frame.x + frame.nx * star.offset;
     const y = frame.y + frame.ny * star.offset;
     const z = 0.58 + (index % 3) * 0.09;
-    pushStar(x, y, z, star.color, star.size, 0.88 + (index % 2) * 0.08, 17 + index * 8.31, 0.42 + (index % 4) * 0.11, 3);
+    pushStar(x, y, z, star.color, star.size, 0.96, 17 + index * 8.31, 0.42 + (index % 4) * 0.11, 3);
   });
 }
 
-// Keep the original population and hierarchy; only its spatial footprint grows.
 addBackground(5000);
 addStream(4300, PRIMARY_PATH, false);
 addStream(1450, SECONDARY_PATH, true);
@@ -740,7 +759,7 @@ function composite() {
     gl.uniform1i(compositeUniforms.blooms[index], index + 1);
   });
 
-  gl.uniform1f(compositeUniforms.bloomIntensity, 0.70);
+  gl.uniform1f(compositeUniforms.bloomIntensity, 0.86);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
@@ -771,7 +790,6 @@ function render(now) {
     ? 1
     : easeInOut(Math.max(0, Math.min(1, (seconds - 0.10) / 2.45)));
 
-  // 1) Linear star field into HDR target.
   gl.bindFramebuffer(gl.FRAMEBUFFER, sceneTarget.framebuffer);
   gl.viewport(0, 0, state.width, state.height);
   gl.clearColor(0.0015, 0.0030, 0.0060, 1);
@@ -783,7 +801,7 @@ function render(now) {
   gl.useProgram(starProgram);
   gl.bindVertexArray(starVao);
   gl.uniform1f(starUniforms.aspect, state.aspect);
-  gl.uniform1f(starUniforms.time, seconds);
+  gl.uniform1f(starUniforms.time, reducedMotion ? 0 : seconds);
   gl.uniform1f(starUniforms.dpr, state.dpr);
   gl.uniform1f(starUniforms.exposure, exposure);
   gl.uniform1f(starUniforms.pointerActive, state.pointerActive);
@@ -792,10 +810,7 @@ function render(now) {
   gl.bindVertexArray(null);
   gl.disable(gl.BLEND);
 
-  // 2) Astra-style multi-level selective bloom (.08 / .18 / intensity .7).
   renderBloom();
-
-  // 3) Additive bloom + ACES Filmic tone mapping.
   composite();
 
   requestAnimationFrame(render);

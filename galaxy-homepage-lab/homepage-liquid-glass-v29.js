@@ -16,46 +16,65 @@
     return;
   }
 
-  // The original V29.5 was tuned against bright test imagery. A sparse star field
-  // needs sharp source samples and a wider optical field so displaced stars stay readable.
-  const params = {
-    radius: 30,
-    brightness: 1.10,
-    contrast: 1.04,
-    saturation: 1.05,
+  // Pinned defaults from OpenGL V29.5 / APP_RAW at commit 48b489c.
+  // These values are intentionally not retuned for the homepage.
+  const params = Object.freeze({
+    blurRadius: 0.230414746543779,
+    blurIterations: 12,
+    brightness: 1.14239631336406,
+    contrast: 1.0241935483871,
+    saturation: 1.112,
     bodyVisibility: 20,
     bodyMaxAlpha: 1,
-    bodyOutputBrightness: 1.14,
+    bodyOutputBrightness: 1.81152073732719,
     bodyLensBasePull: 300,
     bodyLensPullDp: 600,
     bodyLensConcentration: 10,
     bodyLensCornerBoost: 0,
     bodyLensExtraDistance: 200,
     bodyLensReachDp: 180,
-    bodyLensDark: 0.045,
-    bodyLowFrequencyWidth: 1.25,
-    bodyLowFrequencyCurve: 0.58,
-    bodyLowFrequencyGain: 135,
-    bodyBrightness: 0.92,
+    bodyLensDark: 0.23041474654378,
+    bodyLowFrequencyWidth: 1.25059907834101,
+    bodyLowFrequencyCurve: 0.2,
+    bodyLowFrequencyGain: 12.4423963133641,
+    bodyBrightness: 0.545161290322581,
     glassIntensity: 1.35,
-    shoulderWidthPx: 30,
+    shoulderWidthPx: 21.7162162162162,
     shoulderMaxAngleDeg: 89.5,
     shoulderFalloffRoundness: 0,
-    shoulderMaterialStrength: 3.35,
+    shoulderMaterialStrength: 4,
     shoulderTangentialFlowStrength: 0,
     shoulderCaptureWidthPx: 96,
-  };
+    edgeMode: 2,
+  });
 
-  // Do not cross-fade the refracted image with the undisplaced galaxy. Cross-fading
-  // visually cancels the displacement and turns V29.5 into ordinary transparency.
-  backdropCanvas.style.opacity = '0';
+  const OPTICAL_RADIUS_PX = 46;
+  const CAPTURE_INTERVAL_MS = 1000 / 24;
+  const quality = () => Math.min(window.devicePixelRatio || 1, 1.5);
+
+  // Match the original three-layer V29.5 composition: gb + gl + ui.
+  // Do not cross-fade the optical canvas with the untouched galaxy; that would
+  // average away the displacement we are trying to see.
+  card.style.borderRadius = `${OPTICAL_RADIUS_PX}px`;
+  backdropCanvas.style.opacity = '1';
   opticsCanvas.style.opacity = '1';
-  card.style.borderRadius = `${params.radius}px`;
 
   const source = document.createElement('canvas');
   const sourceCtx = source.getContext('2d', { alpha: false });
-  const color = document.createElement('canvas');
-  const colorCtx = color.getContext('2d', { alpha: false });
+  const colorCanvas = document.createElement('canvas');
+  const colorCtx = colorCanvas.getContext('2d', { alpha: false });
+  const blurA = document.createElement('canvas');
+  const blurACtx = blurA.getContext('2d', { alpha: false });
+  const blurB = document.createElement('canvas');
+  const blurBCtx = blurB.getContext('2d', { alpha: false });
+  const blurCanvas = document.createElement('canvas');
+  const blurCtx = blurCanvas.getContext('2d', { alpha: false });
+  const backdropCtx = backdropCanvas.getContext('2d', { alpha: true });
+
+  if (!sourceCtx || !colorCtx || !blurACtx || !blurBCtx || !blurCtx || !backdropCtx) {
+    card.classList.add('liquid-glass--fallback');
+    return;
+  }
 
   let gl;
   let program;
@@ -65,24 +84,60 @@
   let visible = true;
   let failed = false;
   let lastCapture = -1e9;
-  const CAPTURE_INTERVAL_MS = 1000 / 24;
 
-  const setSize = (canvas, width, height) => {
+  function setSize(canvas, width, height) {
     const w = Math.max(1, Math.round(width));
     const h = Math.max(1, Math.round(height));
     if (canvas.width !== w) canvas.width = w;
     if (canvas.height !== h) canvas.height = h;
-  };
+  }
 
-  const reset2d = (ctx) => {
+  function reset2d(ctx) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     ctx.imageSmoothingEnabled = true;
     try { ctx.imageSmoothingQuality = 'high'; } catch (_) {}
-  };
+  }
 
-  const compile = (type, shaderSource) => {
+  function shift(dst, src, width, height, step, horizontal) {
+    reset2d(dst);
+    dst.clearRect(0, 0, width, height);
+    dst.save();
+    dst.globalCompositeOperation = 'lighter';
+    dst.globalAlpha = 0.2;
+    for (let i = -2; i <= 2; i += 1) {
+      dst.drawImage(src, horizontal ? i * step : 0, horizontal ? 0 : i * step, width, height);
+    }
+    dst.restore();
+    dst.save();
+    dst.globalCompositeOperation = 'destination-over';
+    dst.drawImage(src, 0, 0, width, height);
+    dst.restore();
+  }
+
+  function blur(sourceImage, width, height, radius) {
+    reset2d(blurCtx);
+    blurCtx.clearRect(0, 0, width, height);
+    if (radius <= 0.025) {
+      blurCtx.drawImage(sourceImage, 0, 0, width, height);
+      return;
+    }
+
+    setSize(blurA, width, height);
+    setSize(blurB, width, height);
+    const passes = Math.max(1, Math.min(3, Math.ceil(params.blurIterations / 4)));
+    const step = Math.max(0.25, radius / Math.sqrt(2 * passes));
+    let current = sourceImage;
+    for (let i = 0; i < passes; i += 1) {
+      shift(blurACtx, current, width, height, step, true);
+      shift(blurBCtx, blurA, width, height, step, false);
+      current = blurB;
+    }
+    blurCtx.drawImage(current, 0, 0, width, height);
+  }
+
+  function compile(type, shaderSource) {
     const shader = gl.createShader(type);
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
@@ -90,7 +145,7 @@
       throw new Error(gl.getShaderInfoLog(shader) || 'Liquid glass shader compile failed');
     }
     return shader;
-  };
+  }
 
   function initGl() {
     gl = opticsCanvas.getContext('webgl', {
@@ -133,14 +188,14 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   }
 
-  function captureSource() {
+  function captureBackdropFromValidGalaxyBuffer() {
     const sourceRect = sourceCanvas.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
     if (sourceRect.width <= 0 || sourceRect.height <= 0 || cardRect.width <= 0 || cardRect.height <= 0) return false;
 
-    const quality = Math.min(window.devicePixelRatio || 1, 1.5);
-    const width = Math.max(1, Math.round(cardRect.width * quality));
-    const height = Math.max(1, Math.round(cardRect.height * quality));
+    const d = quality();
+    const width = Math.max(1, Math.round(cardRect.width * d));
+    const height = Math.max(1, Math.round(cardRect.height * d));
     const scaleX = sourceCanvas.width / sourceRect.width;
     const scaleY = sourceCanvas.height / sourceRect.height;
     const sx = Math.max(0, (cardRect.left - sourceRect.left) * scaleX);
@@ -149,17 +204,18 @@
     const sh = Math.min(sourceCanvas.height - sy, cardRect.height * scaleY);
     if (sw <= 0 || sh <= 0) return false;
 
-    setSize(source, width, height);
-    setSize(color, width, height);
-    setSize(opticsCanvas, width, height);
-    setSize(backdropCanvas, width, height);
+    for (const canvas of [source, colorCanvas, blurCanvas, backdropCanvas, opticsCanvas]) {
+      setSize(canvas, width, height);
+    }
 
+    // IMPORTANT: this drawImage is called synchronously from the galaxy
+    // renderer's post-render hook, before its preserveDrawingBuffer=false
+    // framebuffer can be invalidated by browser compositing.
     reset2d(sourceCtx);
     sourceCtx.clearRect(0, 0, width, height);
     sourceCtx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, width, height);
 
-    // Keep point-star cores sharp. Only color/exposure is adapted for the dark scene;
-    // the V29.5 shader itself remains responsible for spatial distortion.
+    // Original V29.5 backdrop preprocessing.
     reset2d(colorCtx);
     colorCtx.clearRect(0, 0, width, height);
     colorCtx.save();
@@ -167,15 +223,26 @@
     colorCtx.drawImage(source, 0, 0, width, height);
     colorCtx.restore();
 
+    const effectiveBlur = Math.max(
+      0,
+      params.blurRadius * d * Math.pow(Math.max(1, params.blurIterations), 0.55),
+    );
+    blur(colorCanvas, width, height, effectiveBlur);
+
+    reset2d(backdropCtx);
+    backdropCtx.clearRect(0, 0, width, height);
+    backdropCtx.drawImage(blurCanvas, 0, 0, width, height);
+
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, color);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, blurCanvas);
+    gl.flush();
     return true;
   }
 
   function renderOptics() {
-    const quality = Math.min(window.devicePixelRatio || 1, 1.5);
+    const d = quality();
     const width = opticsCanvas.width;
     const height = opticsCanvas.height;
 
@@ -190,20 +257,20 @@
     gl.uniform2f(locations.uRes, width, height);
     gl.uniform2f(locations.uOrigin, 0, 0);
     gl.uniform2f(locations.uRoot, width, height);
-    gl.uniform1f(locations.uRadius, params.radius * quality);
+    gl.uniform1f(locations.uRadius, OPTICAL_RADIUS_PX * d);
     gl.uniform1f(locations.uIntensity, params.glassIntensity);
     gl.uniform4f(locations.uMat, params.bodyVisibility, params.bodyMaxAlpha, params.bodyOutputBrightness, 0);
     gl.uniform4f(
       locations.uBodyLensA,
-      params.bodyLensBasePull * quality,
-      params.bodyLensPullDp * quality,
+      params.bodyLensBasePull * d,
+      params.bodyLensPullDp * d,
       params.bodyLensConcentration,
       params.bodyLensCornerBoost,
     );
     gl.uniform4f(
       locations.uBodyLensB,
-      params.bodyLensExtraDistance * quality,
-      params.bodyLensReachDp * quality,
+      params.bodyLensExtraDistance * d,
+      params.bodyLensReachDp * d,
       params.bodyLensDark,
       0,
     );
@@ -216,50 +283,55 @@
     );
     gl.uniform4f(
       locations.uShoulder,
-      params.shoulderWidthPx * quality,
+      params.shoulderWidthPx * d,
       params.shoulderMaxAngleDeg,
       params.shoulderFalloffRoundness,
       params.shoulderMaterialStrength,
     );
     gl.uniform2f(
       locations.uShoulderFlow,
-      params.shoulderCaptureWidthPx * quality,
+      params.shoulderCaptureWidthPx * d,
       params.shoulderTangentialFlowStrength,
     );
-    gl.uniform1f(locations.uShoulderEnabled, 2);
+    gl.uniform1f(locations.uShoulderEnabled, params.edgeMode);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.uniform1i(locations.uBlurTexture, 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
-  function frame(now) {
-    if (!failed && visible && !document.hidden && now - lastCapture >= CAPTURE_INTERVAL_MS) {
-      try {
-        if (captureSource()) {
-          renderOptics();
-          lastCapture = now;
-        }
-      } catch (error) {
-        failed = true;
-        card.classList.add('liquid-glass--fallback');
-        console.warn('[homepage-liquid-glass] V29.5 fallback', error);
+  function consumeGalaxyFrame(now) {
+    if (failed || !visible || document.hidden || now - lastCapture < CAPTURE_INTERVAL_MS) return;
+    try {
+      if (captureBackdropFromValidGalaxyBuffer()) {
+        renderOptics();
+        lastCapture = now;
       }
+    } catch (error) {
+      failed = true;
+      card.classList.add('liquid-glass--fallback');
+      console.warn('[homepage-liquid-glass] V29.5 fallback', error);
     }
-    requestAnimationFrame(frame);
   }
 
   try {
     initGl();
+
+    const previousAfterRender = window.__ASTRA_AFTER_RENDER__;
+    window.__ASTRA_AFTER_RENDER__ = (now) => {
+      if (typeof previousAfterRender === 'function') previousAfterRender(now);
+      consumeGalaxyFrame(now);
+    };
+
     const observer = new IntersectionObserver((entries) => {
       visible = entries.some((entry) => entry.isIntersecting);
       if (visible) lastCapture = -1e9;
     }, { threshold: 0.01 });
     observer.observe(card);
+
     window.addEventListener('resize', () => {
       lastCapture = -1e9;
     }, { passive: true });
-    requestAnimationFrame(frame);
   } catch (error) {
     failed = true;
     card.classList.add('liquid-glass--fallback');

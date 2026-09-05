@@ -1,4 +1,5 @@
 .home-profile-card {
+  position: absolute;
   left: clamp(32px, 8vw, 132px);
   top: clamp(28px, 7vh, 88px);
   width: min(410px, calc(100vw - 40px));

@@ -69,6 +69,47 @@ jobs:
           fi
           test "$(tr -d '\r\n' < published/CNAME)" = "smirel.com"
 
+      - name: Flatten galaxy runtime loaders before deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILDER="galaxy-source/galaxy-homepage-lab/tools/build-static-runtime.mjs"
+          node --check "$BUILDER"
+
+          # Execute the exact existing loader transformations during the build,
+          # so mobile browsers receive the already-expanded renderer module.
+          node "$BUILDER" published "${GITHUB_SHA}-production"
+          node "$BUILDER" published/galaxy "${GITHUB_SHA}-preview"
+
+          test -s published/astra-homepage-runtime.generated.js
+          test -s published/galaxy/astra-homepage-runtime.generated.js
+          grep -q '__SMIREL_STAR_FLIGHT_INSTALL__' published/astra-homepage-runtime.generated.js
+          grep -q '__SMIREL_HOMEPAGE_GLASS_SYNC__' published/astra-homepage-runtime.generated.js
+          grep -q '__SMIREL_STAR_FLIGHT_INSTALL__' published/galaxy/astra-homepage-runtime.generated.js
+          grep -q '__SMIREL_HOMEPAGE_GLASS_SYNC__' published/galaxy/astra-homepage-runtime.generated.js
+
+          if grep -q 'astra-homepage-glass-capture-loader.js' published/index.html; then
+            echo 'Production root still references the runtime Blob loader' >&2
+            exit 1
+          fi
+          if grep -q 'astra-homepage-glass-capture-loader.js' published/galaxy/index.html; then
+            echo 'Galaxy preview still references the runtime Blob loader' >&2
+            exit 1
+          fi
+          if grep -q 'homepage-galaxy-preload.js' published/index.html; then
+            echo 'Production root still references the temporary preload shim' >&2
+            exit 1
+          fi
+          if grep -q 'homepage-galaxy-preload.js' published/galaxy/index.html; then
+            echo 'Galaxy preview still references the temporary preload shim' >&2
+            exit 1
+          fi
+
+          cp published/astra-homepage-runtime.generated.js /tmp/astra-homepage-runtime-root.mjs
+          cp published/galaxy/astra-homepage-runtime.generated.js /tmp/astra-homepage-runtime-preview.mjs
+          node --check /tmp/astra-homepage-runtime-root.mjs
+          node --check /tmp/astra-homepage-runtime-preview.mjs
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 

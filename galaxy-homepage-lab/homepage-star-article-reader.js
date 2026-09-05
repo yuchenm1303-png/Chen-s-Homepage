@@ -12,6 +12,12 @@
     const style = document.createElement('style');
     style.dataset.smirelArticleReader = 'true';
     style.textContent = `
+      /* A local-field HUD belongs to the field level, not to a companion detail. */
+      body.star-flight-active .smirel-field-hud {
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+
       .stellar-article-reader {
         width: 100%;
         max-width: 68ch;
@@ -143,6 +149,23 @@
 
     const baseUpdate = controller.update.bind(controller);
     let appliedId = null;
+    let backContextKey = '';
+
+    function updateBackContext() {
+      const back = document.querySelector('.star-detail-back');
+      if (!back) return;
+      const field = controller.currentField;
+      const key = field?.id || 'galaxy';
+      if (key === backContextKey) return;
+      backContextKey = key;
+      if (field) {
+        back.textContent = `Esc · Back to ${field.title} field`;
+        back.setAttribute('aria-label', `Back to ${field.title} field`);
+      } else {
+        back.textContent = 'Esc · Back to galaxy';
+        back.setAttribute('aria-label', 'Back to galaxy');
+      }
+    }
 
     function applyFullArticle() {
       const object = controller.activeObject;
@@ -168,6 +191,7 @@
 
     controller.update = (now, dt, elapsed) => {
       const ownsCamera = baseUpdate(now, dt, elapsed);
+      updateBackContext();
       applyFullArticle();
       return ownsCamera;
     };

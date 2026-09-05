@@ -28,11 +28,10 @@ source = replaceOnce(
   'Stable loader directory URL',
 );
 
-// A WebGL drawing buffer created with preserveDrawingBuffer=false is only
-// guaranteed while the owning renderer is actively presenting it. Capturing
-// the galaxy later from a separate requestAnimationFrame can therefore return
-// an invalidated/black buffer. Run the liquid-glass handoff synchronously,
-// immediately after the final composer render, while the pixels are valid.
+// Hand the already-rendered default framebuffer to the homepage glass consumer
+// synchronously. The consumer now uses the SAME WebGL context and performs only
+// a GPU-local framebuffer -> texture copy for the small card rectangle. No 2D
+// canvas readback, CPU blur, texture re-upload or second WebGL context remains.
 source = replaceOnce(
   source,
   "    composer.render(dt);\n    lastCompositeMs = now;",
@@ -40,13 +39,13 @@ source = replaceOnce(
     const afterRender = window.__ASTRA_AFTER_RENDER__;
     if (typeof afterRender === 'function') {
       try {
-        afterRender(now);
+        afterRender({ now, renderer, width, height, pixelRatio });
       } catch (error) {
         console.warn('[astra-after-render] consumer failed', error);
       }
     }
     lastCompositeMs = now;`,
-  'Post-render liquid glass synchronization hook',
+  'Post-render same-context liquid glass hook',
 );
 
 const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));

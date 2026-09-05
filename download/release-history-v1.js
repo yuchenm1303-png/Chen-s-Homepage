@@ -107,7 +107,7 @@ async function downloadVersion(item, button) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        action: "download",
+        action: "download_version",
         platform: "windows-x64",
         version: item.version
       })

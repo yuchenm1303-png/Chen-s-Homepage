@@ -46,6 +46,15 @@
   const SAMPLE_MARGIN_CSS_PX = 128;
   const MAX_CAPTURE_DPR = 1.25;
   const MAX_SHARED_CAPTURE_PIXELS = 1100000;
+  const LIVE_BACKDROP_SUPPORTED = typeof CSS !== 'undefined' && (
+    CSS.supports?.('backdrop-filter', 'blur(1px)')
+    || CSS.supports?.('-webkit-backdrop-filter', 'blur(1px)')
+  );
+
+  if (LIVE_BACKDROP_SUPPORTED) {
+    primaryCard.classList.add('liquid-glass--live-backdrop');
+    panelCard?.classList.add('liquid-glass--live-backdrop');
+  }
 
   const sharedFrameCanvas = document.createElement('canvas');
   const sharedFrameCtx = sharedFrameCanvas.getContext('2d', { alpha: false });
@@ -131,21 +140,31 @@
     const sy = (cropTop - sourceRect.top) * scaleY;
     const sw = cssWidth * scaleX;
     const sh = cssHeight * scaleY;
-    const effectiveBlur = Math.max(
-      0,
-      params.blurRadius * quality * Math.pow(Math.max(1, params.blurIterations), 0.55),
-    );
 
     setCanvasSize(sharedFrameCanvas, width, height);
     smoothContext(sharedFrameCtx);
     sharedFrameCtx.clearRect(0, 0, width, height);
     sharedFrameCtx.save();
-    sharedFrameCtx.filter = [
-      `brightness(${params.brightness})`,
-      `contrast(${params.contrast})`,
-      `saturate(${params.saturation})`,
-      `blur(${effectiveBlur}px)`,
-    ].join(' ');
+
+    if (LIVE_BACKDROP_SUPPORTED) {
+      sharedFrameCtx.filter = [
+        `brightness(${params.brightness})`,
+        `contrast(${params.contrast})`,
+        `saturate(${params.saturation})`,
+      ].join(' ');
+    } else {
+      const effectiveBlur = Math.max(
+        0,
+        params.blurRadius * quality * Math.pow(Math.max(1, params.blurIterations), 0.55),
+      );
+      sharedFrameCtx.filter = [
+        `brightness(${params.brightness})`,
+        `contrast(${params.contrast})`,
+        `saturate(${params.saturation})`,
+        `blur(${effectiveBlur}px)`,
+      ].join(' ');
+    }
+
     sharedFrameCtx.drawImage(
       sourceCanvas,
       sx, sy, sw, sh,
@@ -279,7 +298,9 @@
       const sh = (cropBottom - cropTop) * frame.quality;
 
       setCanvasSize(rootCanvas, rootWidth, rootHeight);
-      setCanvasSize(backdropCanvas, cardWidth, cardHeight);
+      if (!LIVE_BACKDROP_SUPPORTED) {
+        setCanvasSize(backdropCanvas, cardWidth, cardHeight);
+      }
       setCanvasSize(opticsCanvas, cardWidth, cardHeight);
 
       smoothContext(rootCtx);
@@ -290,13 +311,15 @@
         0, 0, rootWidth, rootHeight,
       );
 
-      smoothContext(backdropCtx);
-      backdropCtx.clearRect(0, 0, cardWidth, cardHeight);
-      backdropCtx.drawImage(
-        rootCanvas,
-        originX, originY, cardWidth, cardHeight,
-        0, 0, cardWidth, cardHeight,
-      );
+      if (!LIVE_BACKDROP_SUPPORTED) {
+        smoothContext(backdropCtx);
+        backdropCtx.clearRect(0, 0, cardWidth, cardHeight);
+        backdropCtx.drawImage(
+          rootCanvas,
+          originX, originY, cardWidth, cardHeight,
+          0, 0, cardWidth, cardHeight,
+        );
+      }
 
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, blurTexture);

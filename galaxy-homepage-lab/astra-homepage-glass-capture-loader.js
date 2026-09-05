@@ -28,9 +28,8 @@ source = replaceOnce(
 );
 
 // The liquid-glass adapter must read the WebGL canvas while its default
-// framebuffer is still valid. Inject one callback immediately after the existing
-// EffectComposer render instead of enabling preserveDrawingBuffer globally.
-// Keep the callback isolated so a glass failure can never stop the galaxy loop.
+// framebuffer is still valid. The same final-renderer patch also installs the
+// single interactive-star prototype without changing the approved galaxy math.
 const capturePatch = `
 source = replaceOnce(
   source,
@@ -38,11 +37,67 @@ source = replaceOnce(
   \`    composer.render(dt);\n    try {\n      window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n    } catch (error) {\n      console.warn('[homepage-liquid-glass] frame handoff failed', error);\n    }\n    lastCompositeMs = now;\`,
   'Synchronized homepage glass framebuffer handoff',
 );
+
+source = replaceOnce(
+  source,
+  /const lookTarget = new THREE\\.Vector3\\(\\);\\nconst cameraForward = new THREE\\.Vector3\\(\\);/,
+  \`const lookTarget = new THREE.Vector3();
+const starFlight = window.__SMIREL_STAR_FLIGHT_INSTALL__?.({
+  THREE,
+  scene,
+  camera,
+  brightField,
+  CONFIG,
+  canvas,
+  pointer,
+  reducedMotion,
+}) || null;
+const cameraForward = new THREE.Vector3();\`,
+  'Interactive star runtime install',
+);
+
+source = replaceOnce(
+  source,
+  /  pointer\\.currentX = damp\\(pointer\\.currentX, pointer\\.targetX, 2\\.7, dt\\);[\\s\\S]*?  const intro =/,
+  \`  const starFlightOwnsCamera = starFlight?.update(now, dt, elapsed) === true;
+  if (!starFlightOwnsCamera) {
+    pointer.currentX = damp(pointer.currentX, pointer.targetX, 2.7, dt);
+    pointer.currentY = damp(pointer.currentY, pointer.targetY, 2.7, dt);
+    if (!reducedMotion) {
+      camera.position.x = pointer.currentX * 0.34;
+      camera.position.y = pointer.currentY * 0.20;
+      lookTarget.set(pointer.currentX * 1.05, pointer.currentY * 0.62, -12);
+      camera.lookAt(lookTarget);
+    } else {
+      camera.position.set(0, 0, 0);
+      camera.lookAt(0, 0, -12);
+    }
+  }
+  const intro =\`,
+  'Interactive star camera ownership',
+);
+
+source = replaceOnce(
+  source,
+  /  const interactionBudgetReady = now - continuumCache\\.lastRenderMs >= 30\\.0;/,
+  \`  const interactionBudgetReady = starFlight?.needsContinuousRender === true
+    || now - continuumCache.lastRenderMs >= 30.0;\`,
+  'Interactive star continuum frame budget',
+);
+
+source = replaceOnce(
+  source,
+  /  const shouldRenderScene = frameDirty\\n    \\|\\| introActive/,
+  \`  const shouldRenderScene = starFlight?.needsContinuousRender === true
+    || frameDirty
+    || introActive\`,
+  'Interactive star continuous presentation',
+);
 `;
 
 // The stable loader first injects its performance patch into the deep-nebula
-// loader. Put our small handoff patch after that transform so it targets the
-// optimized final frame loop without changing any galaxy shader or parameters.
+// loader. Put our final-renderer patch after that transform so it targets the
+// optimized frame loop without changing any galaxy shader or star distribution.
 const stableModuleMarker = "const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));";
 const bridgeInjection = `
 const homepageGlassCapturePatch = ${JSON.stringify(capturePatch)};
@@ -50,7 +105,7 @@ source = replaceOnce(
   source,
   moduleMarker,
   homepageGlassCapturePatch + '\\n\\n' + moduleMarker,
-  'Homepage glass capture patch insertion point',
+  'Homepage glass and star-flight patch insertion point',
 );
 `;
 

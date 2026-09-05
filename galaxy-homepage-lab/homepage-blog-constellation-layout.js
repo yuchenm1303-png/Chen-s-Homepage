@@ -11,15 +11,15 @@
   const LOCAL_DEPTH = Object.freeze([25, 29]);
 
   const blogTargets = Object.freeze({
-    blog: Object.freeze([-0.55, -0.56]),
-    'ai-ledger-real-streaming': Object.freeze([-0.70, -0.36]),
-    'building-homepage': Object.freeze([-0.48, -0.30]),
-    'opengl-liquid-glass': Object.freeze([-0.26, -0.40]),
-    'computer-use-design': Object.freeze([-0.04, -0.30]),
-    'app-performance-optimization': Object.freeze([0.18, -0.40]),
-    'compose-parent-bubble-rendering': Object.freeze([0.14, -0.64]),
-    'gan-hemt-stability': Object.freeze([-0.30, -0.62]),
-    'ai-listing-research': Object.freeze([-0.08, -0.68]),
+    blog: Object.freeze([-0.56, -0.58]),
+    'ai-ledger-real-streaming': Object.freeze([-0.72, -0.50]),
+    'building-homepage': Object.freeze([-0.50, -0.50]),
+    'opengl-liquid-glass': Object.freeze([-0.28, -0.56]),
+    'computer-use-design': Object.freeze([-0.06, -0.48]),
+    'app-performance-optimization': Object.freeze([0.16, -0.56]),
+    'compose-parent-bubble-rendering': Object.freeze([0.12, -0.74]),
+    'gan-hemt-stability': Object.freeze([-0.32, -0.72]),
+    'ai-listing-research': Object.freeze([-0.10, -0.76]),
   });
 
   const blogEdges = Object.freeze([

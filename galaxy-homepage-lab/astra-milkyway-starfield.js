@@ -1,19 +1,26 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import {
+  BlendFunction,
+  BloomEffect,
+  EffectComposer,
+  EffectPass,
+  RenderPass,
+  ShaderPass,
+  ToneMappingEffect,
+  ToneMappingMode,
+} from 'https://cdn.jsdelivr.net/npm/postprocessing@6.39.4/build/index.js';
 
 const canvas = document.getElementById('galaxyCanvas');
 if (!canvas) throw new Error('Galaxy canvas is required.');
 
 // Keep Astra's optical language intact: filtered sub-pixel core, white-hot
-// resolved cores, temperature palette, twinkle and bloom. Only the spatial
-// distribution changes here: stars now form our own 3D Milky Way sky.
+// resolved cores, temperature palette, twinkle and the source-faithful bloom
+// reconstruction. Only the spatial distribution is ours.
 const CONFIG = Object.freeze({
-  bloomIntensity: 0.54,
-  bloomThreshold: 0.16,
-  bloomRadius: 0.52,
+  bloomIntensity: 0.7,
+  bloomThreshold: 0.08,
+  bloomRadius: 0.72,
+  bloomLevels: 5,
   intensity: 1.35,
   size: 2.05,
   twinkleSpeed: 0.62,
@@ -88,17 +95,14 @@ void main() {
   vOpacity *= smoothstep(0.0, 0.2, introLocalProgress);
 
   float depthScale = clamp(8.5 / cameraDepth, 0.28, 2.05);
-  float opticalDiameter = uPixelRatio
+  gl_PointSize = uPixelRatio
     * (0.35 + starScale * 3.8)
     * depthScale
     * (0.97 + twinkle * 0.03)
     * introParticleScale;
 
-  // Keep Astra's optical diameter, but render it inside a larger transparent
-  // point sprite. This gives the radial falloff enough room to reach near-zero
-  // before the square sprite boundary, so bloom no longer reveals that boundary.
-  vParticleDiameter = opticalDiameter;
-  gl_PointSize = max(opticalDiameter * 1.55, 6.0);
+  vParticleDiameter = gl_PointSize;
+  gl_PointSize = max(gl_PointSize, 4.0);
   gl_Position = projectionMatrix * viewPosition;
 }
 `;
@@ -111,60 +115,138 @@ varying float vRayStrength;
 ${ASTRA_FILTERED_CORE_GLSL}
 
 void main() {
-  float spriteDiameter = max(vParticleDiameter * 1.55, 6.0);
-  vec2 pixel = (gl_PointCoord - vec2(0.5)) * spriteDiameter;
+  vec2 pixel = (gl_PointCoord - vec2(0.5)) * max(vParticleDiameter, 4.0);
   vec2 point = pixel * 2.0 / max(vParticleDiameter, 0.0001);
-  float r2 = dot(point, point);
-  float r = sqrt(r2);
+  float distanceToCenter = length(point);
+  float disc = 1.0 - smoothstep(0.08, 1.0, distanceToCenter);
+  float core = pow(disc, 2.2);
+  float horizontalRay = exp(-abs(point.y) * 28.0)
+    * (1.0 - smoothstep(0.18, 1.0, abs(point.x)));
+  float verticalRay = exp(-abs(point.x) * 28.0)
+    * (1.0 - smoothstep(0.18, 1.0, abs(point.y)));
+  float rays = max(horizontalRay, verticalRay) * 0.28 * vRayStrength;
+  float resolved = smoothstep(2.0, 4.0, vParticleDiameter);
+  float alpha = mix(astraFilteredCore(pixel, 0.150904), max(core, rays), resolved)
+    * vOpacity;
 
-  // Sub-pixel stars retain Astra's filtered coverage. Resolved stars switch to
-  // a radial optical model so their glow source is circular rather than a
-  // magnified square point-sprite footprint.
-  float filteredCore = astraFilteredCore(pixel, 0.150904);
-  float needle = exp(-r2 * 42.0);
-  float photosphere = exp(-r2 * 10.5);
-  float corona = exp(-r2 * 3.2);
+  if (alpha <= 0.0) discard;
 
-  float horizontalRay = exp(-abs(point.y) * 34.0)
-    * exp(-abs(point.x) * 2.9)
-    * (1.0 - smoothstep(0.20, 1.55, abs(point.x)));
-  float verticalRay = exp(-abs(point.x) * 34.0)
-    * exp(-abs(point.y) * 2.9)
-    * (1.0 - smoothstep(0.20, 1.55, abs(point.y)));
-  float rays = max(horizontalRay, verticalRay) * 0.16 * vRayStrength;
-
-  float resolved = smoothstep(1.25, 2.85, vParticleDiameter);
-  float radialAlpha = clamp(
-      needle * 1.18
-    + photosphere * 0.72
-    + corona * 0.16
-    + rays,
-    0.0,
-    1.0
-  );
-
-  // Extra radial guard removes any residual corner energy before the sprite edge.
-  float edgeGuard = 1.0 - smoothstep(1.52, 2.05, r);
-  radialAlpha *= edgeGuard;
-
-  float alpha = mix(filteredCore, radialAlpha, resolved) * vOpacity;
-  if (alpha <= 0.00008) discard;
-
-  float whiteCore = clamp(
-      needle * 1.12
-    + photosphere * 0.36,
-    0.0,
-    1.0
-  ) * smoothstep(0.9, 2.8, vBrightness) * 0.86;
-
+  float whiteCore = mix(0.59228, core, resolved)
+    * smoothstep(0.9, 2.8, vBrightness)
+    * 0.82;
   float colorEnergy = 1.0 - min(vColor.r, min(vColor.g, vColor.b));
   vec3 emission = mix(vColor, vec3(1.0), whiteCore)
     * vBrightness
     * (1.0 + colorEnergy * 0.42);
-
   gl_FragColor = vec4(emission, alpha);
 }
 `;
+
+const ASTRA_BLOOM_PREFILTER = `
+#include <common>
+uniform sampler2D inputBuffer;
+uniform vec2 sourceTexelSize;
+uniform float threshold;
+uniform float smoothing;
+varying vec2 vUv;
+void main() {
+  vec2 offset = sourceTexelSize * 0.5;
+  vec4 color = (
+    texture2D(inputBuffer, vUv + vec2(-offset.x, -offset.y)) +
+    texture2D(inputBuffer, vUv + vec2( offset.x, -offset.y)) +
+    texture2D(inputBuffer, vUv + vec2(-offset.x,  offset.y)) +
+    texture2D(inputBuffer, vUv + vec2( offset.x,  offset.y))
+  ) * 0.25;
+  gl_FragColor = color
+    * smoothstep(threshold, threshold + smoothing, luminance(color.rgb));
+}
+`;
+
+const ASTRA_BLOOM_RECONSTRUCTION = `
+uniform sampler2D source;
+uniform vec2 stepSize;
+varying vec2 vUv;
+void main() {
+  vec4 color = texture2D(source, vUv) * 0.2270270270;
+  color += (
+    texture2D(source, vUv + stepSize * 1.3846153846) +
+    texture2D(source, vUv - stepSize * 1.3846153846)
+  ) * 0.3162162162;
+  color += (
+    texture2D(source, vUv + stepSize * 3.2307692308) +
+    texture2D(source, vUv - stepSize * 3.2307692308)
+  ) * 0.0702702703;
+  gl_FragColor = color;
+}
+`;
+
+class AstraBloomEffect extends BloomEffect {
+  constructor(options) {
+    super(options);
+
+    this.sourceTexelSize = new THREE.Uniform(new THREE.Vector2());
+    this.blurSource = new THREE.Uniform(null);
+    this.blurStep = new THREE.Uniform(new THREE.Vector2());
+
+    this.horizontalTarget = new THREE.WebGLRenderTarget(1, 1, {
+      type: THREE.HalfFloatType,
+      depthBuffer: false,
+    });
+    this.verticalTarget = this.horizontalTarget.clone();
+
+    this.reconstruction = new ShaderPass(new THREE.ShaderMaterial({
+      uniforms: {
+        source: this.blurSource,
+        stepSize: this.blurStep,
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = position.xy * 0.5 + 0.5;
+          gl_Position = vec4(position.xy, 1.0, 1.0);
+        }
+      `,
+      fragmentShader: ASTRA_BLOOM_RECONSTRUCTION,
+      blending: THREE.NoBlending,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    }));
+
+    this.luminanceMaterial.uniforms.sourceTexelSize = this.sourceTexelSize;
+    this.luminanceMaterial.fragmentShader = ASTRA_BLOOM_PREFILTER;
+    this.luminanceMaterial.needsUpdate = true;
+    this.uniforms.set('map', new THREE.Uniform(this.verticalTarget.texture));
+  }
+
+  setSize(width, height) {
+    super.setSize(width, height);
+    const w = Math.max(1, Math.round(width * 0.5));
+    const h = Math.max(1, Math.round(height * 0.5));
+    this.horizontalTarget.setSize(w, h);
+    this.verticalTarget.setSize(w, h);
+  }
+
+  update(renderer, inputBuffer, deltaTime) {
+    this.sourceTexelSize.value.set(1 / inputBuffer.width, 1 / inputBuffer.height);
+    super.update(renderer, inputBuffer, deltaTime);
+
+    this.blurSource.value = super.texture;
+    this.blurStep.value.set(1 / this.horizontalTarget.width, 0);
+    this.reconstruction.render(renderer, null, this.horizontalTarget);
+
+    this.blurSource.value = this.horizontalTarget.texture;
+    this.blurStep.value.set(0, 1 / this.verticalTarget.height);
+    this.reconstruction.render(renderer, null, this.verticalTarget);
+  }
+
+  dispose() {
+    this.horizontalTarget.dispose();
+    this.verticalTarget.dispose();
+    this.reconstruction.dispose();
+    super.dispose();
+  }
+}
 
 function seeded(seed) {
   let s = seed >>> 0;
@@ -185,8 +267,6 @@ function gaussian() {
 }
 
 function pickAstraColor(seed, centreWeight = 0) {
-  // Preserve Astra's palette, but let the denser galactic-centre region contain
-  // slightly more white/warm stars. This changes population, not star rendering.
   const adjusted = centreWeight > 0 && random() < centreWeight * 0.28
     ? 0.64 + random() * 0.36
     : seed;
@@ -210,9 +290,6 @@ function sampleDepth(isBand) {
 }
 
 function sampleMilkyWayDirection() {
-  // Angular-space layout only determines where rays leave the observer. Every
-  // accepted star still receives an independent physical depth, so the band is
-  // a real 3D volume with parallax rather than a textured screen stripe.
   for (let guard = 0; guard < 40; guard++) {
     const complex = random();
     let along;
@@ -232,8 +309,6 @@ function sampleMilkyWayDirection() {
       + 0.014 * Math.sin(along * 6.4 - 0.8);
     let across = centreLine + gaussian() * width;
 
-    // Reserve a broken Great-Rift-like underdensity using missing stars only.
-    // No black paint, fog or 2D mask is introduced at this stage.
     const rift = centreLine
       + 0.010 * Math.sin(along * 7.2 + 0.6)
       - 0.008 * Math.sin(along * 13.0);
@@ -242,11 +317,14 @@ function sampleMilkyWayDirection() {
     const riftStrength = 0.42 + 0.36 * centreWeight;
     if (inRift && random() < riftStrength) continue;
 
-    // Give the band ragged rather than Gaussian-clean outer edges.
     across += (random() - 0.5) * 0.010 * (1 + Math.abs(along));
     return { along, across, centreWeight };
   }
-  return { along: random() * 2.4 - 1.2, across: gaussian() * 0.11, centreWeight: 0 };
+  return {
+    along: random() * 2.4 - 1.2,
+    across: gaussian() * 0.11,
+    centreWeight: 0,
+  };
 }
 
 function buildSpatialStarfield() {
@@ -279,15 +357,11 @@ function buildSpatialStarfield() {
       const band = sampleMilkyWayDirection();
       centreWeight = band.centreWeight;
 
-      // Rotate our authored galactic coordinates into the viewport. These are
-      // angular directions, then expanded by depth into physical x/y positions.
       const nx = band.along * bandCos - band.across * bandSin;
       const ny = band.along * bandSin + band.across * bandCos;
       x = nx * halfWidth * 0.82;
       y = ny * halfHeight * 1.04;
 
-      // True 3D thickness: nearby and far stars do not sit on one mathematical
-      // sheet. The perturbation scales less than linearly with distance.
       const spatialThickness = 0.018 + 0.022 * (1 - centreWeight);
       x += gaussian() * depth * spatialThickness;
       y += gaussian() * depth * spatialThickness * 0.55;
@@ -382,7 +456,7 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance',
 });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMapping = THREE.NoToneMapping;
 renderer.toneMappingExposure = 1;
 renderer.setClearColor(0x000000, 1);
 
@@ -395,16 +469,26 @@ camera.position.set(0, 0, 0);
 const field = buildSpatialStarfield();
 scene.add(field.points);
 
-const composer = new EffectComposer(renderer);
+const composer = new EffectComposer(renderer, {
+  depthBuffer: false,
+  frameBufferType: THREE.HalfFloatType,
+  multisampling: 2,
+});
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(
-  new THREE.Vector2(1, 1),
-  CONFIG.bloomIntensity,
-  CONFIG.bloomRadius,
-  CONFIG.bloomThreshold,
-);
-composer.addPass(bloom);
-composer.addPass(new OutputPass());
+
+const bloom = new AstraBloomEffect({
+  blendFunction: BlendFunction.ADD,
+  intensity: CONFIG.bloomIntensity,
+  levels: CONFIG.bloomLevels,
+  luminanceSmoothing: 0.18,
+  luminanceThreshold: CONFIG.bloomThreshold,
+  mipmapBlur: true,
+  radius: CONFIG.bloomRadius,
+});
+const toneMapping = new ToneMappingEffect({
+  mode: ToneMappingMode.ACES_FILMIC,
+});
+composer.addPass(new EffectPass(camera, bloom, toneMapping));
 
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
 const pointer = {
@@ -428,11 +512,12 @@ function resize() {
   height = h;
   pixelRatio = nextDpr;
 
-  renderer.setPixelRatio(pixelRatio);
-  renderer.setSize(width, height, false);
-  composer.setPixelRatio(pixelRatio);
-  composer.setSize(width, height);
-  bloom.setSize(width, height);
+  renderer.setDrawingBufferSize(width, height, pixelRatio);
+  composer.setSize(width, height, false);
+
+  const bloomWidth = Math.max(1, Math.floor(width * pixelRatio * 0.5));
+  const bloomHeight = Math.max(1, Math.floor(height * pixelRatio * 0.5));
+  bloom.setSize(bloomWidth, bloomHeight);
 
   camera.aspect = width / Math.max(height, 1);
   camera.updateProjectionMatrix();

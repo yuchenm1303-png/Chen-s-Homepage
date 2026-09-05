@@ -71,7 +71,7 @@
         <span class="home-index-arrow">↗</span>
       </button>
 
-      <p class="home-index-hint"><span aria-hidden="true">◎</span> Marked stars are interactive project objects.</p>
+      <p class="home-index-hint"><span aria-hidden="true">◎</span> Marked stars are interactive content objects.</p>
     </nav>
 
     <aside class="home-panel" aria-hidden="true" aria-label="Homepage section">
@@ -80,14 +80,14 @@
       <section class="home-panel-view" data-home-panel-view="projects" hidden>
         <p class="home-panel-kicker">01 / Projects</p>
         <h2>Selected work</h2>
-        <p class="home-panel-lede">Projects live as objects in this galaxy. Select a marked anchor star to travel into its full project archive.</p>
+        <p class="home-panel-lede">Each project owns a different star in this galaxy. Open an object here or select its marked star directly.</p>
         <div class="home-project-index">
-          <div><span>Loom</span><small>General-purpose agent</small></div>
-          <div><span>TermRelay</span><small>AI gateway &amp; infrastructure</small></div>
-          <div><span>AI Ledger</span><small>Android AI assistant &amp; visual agent</small></div>
-          <div><span>Listing Studio</span><small>AI commerce automation</small></div>
+          <button class="home-object-link" type="button" data-star-object="loom"><span>Loom</span><small>General-purpose agent</small><b>◎</b></button>
+          <button class="home-object-link" type="button" data-star-object="termrelay"><span>TermRelay</span><small>AI gateway &amp; infrastructure</small><b>◎</b></button>
+          <button class="home-object-link" type="button" data-star-object="ai-ledger"><span>AI Ledger</span><small>Android AI assistant &amp; visual agent</small><b>◎</b></button>
+          <button class="home-object-link" type="button" data-star-object="listing-studio"><span>Listing Studio</span><small>AI commerce automation</small><b>◎</b></button>
         </div>
-        <p class="home-panel-note">The bright ring in the star field marks an interactive project entry.</p>
+        <p class="home-panel-note">Project stars use a solid orbital marker.</p>
       </section>
 
       <section class="home-panel-view" data-home-panel-view="about" hidden>
@@ -106,13 +106,14 @@
       <section class="home-panel-view" data-home-panel-view="notes" hidden>
         <p class="home-panel-kicker">03 / Notes</p>
         <h2>Build logs &amp; research.</h2>
-        <p class="home-panel-lede">A growing archive of technical notes, project decisions and engineering experiments.</p>
+        <p class="home-panel-lede">Notes live on their own quieter stars. Their archive is designed for reading rather than project inspection.</p>
         <div class="home-note-list">
-          <div><span>Building a Homepage From Zero</span><time datetime="2026-08-01">2026.08.01</time></div>
-          <div><span>Numerical Stability in Engineering Simulation</span><time datetime="2026-07-25">2026.07.25</time></div>
-          <div><span>Visual Interaction Design for AI Agents</span><time datetime="2026-07-12">2026.07.12</time></div>
-          <div><span>GaN HEMT Temperature &amp; Heavy-Ion Sweep</span><time datetime="2026-07-10">2026.07.10</time></div>
+          <button class="home-object-link" type="button" data-star-object="building-homepage"><span>Building a Homepage From Zero</span><time datetime="2026-08-01">2026.08.01</time><b>◌</b></button>
+          <button class="home-object-link" type="button" data-star-object="numerical-stability"><span>Numerical Stability in Engineering Simulation</span><time datetime="2026-07-25">2026.07.25</time><b>◌</b></button>
+          <button class="home-object-link" type="button" data-star-object="visual-agent-interaction"><span>Visual Interaction Design for AI Agents</span><time datetime="2026-07-12">2026.07.12</time><b>◌</b></button>
+          <button class="home-object-link" type="button" data-star-object="gan-hemt-sweep"><span>GaN HEMT Temperature &amp; Heavy-Ion Sweep</span><time datetime="2026-07-10">2026.07.10</time><b>◌</b></button>
         </div>
+        <p class="home-panel-note">Note stars use a broken orbital marker.</p>
       </section>
 
       <section class="home-panel-view" data-home-panel-view="contact" hidden>
@@ -129,6 +130,7 @@
 
   <script src="./homepage-project-tilt.js"></script>
   <script src="./homepage-shell.js"></script>
+  <script src="./homepage-star-catalog.js"></script>
 
   <!-- Keep the original V29.5 optical shader byte-for-byte. The homepage adapter
        now receives each galaxy frame synchronously while the framebuffer is valid. -->

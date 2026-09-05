@@ -193,44 +193,6 @@ source = replaceOnce(
     }\`,
   'Near-mid micro-star population redistribution',
 );
-
-// Depth-aware visibility now reinforces the redistributed geometry. Near/mid
-// points receive the stronger optical floor; the small remaining far shell is
-// intentionally quieter so it reads as depth instead of the dominant layer.
-source = replaceOnce(
-  source,
-  /vParticleDiameter = max\\(opticalDiameter, uPixelRatio \\* 0\\.58\\);/,
-  \`float farVisibility = smoothstep(30.0, 54.0, cameraDepth);
-  float visibilityFloor = mix(uPixelRatio * 1.18, uPixelRatio * 0.62, farVisibility);
-  vParticleDiameter = max(opticalDiameter, visibilityFloor);\`,
-  'Depth-aware micro-star optical footprint',
-);
-source = replaceOnce(
-  source,
-  /float referenceDiameter = uPixelRatio \\* 1\\.35;\\n  float ratio = referenceDiameter \\/ max\\(vParticleDiameter, 0\\.0001\\);\\n  vFluxCompensation = clamp\\(ratio \\* ratio, 1\\.0, 1\\.85\\);/,
-  \`float referenceDiameter = uPixelRatio * mix(1.62, 1.10, farVisibility);
-  float ratio = referenceDiameter / max(vParticleDiameter, 0.0001);
-  float maxFluxCompensation = mix(2.70, 1.30, farVisibility);
-  vFluxCompensation = clamp(ratio * ratio, 1.0, maxFluxCompensation);\`,
-  'Depth-aware micro-star flux compensation',
-);
-source = replaceOnce(
-  source,
-  /data\\.brightness\\[i\\] = \\(0\\.46 \\+ random\\(\\) \\* 0\\.46\\) \\* centreBoost \\* complexBoost \\* depthQuiet;/,
-  \`const nearMidVisibility = 1.0 + Math.exp(-Math.pow((depth - 27.0) / 14.0, 2)) * 0.95;
-    const farFade = 1.0 - THREE.MathUtils.smoothstep(depth, 40.0, 58.0) * 0.48;
-    data.brightness[i] = (0.54 + random() * 0.44) * centreBoost * complexBoost * depthQuiet
-      * nearMidVisibility * farFade;\`,
-  'Near-mid micro-star brightness emphasis',
-);
-source = replaceOnce(
-  source,
-  /data\\.opacity\\[i\\] = \\(0\\.24 \\+ random\\(\\) \\* 0\\.34\\) \\* band\\.dustTransmission \\* \\(0\\.90 \\+ band\\.centreWeight \\* 0\\.12\\);/,
-  \`data.opacity[i] = (0.30 + random() * 0.34) * band.dustTransmission
-      * (0.92 + band.centreWeight * 0.12)
-      * Math.min(1.52, nearMidVisibility) * farFade;\`,
-  'Near-mid micro-star opacity emphasis',
-);
 `;
 
 // The stable loader first injects its performance patch into the deep-nebula

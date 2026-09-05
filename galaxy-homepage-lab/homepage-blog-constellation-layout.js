@@ -7,7 +7,8 @@
   // The bright field is deterministic (seed 0xA57A2D31), so these are authored
   // identities rather than runtime search hints. About stays deliberately local
   // to its primary: four nearby nodes form a compact personal-field constellation
-  // instead of stretching across the viewport. Blog keeps an open branched silhouette.
+  // instead of stretching across the viewport. Blog occupies a separate upper-left
+  // territory and uses an open branching spine rather than a compact ring.
   const FIXED_INDICES = Object.freeze({
     about: 8430,
     'about-identity': 13906,
@@ -16,14 +17,14 @@
     'about-place': 5869,
 
     blog: 5596,
-    'building-homepage': 156,
-    'opengl-liquid-glass': 1918,
-    'computer-use-design': 8450,
-    'gan-hemt-stability': 3710,
-    'ai-ledger-real-streaming': 2955,
-    'app-performance-optimization': 9518,
-    'compose-parent-bubble-rendering': 7866,
-    'ai-listing-research': 10991,
+    'building-homepage': 11667,
+    'opengl-liquid-glass': 6875,
+    'computer-use-design': 8808,
+    'gan-hemt-stability': 622,
+    'ai-ledger-real-streaming': 1600,
+    'app-performance-optimization': 1819,
+    'compose-parent-bubble-rendering': 1102,
+    'ai-listing-research': 14029,
 
     contact: 11408,
     'contact-github': 9953,
@@ -73,24 +74,24 @@
     blog: makeFieldLayout({
       centre: [-0.70, -0.45],
       offsets: {
-        'building-homepage': [0.05, 0.10],
-        'opengl-liquid-glass': [0.13, 0.18],
-        'computer-use-design': [0.24, 0.14],
-        'gan-hemt-stability': [0.32, 0.00],
-        'ai-ledger-real-streaming': [0.13, 0.01],
-        'app-performance-optimization': [0.22, -0.10],
-        'compose-parent-bubble-rendering': [0.08, -0.18],
-        'ai-listing-research': [-0.06, -0.13],
+        'building-homepage': [-0.15, 0.30],
+        'opengl-liquid-glass': [-0.13, 0.52],
+        'computer-use-design': [-0.09, 0.76],
+        'gan-hemt-stability': [0.08, 0.79],
+        'ai-ledger-real-streaming': [0.23, 0.64],
+        'app-performance-optimization': [0.28, 0.45],
+        'compose-parent-bubble-rendering': [0.13, 0.28],
+        'ai-listing-research': [-0.05, 0.50],
       },
       edges: [
         ['blog', 'building-homepage'],
         ['building-homepage', 'opengl-liquid-glass'],
         ['opengl-liquid-glass', 'computer-use-design'],
         ['computer-use-design', 'gan-hemt-stability'],
-        ['building-homepage', 'ai-ledger-real-streaming'],
+        ['gan-hemt-stability', 'ai-ledger-real-streaming'],
         ['ai-ledger-real-streaming', 'app-performance-optimization'],
-        ['ai-ledger-real-streaming', 'compose-parent-bubble-rendering'],
-        ['compose-parent-bubble-rendering', 'ai-listing-research'],
+        ['opengl-liquid-glass', 'ai-listing-research'],
+        ['blog', 'compose-parent-bubble-rendering'],
       ],
     }),
 
@@ -161,8 +162,6 @@
        connector lines remain readable in both hover preview and local-field view. */
     .smirel-companion-star[data-parent-field="about"][data-companion-id="about-identity"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="about"][data-companion-id="about-place"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label {
       left: auto;
@@ -175,8 +174,7 @@
     .smirel-companion-star[data-parent-field="about"][data-companion-id="about-work"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="building-homepage"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="opengl-liquid-glass"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-email"] .smirel-companion-label {
       top: -15px;
@@ -184,10 +182,10 @@
 
     .smirel-companion-star[data-parent-field="about"][data-companion-id="about-study"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="about"][data-companion-id="about-place"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="app-performance-optimization"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="compose-parent-bubble-rendering"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-qq"] .smirel-companion-label {
       top: 19px;

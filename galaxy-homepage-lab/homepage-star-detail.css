@@ -18,7 +18,7 @@
   visibility: hidden;
   pointer-events: none;
   background:
-    radial-gradient(circle at 6.2% 10%, rgba(0,0,0,0) 0 8%, rgba(0,0,0,.035) 16%, rgba(0,0,0,.11) 30%, rgba(0,0,0,.24) 52%, rgba(0,0,0,.38) 100%),
+    radial-gradient(circle at 92% 10%, rgba(0,0,0,0) 0 8%, rgba(0,0,0,.035) 16%, rgba(0,0,0,.11) 30%, rgba(0,0,0,.24) 52%, rgba(0,0,0,.38) 100%),
     linear-gradient(90deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.10) 28%, rgba(0,0,0,.32) 62%, rgba(0,0,0,.54) 100%);
   transition: opacity .44s cubic-bezier(.22,.61,.36,1), visibility 0s linear .44s;
 }
@@ -57,13 +57,13 @@ body.star-detail-closing .smirel-star-back {
 .star-detail-header {
   position: fixed;
   z-index: 2;
-  left: clamp(24px, 4vw, 64px);
-  top: clamp(26px, 4.8vh, 48px);
+  right: clamp(28px, 4.6vw, 72px);
+  top: clamp(44px, 6.2vh, 68px);
   display: grid;
-  grid-template-columns: clamp(78px, 6.2vw, 96px) minmax(0, 1fr);
-  gap: clamp(14px, 1.45vw, 22px);
+  grid-template-columns: minmax(0, 1fr) clamp(84px, 6.4vw, 100px);
+  gap: clamp(16px, 1.55vw, 24px);
   align-items: center;
-  width: min(650px, calc(100vw - 180px));
+  width: min(640px, calc(100vw - 180px));
   opacity: 0;
   transform: translate3d(0, 10px, 0);
   transition: opacity .30s ease .06s, transform .48s cubic-bezier(.16,1,.3,1) .04s;
@@ -75,14 +75,19 @@ body.star-detail-open .star-detail-header {
 }
 
 .star-detail-star-slot {
+  grid-column: 2;
+  grid-row: 1;
   display: block;
-  width: clamp(78px, 6.2vw, 96px);
+  width: clamp(84px, 6.4vw, 100px);
   aspect-ratio: 1;
   pointer-events: none;
 }
 
 .star-detail-heading {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
+  text-align: right;
 }
 
 .star-detail-kicker,
@@ -119,7 +124,7 @@ body.star-detail-open .star-detail-header {
 .star-detail-back {
   position: fixed;
   z-index: 3;
-  right: 28px;
+  left: 28px;
   top: 24px;
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 999px;
@@ -280,7 +285,7 @@ body.star-detail-closing .star-detail-back {
 
 @media (max-width: 900px) {
   .star-detail-header {
-    left: 20px;
+    right: 20px;
     width: min(620px, calc(100vw - 128px));
   }
 
@@ -294,15 +299,15 @@ body.star-detail-closing .star-detail-back {
 @media (max-width: 620px) {
   .star-detail-shell {
     background:
-      radial-gradient(circle at 12% 8%, rgba(0,0,0,0) 0 8%, rgba(0,0,0,.05) 19%, rgba(0,0,0,.23) 45%, rgba(0,0,0,.50) 100%),
+      radial-gradient(circle at 86% 11%, rgba(0,0,0,0) 0 8%, rgba(0,0,0,.05) 19%, rgba(0,0,0,.23) 45%, rgba(0,0,0,.50) 100%),
       linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.48));
   }
 
   .star-detail-header {
-    left: 14px;
-    top: 18px;
-    width: calc(100vw - 104px);
-    grid-template-columns: 68px minmax(0, 1fr);
+    right: 14px;
+    top: 54px;
+    width: calc(100vw - 28px);
+    grid-template-columns: minmax(0, 1fr) 68px;
     gap: 12px;
   }
 
@@ -319,14 +324,14 @@ body.star-detail-closing .star-detail-back {
   }
 
   .star-detail-back {
-    right: 14px;
+    left: 14px;
     top: 14px;
   }
 
   .star-detail-main {
     width: calc(100vw - 28px);
     margin-left: 14px;
-    padding: 142px 0 54px;
+    padding: 168px 0 54px;
   }
 
   .star-detail-lede {

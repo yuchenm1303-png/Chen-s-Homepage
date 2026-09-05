@@ -58,27 +58,46 @@
     return await response.json();
   }
 
-  async function runChunkedDownload({ action, version = "", button, hintNode = null }) {
+  function prepareSaveTarget(versionHint) {
+    const downloader = window.ListingStudioChunkDownload;
+    if (!downloader?.pickSaveFile || !downloader.canUseNativeSavePicker?.()) return null;
+    return downloader.pickSaveFile(versionHint);
+  }
+
+  function isUserCancelled(error) {
+    return error?.name === "AbortError" || error?.message === "save_cancelled";
+  }
+
+  async function runChunkedDownload({ action, version = "", button, hintNode = null, saveTargetPromise = null }) {
     const originalHint = hintNode?.textContent ?? "";
     const originalText = button?.textContent ?? "";
     if (button) button.disabled = true;
-    if (hintNode) hintNode.textContent = "正在准备安全下载…";
-    else if (button) button.textContent = "准备中…";
+    if (hintNode) hintNode.textContent = saveTargetPromise ? "选择保存位置…" : "正在准备安全下载…";
+    else if (button) button.textContent = saveTargetPromise ? "选择保存位置…" : "准备中…";
 
     try {
+      const fileHandle = saveTargetPromise ? await saveTargetPromise : null;
+      if (hintNode) hintNode.textContent = "正在验证并下载…";
+      else if (button) button.textContent = "正在下载…";
+
       const payload = await requestDelivery(action, version);
       const downloader = window.ListingStudioChunkDownload;
       if (!downloader?.downloadPayload) throw new Error("chunk_downloader_missing");
 
       await downloader.downloadPayload(payload, {
+        fileHandle,
         onProgress(progress) {
-          const text = `下载中 ${progress.completedChunks}/${progress.totalChunks}`;
+          const percent = progress.totalBytes > 0
+            ? Math.min(100, Math.floor((progress.downloadedBytes / progress.totalBytes) * 100))
+            : 0;
+          const text = `下载中 ${percent}%`;
           if (hintNode) hintNode.textContent = text;
           else if (button) button.textContent = text;
         }
       });
-      showToast("安装包下载已开始");
+      showToast(fileHandle ? "安装包已保存" : "安装包下载已开始");
     } catch (error) {
+      if (isUserCancelled(error)) return;
       console.error("authorized installer download failed", error);
       if (error?.status === 401 || error?.message === "not_signed_in") showToast("请重新登录后下载");
       else if (error?.status === 403) showToast("当前账户没有有效下载权限");
@@ -100,10 +119,13 @@
       if (mainButton.disabled) return;
       event.preventDefault();
       event.stopImmediatePropagation();
+      const versionHint = String(document.getElementById("versionNumber")?.textContent || "").trim();
+      const saveTargetPromise = prepareSaveTarget(versionHint);
       void runChunkedDownload({
         action: "download_latest",
         button: mainButton,
-        hintNode: document.getElementById("downloadButtonHint")
+        hintNode: document.getElementById("downloadButtonHint"),
+        saveTargetPromise
       });
       return;
     }
@@ -116,10 +138,12 @@
 
     event.preventDefault();
     event.stopImmediatePropagation();
+    const saveTargetPromise = prepareSaveTarget(version);
     void runChunkedDownload({
       action: "download_version",
       version,
-      button: historyButton
+      button: historyButton,
+      saveTargetPromise
     });
   }, true);
 })();

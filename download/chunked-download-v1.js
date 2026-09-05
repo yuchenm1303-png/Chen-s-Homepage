@@ -32,6 +32,28 @@
     return { fileName, size, sha256, chunks: normalized };
   }
 
+  function suggestedFileName(versionHint = "") {
+    const version = String(versionHint || "").trim().replace(/^v/i, "");
+    return /^\d+\.\d+\.\d+$/.test(version)
+      ? `EcommerceAgent-Setup-${version}.exe`
+      : "EcommerceAgent-Setup.exe";
+  }
+
+  function canUseNativeSavePicker() {
+    return window.isSecureContext && typeof window.showSaveFilePicker === "function";
+  }
+
+  async function pickSaveFile(versionHint = "") {
+    if (!canUseNativeSavePicker()) return null;
+    return window.showSaveFilePicker({
+      suggestedName: suggestedFileName(versionHint),
+      types: [{
+        description: "Listing Studio Windows installer",
+        accept: { "application/octet-stream": [".exe"] }
+      }]
+    });
+  }
+
   async function fetchChunk(chunk) {
     let lastError = null;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
@@ -49,27 +71,45 @@
     throw lastError || new Error("chunk_download_failed");
   }
 
-  async function downloadPayload(payload, options = {}) {
-    const normalized = validatePayload(payload);
+  function emitProgress(options, completedChunks, totalChunks, downloadedBytes, totalBytes) {
+    options.onProgress?.({ completedChunks, totalChunks, downloadedBytes, totalBytes });
+  }
+
+  async function downloadToFileHandle(normalized, fileHandle, options) {
+    const writable = await fileHandle.createWritable();
+    let downloaded = 0;
+
+    try {
+      for (const chunk of normalized.chunks) {
+        emitProgress(options, chunk.index, normalized.chunks.length, downloaded, normalized.size);
+        const blob = await fetchChunk(chunk);
+        await writable.write({ type: "write", position: downloaded, data: blob });
+        downloaded += blob.size;
+        emitProgress(options, chunk.index + 1, normalized.chunks.length, downloaded, normalized.size);
+      }
+
+      if (downloaded !== normalized.size) throw new Error("assembled_size_mismatch");
+      await writable.truncate(normalized.size);
+      await writable.close();
+
+      const savedFile = await fileHandle.getFile();
+      if (savedFile.size !== normalized.size) throw new Error("saved_file_size_mismatch");
+    } catch (error) {
+      try { await writable.abort(); } catch {}
+      throw error;
+    }
+  }
+
+  async function downloadToBrowser(normalized, options) {
     const parts = [];
     let downloaded = 0;
 
     for (const chunk of normalized.chunks) {
-      options.onProgress?.({
-        completedChunks: chunk.index,
-        totalChunks: normalized.chunks.length,
-        downloadedBytes: downloaded,
-        totalBytes: normalized.size
-      });
+      emitProgress(options, chunk.index, normalized.chunks.length, downloaded, normalized.size);
       const blob = await fetchChunk(chunk);
       parts.push(blob);
       downloaded += blob.size;
-      options.onProgress?.({
-        completedChunks: chunk.index + 1,
-        totalChunks: normalized.chunks.length,
-        downloadedBytes: downloaded,
-        totalBytes: normalized.size
-      });
+      emitProgress(options, chunk.index + 1, normalized.chunks.length, downloaded, normalized.size);
     }
 
     if (downloaded !== normalized.size) throw new Error("assembled_size_mismatch");
@@ -87,6 +127,15 @@
     anchor.click();
     anchor.remove();
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  }
+
+  async function downloadPayload(payload, options = {}) {
+    const normalized = validatePayload(payload);
+    if (options.fileHandle) {
+      await downloadToFileHandle(normalized, options.fileHandle, options);
+    } else {
+      await downloadToBrowser(normalized, options);
+    }
 
     return {
       fileName: normalized.fileName,
@@ -95,5 +144,10 @@
     };
   }
 
-  window.ListingStudioChunkDownload = Object.freeze({ downloadPayload });
+  window.ListingStudioChunkDownload = Object.freeze({
+    canUseNativeSavePicker,
+    pickSaveFile,
+    suggestedFileName,
+    downloadPayload
+  });
 })();

@@ -108,7 +108,7 @@
 
 .home-title {
   margin: 0;
-  font-size: clamp(42px, 4.3vw, 58px);
+  font-size: clamp(36px, 3.6vw, 48px);
   font-weight: 620;
   line-height: .98;
   letter-spacing: -.04em;
@@ -431,7 +431,7 @@ body.home-panel-open .home-index {
   }
 
   .home-title {
-    font-size: 42px;
+    font-size: 36px;
   }
 
   .home-role {

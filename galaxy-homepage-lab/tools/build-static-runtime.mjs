@@ -63,7 +63,7 @@ async function expandRuntime() {
 
   const requiredMarkers = [
     "import * as THREE from 'three';",
-    'const splitAmount =',
+    'float splitAmount =',
     'antialias: false',
     'multisampling: 0',
     'window.__SMIREL_STAR_FLIGHT_INSTALL__',

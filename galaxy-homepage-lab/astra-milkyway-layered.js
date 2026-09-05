@@ -26,7 +26,7 @@ const CONFIG = Object.freeze({
   microStarCount: 34000,
   microIntensity: 0.92,
   microTwinkleSpeed: 0.26,
-  continuumIntensity: 0.055,
+  continuumIntensity: 0.48,
   fov: 55,
   near: 0.1,
   far: 64,

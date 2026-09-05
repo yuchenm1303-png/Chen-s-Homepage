@@ -83,6 +83,29 @@
     if (canvas.height !== h) canvas.height = h;
   }
 
+  function getUntransformedCardRect() {
+    const width = card.offsetWidth;
+    const height = card.offsetHeight;
+    let left = 0;
+    let top = 0;
+    let node = card;
+
+    while (node instanceof HTMLElement) {
+      left += node.offsetLeft;
+      top += node.offsetTop;
+      node = node.offsetParent;
+    }
+
+    return {
+      left,
+      top,
+      right: left + width,
+      bottom: top + height,
+      width,
+      height,
+    };
+  }
+
   function smoothContext(ctx) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
@@ -180,7 +203,7 @@
 
   function captureBackdrop() {
     const sourceRect = sourceCanvas.getBoundingClientRect();
-    const cardRect = card.getBoundingClientRect();
+    const cardRect = getUntransformedCardRect();
     if (sourceRect.width <= 0 || sourceRect.height <= 0 || cardRect.width <= 0 || cardRect.height <= 0) return false;
 
     const quality = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -305,7 +328,7 @@
   function syncFromGalaxyFrame(now = performance.now()) {
     if (failed || !visible || document.hidden) return;
 
-    const rect = card.getBoundingClientRect();
+    const rect = getUntransformedCardRect();
     const rectKey = `${Math.round(rect.left)}:${Math.round(rect.top)}:${Math.round(rect.width)}:${Math.round(rect.height)}:${sourceCanvas.width}:${sourceCanvas.height}`;
     const layoutChanged = rectKey !== lastRectKey;
     if (!layoutChanged && now - lastCapture < CAPTURE_INTERVAL_MS) return;

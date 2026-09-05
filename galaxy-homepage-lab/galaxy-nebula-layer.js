@@ -5,8 +5,8 @@ if (!starCanvas) {
   throw new Error('Galaxy canvas is required before the nebula layer can mount.');
 }
 
-// Photographic Milky Way structure layer. Resolved stars remain in the approved
-// stellar renderer; this canvas contributes unresolved starlight, dust and dark rifts.
+// Photographic Milky Way structure layer. Keep the approved point-star renderer
+// untouched; this canvas contributes only unresolved starlight and dust structure.
 const canvas = document.createElement('canvas');
 canvas.id = 'galaxyNebulaCanvas';
 canvas.setAttribute('aria-hidden', 'true');
@@ -124,270 +124,242 @@ float microStarLayer(vec2 p, float scale, float threshold) {
   float d = length(local - jitter);
   float seed = hash21(cell + 31.77);
   float gate = smoothstep(threshold, 1.0, seed);
-  return smoothstep(0.060, 0.0, d) * gate;
+  return smoothstep(0.052, 0.0, d) * gate;
 }
 
 void main() {
   float aspect = uResolution.x / max(uResolution.y, 1.0);
   vec2 p = (vUv - 0.5) * vec2(aspect, 1.0);
 
-  // The nebula sits behind the resolved stars, so pointer parallax stays tiny.
-  p += vec2(uCamera.x * 0.0035, uCamera.y * 0.0026);
+  // The cloud layer is farther away than the resolved stars, so it barely follows
+  // the observer. It should feel fixed in deep space, not like smoke under a cursor.
+  p += vec2(uCamera.x * 0.0028, uCamera.y * 0.0020);
 
   vec2 axis = normalize(vec2(0.69, 0.724));
   vec2 normal = vec2(-axis.y, axis.x);
   float along = dot(p, axis);
   float across = dot(p, normal);
 
-  // The Milky Way does not read as a perfect diagonal tube in photographs.
-  // A slow structural bend plus low-frequency warp gives it a natural sweep.
-  float curve = 0.045 * sin(along * 1.66 + 0.50)
-              + 0.013 * sin(along * 4.10 - 0.66);
+  float curve = 0.040 * sin(along * 1.60 + 0.50)
+              + 0.011 * sin(along * 4.05 - 0.64);
   across -= curve;
 
-  float drift = uTime * 0.000075;
-  vec2 slowDrift = vec2(drift, -drift * 0.29);
+  // Milky Way structure is effectively static on this time scale.
+  float drift = uTime * 0.000035;
+  vec2 slowDrift = vec2(drift, -drift * 0.27);
 
   float warpLarge = fbm(
-    vec2(along * 0.50, across * 0.94) + vec2(3.8, -2.6) + slowDrift
+    vec2(along * 0.54, across * 1.02) + vec2(3.7, -2.7) + slowDrift
   );
   float warpMiddle = fbm(
-    vec2(along * 1.22, across * 2.10) + vec2(-5.6, 6.8) - slowDrift * 0.35
+    vec2(along * 1.30, across * 2.30) + vec2(-5.5, 6.7) - slowDrift * 0.35
   );
 
   float warpedAcross = across
-    + (warpLarge - 0.5) * 0.150
-    + (warpMiddle - 0.5) * 0.052;
+    + (warpLarge - 0.5) * 0.112
+    + (warpMiddle - 0.5) * 0.042;
 
-  // A broad unresolved body with one stronger galactic-centre complex and several
-  // weaker shelves. This is intentionally asymmetric, like the reference photos.
-  float spine = gaussian(warpedAcross, 0.46);
-  float innerSpine = gaussian(warpedAcross, 0.265);
+  // Keep the structure physically narrow. On portrait screens a slight width
+  // reduction prevents the cloud body from swallowing the entire viewport.
+  float widthScale = mix(0.82, 1.0, smoothstep(0.78, 1.08, aspect));
+  float outerBand = gaussian(warpedAcross, 0.285 * widthScale);
+  float innerBand = gaussian(warpedAcross, 0.165 * widthScale);
+  float coreBand = gaussian(warpedAcross, 0.085 * widthScale);
 
-  float outerLeft = gaussian(along + 0.82, 0.55)
-    * gaussian(warpedAcross + 0.025, 0.31);
-  float coreComplex = gaussian(along + 0.10, 0.53)
-    * gaussian(warpedAcross - 0.015, 0.29);
-  float outerRight = gaussian(along - 0.62, 0.58)
-    * gaussian(warpedAcross + 0.035, 0.32);
-  float farShoulder = gaussian(along - 1.02, 0.46)
-    * gaussian(warpedAcross - 0.045, 0.25);
+  float leftWindow = gaussian(along + 0.78, 0.62);
+  float centreWindow = gaussian(along + 0.08, 0.48);
+  float rightWindow = gaussian(along - 0.62, 0.64);
+  float farWindow = gaussian(along - 1.04, 0.46);
 
-  float envelope = clamp(
-      spine * 0.18
-    + outerLeft * 0.42
-    + coreComplex * 0.92
-    + outerRight * 0.54
-    + farShoulder * 0.30,
+  // One strong centre plus dimmer shoulders. Real Milky Way photos have enormous
+  // dynamic range along the plane; they are not a uniformly bright coloured strip.
+  float longitudinal = clamp(
+      leftWindow * 0.34
+    + centreWindow * 0.94
+    + rightWindow * 0.44
+    + farWindow * 0.22,
     0.0,
     1.0
   );
 
   float macroA = fbm(
-    vec2(along * 0.72, warpedAcross * 1.30) + vec2(8.0, 1.4)
+    vec2(along * 0.76, warpedAcross * 1.45) + vec2(7.8, 1.2)
   );
   float macroB = fbm(
-    vec2(along * 1.02, warpedAcross * 1.78) + vec2(-3.2, 9.1)
+    vec2(along * 1.10, warpedAcross * 1.95) + vec2(-3.3, 9.0)
   );
   float middle = fbm(
-    vec2(along * 2.30, warpedAcross * 4.25) + vec2(-9.2, 3.0)
+    vec2(along * 2.55, warpedAcross * 4.70) + vec2(-9.0, 2.9)
   );
   float fine = fbm(
-    vec2(along * 5.40, warpedAcross * 10.2) + vec2(4.7, -8.1)
+    vec2(along * 5.90, warpedAcross * 11.5) + vec2(4.8, -8.0)
   );
   float ridges = ridgedFbm(
-    vec2(along * 2.82, warpedAcross * 6.25) + vec2(11.6, -5.2)
+    vec2(along * 3.10, warpedAcross * 7.20) + vec2(11.4, -5.0)
   );
 
-  // Large-scale mass is broken up before colour is applied. That keeps the body
-  // granular and cloud-like instead of becoming a smooth coloured fog.
-  float macroMass = smoothstep(0.33, 0.69, macroA * 0.56 + macroB * 0.44);
-  float midMass = 0.25 + 0.75 * smoothstep(0.29, 0.70, middle);
-  float clumpMass = envelope * macroMass * midMass;
+  float macroMix = macroA * 0.58 + macroB * 0.42;
+  float macroMass = smoothstep(0.42, 0.70, macroMix);
+  float midMass = smoothstep(0.37, 0.72, middle);
 
-  float filamentMass = envelope
-    * smoothstep(0.38, 0.73, ridges)
-    * (0.36 + 0.64 * macroMass);
+  // Cloud complexes are intermittent. Multiplication creates real holes and gaps
+  // instead of the previous broad beige veil.
+  float cloudMass = outerBand
+    * longitudinal
+    * macroMass
+    * (0.30 + 0.70 * midMass);
 
-  float granularMass = innerSpine
-    * smoothstep(0.39, 0.72, middle)
-    * smoothstep(0.31, 0.68, fine)
-    * (0.36 + 0.64 * envelope);
+  float stellarLane = innerBand
+    * longitudinal
+    * (0.18 + 0.82 * macroMass)
+    * (0.42 + 0.58 * smoothstep(0.36, 0.72, ridges));
 
-  // Dense unresolved light around the galactic centre. The modulation is important:
-  // the real core is bright but mottled by dust, never a clean glowing ellipse.
-  float coreMottle = 0.42
-    + 0.34 * smoothstep(0.34, 0.72, ridges)
-    + 0.24 * smoothstep(0.36, 0.71, middle);
+  float filament = innerBand
+    * longitudinal
+    * smoothstep(0.47, 0.76, ridges)
+    * smoothstep(0.38, 0.72, middle);
 
-  float coreLight = coreComplex
-    * (0.42 + 0.58 * macroMass)
+  float granular = innerBand
+    * longitudinal
+    * smoothstep(0.48, 0.76, middle)
+    * smoothstep(0.42, 0.72, fine);
+
+  // The galactic centre is bright but still broken by dust and mottling.
+  float coreMottle = 0.30
+    + 0.42 * smoothstep(0.38, 0.72, ridges)
+    + 0.28 * smoothstep(0.42, 0.73, middle);
+  float coreLight = coreBand
+    * centreWindow
+    * (0.30 + 0.70 * macroMass)
     * coreMottle;
 
-  float stellarCloud = clumpMass
-    * (0.50 + 0.50 * smoothstep(0.34, 0.71, ridges));
+  // Broad irregular dark rift. This crosses the bright centre and is essential to
+  // the photographic Milky Way silhouette.
+  float riftOffset = (middle - 0.5) * 0.090
+    + (fine - 0.5) * 0.030
+    + sin(along * 2.20 - 0.18) * 0.014;
 
-  // A broad dark rift plus branched lanes and cloud pockets. These are allowed to
-  // cross the bright centre so the layer reads as Milky Way dust, not a nebula blob.
-  float riftOffset = (middle - 0.5) * 0.120
-    + (fine - 0.5) * 0.038
-    + sin(along * 2.25 - 0.20) * 0.018;
-
-  float mainRift = gaussian(warpedAcross + 0.018 + riftOffset, 0.072)
-    * (0.40 + 0.60 * smoothstep(0.35, 0.69, macroB));
+  float mainRift = gaussian(warpedAcross + 0.012 + riftOffset, 0.052 * widthScale)
+    * (0.40 + 0.60 * smoothstep(0.40, 0.70, macroB));
 
   float branchA = gaussian(
-    warpedAcross - 0.125 + (macroA - 0.5) * 0.082,
-    0.048
-  ) * smoothstep(0.43, 0.73, fine);
+    warpedAcross - 0.094 + (macroA - 0.5) * 0.060,
+    0.034 * widthScale
+  ) * smoothstep(0.50, 0.76, fine);
 
   float branchB = gaussian(
-    warpedAcross + 0.180 + (middle - 0.5) * 0.082,
-    0.056
-  ) * (1.0 - smoothstep(0.42, 0.69, fine));
+    warpedAcross + 0.128 + (middle - 0.5) * 0.065,
+    0.040 * widthScale
+  ) * (1.0 - smoothstep(0.45, 0.70, fine));
 
-  float pocketNoise = fbm(
-    vec2(along * 3.40, warpedAcross * 7.45) + vec2(-12.7, 5.3)
+  float pocketA = fbm(
+    vec2(along * 3.80, warpedAcross * 8.6) + vec2(-12.4, 5.2)
   );
-  float pocketNoise2 = fbm(
-    vec2(along * 4.30, warpedAcross * 8.60) + vec2(6.4, 12.2)
+  float pocketB = fbm(
+    vec2(along * 4.70, warpedAcross * 10.2) + vec2(6.6, 12.0)
   );
-
-  float darkPockets = envelope
+  float darkPockets = innerBand
+    * longitudinal
     * clamp(
-        smoothstep(0.54, 0.76, pocketNoise) * 0.62
-      + smoothstep(0.61, 0.80, pocketNoise2) * 0.42,
+        smoothstep(0.61, 0.78, pocketA) * 0.62
+      + smoothstep(0.65, 0.81, pocketB) * 0.42,
       0.0,
       1.0
     );
 
   float dust = clamp(
-      mainRift * 0.88
-    + branchA * 0.44
-    + branchB * 0.34
-    + darkPockets * 0.64,
+      mainRift * 0.90
+    + branchA * 0.42
+    + branchB * 0.32
+    + darkPockets * 0.72,
     0.0,
     1.0
   );
 
-  // Photographic colour hierarchy: pale warm-white core, rose/brown dust, faint
-  // blue-violet scattering in outer star clouds. Saturation stays moderate.
-  float warmWindow = gaussian(along + 0.08, 0.66)
-    * (0.48 + 0.52 * smoothstep(0.36, 0.72, macroA));
+  // Colour hierarchy from real night-sky references: neutral grey-brown dominates,
+  // the centre is warm cream, and blue-violet / rose exist only in small pockets.
+  float warmMask = centreWindow
+    * (0.38 + 0.62 * smoothstep(0.43, 0.72, macroA));
+  float roseMask = innerBand
+    * longitudinal
+    * smoothstep(0.60, 0.79, fine)
+    * smoothstep(0.50, 0.75, middle);
+  float coolMask = outerBand
+    * (1.0 - centreWindow)
+    * smoothstep(0.58, 0.80, macroB)
+    * smoothstep(0.45, 0.75, ridges);
 
-  float warmDust = stellarCloud * warmWindow;
-  float neutralDust = clumpMass * (0.58 + 0.42 * (1.0 - warmWindow));
+  vec3 neutralColor = vec3(0.175, 0.165, 0.158);
+  vec3 warmColor = vec3(0.330, 0.235, 0.175);
+  vec3 coreColor = vec3(0.455, 0.385, 0.300);
+  vec3 roseColor = vec3(0.220, 0.145, 0.165);
+  vec3 coolColor = vec3(0.115, 0.145, 0.205);
+  vec3 dustColor = vec3(0.0018, 0.0022, 0.0028);
 
-  float coolWindow = (1.0 - gaussian(along + 0.05, 0.70))
-    * smoothstep(0.52, 0.79, macroB);
-  float coolScattering = envelope
-    * coolWindow
-    * smoothstep(0.40, 0.74, ridges);
-
-  float roseCloud = envelope
-    * gaussian(along + 0.12, 0.72)
-    * smoothstep(0.52, 0.78, fine)
-    * smoothstep(0.42, 0.72, middle);
-
-  // Very small HII-like patches: visible as texture, never as large pink clouds.
-  float hiiA = gaussian(along + 0.46, 0.14)
-    * gaussian(warpedAcross - 0.060, 0.100);
-  float hiiB = gaussian(along - 0.34, 0.17)
-    * gaussian(warpedAcross + 0.072, 0.110);
-  float hii = max(hiiA, hiiB)
-    * smoothstep(0.56, 0.80, fine)
-    * envelope;
-
-  vec3 neutralColor = vec3(0.365, 0.350, 0.335);
-  vec3 coreColor = vec3(0.640, 0.545, 0.445);
-  vec3 warmColor = vec3(0.455, 0.285, 0.215);
-  vec3 roseColor = vec3(0.315, 0.205, 0.235);
-  vec3 coolColor = vec3(0.175, 0.225, 0.315);
-  vec3 hiiColor = vec3(0.390, 0.175, 0.190);
-  vec3 dustColor = vec3(0.0022, 0.0027, 0.0033);
-
-  float neutralWeight = neutralDust * 0.80;
-  float coreWeight = coreLight * 0.74;
-  float warmWeight = warmDust * 0.70;
-  float roseWeight = roseCloud * 0.22;
-  float coolWeight = coolScattering * 0.24;
-  float hiiWeight = hii * 0.18;
-
-  float totalWeight = neutralWeight
-    + coreWeight
-    + warmWeight
-    + roseWeight
-    + coolWeight
-    + hiiWeight;
+  float neutralWeight = cloudMass * 0.72 + stellarLane * 0.30;
+  float warmWeight = stellarLane * warmMask * 0.46;
+  float coreWeight = coreLight * 0.72;
+  float roseWeight = roseMask * 0.10;
+  float coolWeight = coolMask * 0.12;
+  float totalWeight = neutralWeight + warmWeight + coreWeight + roseWeight + coolWeight;
 
   vec3 emissionColor = (
       neutralColor * neutralWeight
-    + coreColor * coreWeight
     + warmColor * warmWeight
+    + coreColor * coreWeight
     + roseColor * roseWeight
     + coolColor * coolWeight
-    + hiiColor * hiiWeight
   ) / max(totalWeight, 0.0001);
 
-  // The core should be clearly present, while the outer Milky Way remains dimmer.
-  // Opacity is driven by structure rather than a uniform band.
+  // Opacity is intentionally low. The real Milky Way is mostly unresolved light
+  // and texture, not an opaque cloud sitting on top of the stars.
   float emissionAlpha = clamp(
-      clumpMass * 0.105
-    + filamentMass * 0.075
-    + granularMass * 0.060
-    + stellarCloud * 0.070
-    + coreLight * 0.155
-    + coolScattering * 0.035
-    + roseCloud * 0.042
-    + hii * 0.040
-    + spine * macroMass * 0.014,
+      cloudMass * 0.040
+    + stellarLane * 0.054
+    + filament * 0.034
+    + granular * 0.022
+    + coreLight * 0.105
+    + roseMask * 0.012
+    + coolMask * 0.010
+    + outerBand * longitudinal * macroMass * 0.006,
     0.0,
-    0.315
+    0.175
   );
 
-  float dustAlpha = dust * (0.115 + envelope * 0.120);
-  float alpha = clamp(emissionAlpha + dustAlpha, 0.0, 0.345);
+  float dustAlpha = dust * (0.065 + innerBand * 0.060);
+  float alpha = clamp(emissionAlpha + dustAlpha, 0.0, 0.205);
 
   float dustMix = dustAlpha / max(alpha, 0.0001);
   vec3 color = mix(emissionColor, dustColor, dustMix);
 
-  // Fine unresolved star texture only inside the galactic body. These tiny points
-  // bridge the visual gap between the smooth cloud layer and the resolved star field.
+  // Very sparse embedded points help the cloudy body resolve into stellar texture,
+  // but the dedicated star renderer remains the dominant source of point stars.
   float embeddedMask = clamp(
-    envelope * (0.35 + 0.65 * macroMass) * (1.0 - dust * 0.78),
+    innerBand * longitudinal * (0.20 + 0.80 * macroMass) * (1.0 - dust * 0.88),
     0.0,
     1.0
   );
-  float microA = microStarLayer(p + vec2(1.7, -2.2), 145.0, 0.986);
-  float microB = microStarLayer(p + vec2(-3.1, 1.4), 235.0, 0.994);
-  float microStars = (microA * 0.70 + microB * 0.55) * embeddedMask;
+  float microA = microStarLayer(p + vec2(1.7, -2.2), 165.0, 0.991);
+  float microB = microStarLayer(p + vec2(-3.1, 1.4), 255.0, 0.996);
+  float microStars = (microA * 0.48 + microB * 0.34) * embeddedMask;
+  color += vec3(0.72, 0.73, 0.70) * microStars * 0.12;
+  alpha = clamp(alpha + microStars * 0.045, 0.0, 0.21);
 
-  vec3 microColor = mix(
-    vec3(0.62, 0.70, 0.82),
-    vec3(0.95, 0.82, 0.66),
-    hash21(floor(p * 137.0) + 5.3)
-  );
-
-  color += microColor * microStars * 0.22;
-  alpha = clamp(alpha + microStars * 0.10, 0.0, 0.36);
-
-  // Local contrast reveals dark knots and mottled star clouds without pushing the
-  // whole layer toward an HDR / overprocessed look.
-  float textureContrast = smoothstep(0.38, 0.76, ridges) * clumpMass;
-  color *= 0.94 + textureContrast * 0.23;
-  color *= 1.0 - dust * 0.21;
+  // Increase local contrast, not global brightness. Dark gaps stay genuinely dark.
+  float textureContrast = smoothstep(0.46, 0.76, ridges) * cloudMass;
+  color *= 0.88 + textureContrast * 0.28;
+  color *= 1.0 - dust * 0.28;
 
   float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-  float colorLift = smoothstep(0.06, 0.28, emissionAlpha);
-  color = mix(vec3(luma), color, 1.0 + colorLift * 0.12);
-  color *= 1.0 + colorLift * 0.08;
+  float saturationMask = smoothstep(0.035, 0.14, emissionAlpha);
+  color = mix(vec3(luma), color, 1.0 + saturationMask * 0.08);
 
   float grain = hash21(gl_FragCoord.xy + 41.37) - 0.5;
-  color += vec3(grain * 0.0022);
+  color += vec3(grain * 0.0015);
 
   vec2 edgeUv = abs(vUv - 0.5) * 2.0;
-  float edgeFade = 1.0 - smoothstep(0.79, 1.05, max(edgeUv.x, edgeUv.y));
-  alpha *= mix(0.76, 1.0, edgeFade);
+  float edgeFade = 1.0 - smoothstep(0.80, 1.05, max(edgeUv.x, edgeUv.y));
+  alpha *= mix(0.74, 1.0, edgeFade);
 
   if (alpha <= 0.001) discard;
   outColor = vec4(max(color, vec3(0.0)), alpha);

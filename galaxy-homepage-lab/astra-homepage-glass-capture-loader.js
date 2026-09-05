@@ -79,13 +79,66 @@ source = replaceOnce(
   'Interactive star camera ownership',
 );
 
-// The old prototype forced the expensive volumetric continuum target to rerender
-// on every animation frame while flying. Keep the camera path at refresh rate,
-// but update the low-frequency volume on an independent star-flight budget.
+// During flight, camera position and FOV change every presented frame. The
+// continuum must follow that same temporal cadence or it visibly snaps between
+// stale camera states. Keep it frame-synchronous, but temporarily lower the
+// low-frequency render target to 42% of its normal linear resolution. The
+// target returns to full quality as soon as the camera arrives.
+source = replaceOnce(
+  source,
+  /  const targetChanged = continuumCache\\.width !== continuumTarget\\.width\\n    \\|\\| continuumCache\\.height !== continuumTarget\\.height;/,
+  \`  const starFlightMoving = document.body.classList.contains('star-flight-active')
+    && !document.body.classList.contains('star-flight-arrived');
+  const baseContinuumScale = width >= 1100 ? 0.40 : 0.48;
+  const flightContinuumScale = baseContinuumScale * (starFlightMoving ? 0.42 : 1.0);
+  const desiredContinuumWidth = Math.max(
+    256,
+    Math.min(960, Math.round(width * pixelRatio * flightContinuumScale)),
+  );
+  const desiredContinuumHeight = Math.max(
+    144,
+    Math.min(600, Math.round(height * pixelRatio * flightContinuumScale)),
+  );
+  if (continuumTarget.width !== desiredContinuumWidth
+      || continuumTarget.height !== desiredContinuumHeight) {
+    continuumTarget.setSize(desiredContinuumWidth, desiredContinuumHeight);
+    continuumCache.valid = false;
+  }
+  const targetChanged = continuumCache.width !== continuumTarget.width
+    || continuumCache.height !== continuumTarget.height;\`,
+  'Interactive star flight continuum LOD',
+);
+
+// FOV changes are projection changes too. Track tanHalfFov in the cache so the
+// continuum cannot retain a texture rendered with the previous flight FOV.
+source = replaceOnce(
+  source,
+  /  const projectionChanged = Math\\.abs\\(continuumCache\\.aspect - continuumUniforms\\.uAspect\\.value\\) > 1e-6;/,
+  \`  const continuumTanHalfFov = continuumUniforms.uTanHalfFov.value;
+  const cachedTanHalfFov = Number.isFinite(continuumCache.tanHalfFov)
+    ? continuumCache.tanHalfFov
+    : -1;
+  const projectionChanged = Math.abs(continuumCache.aspect - continuumUniforms.uAspect.value) > 1e-6
+    || Math.abs(cachedTanHalfFov - continuumTanHalfFov) > 1e-6;\`,
+  'Interactive star FOV cache invalidation',
+);
+source = replaceOnce(
+  source,
+  /    continuumCache\\.aspect = continuumUniforms\\.uAspect\\.value;\\n    continuumCache\\.width =/,
+  \`    continuumCache.aspect = continuumUniforms.uAspect.value;
+    continuumCache.tanHalfFov = continuumUniforms.uTanHalfFov.value;
+    continuumCache.width =\`,
+  'Interactive star FOV cache state',
+);
+
+// Moving flight frames update the reduced continuum every rendered camera frame.
+// Idle and arrived states keep the refined runtime's lower-frequency budgets.
 source = replaceOnce(
   source,
   /  const interactionBudgetReady = now - continuumCache\\.lastRenderMs >= 30\\.0;/,
-  \`  const continuumIntervalMs = starFlight?.continuumIntervalMs ?? 30.0;
+  \`  const continuumIntervalMs = starFlightMoving
+    ? 0.0
+    : (starFlight?.continuumIntervalMs ?? 30.0);
   const interactionBudgetReady = now - continuumCache.lastRenderMs >= continuumIntervalMs;\`,
   'Interactive star continuum frame budget',
 );

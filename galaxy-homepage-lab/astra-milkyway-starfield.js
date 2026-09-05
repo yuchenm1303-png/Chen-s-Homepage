@@ -11,9 +11,9 @@ if (!canvas) throw new Error('Galaxy canvas is required.');
 // resolved cores, temperature palette, twinkle and bloom. Only the spatial
 // distribution changes here: stars now form our own 3D Milky Way sky.
 const CONFIG = Object.freeze({
-  bloomIntensity: 0.7,
-  bloomThreshold: 0.08,
-  bloomRadius: 0.72,
+  bloomIntensity: 0.54,
+  bloomThreshold: 0.16,
+  bloomRadius: 0.52,
   intensity: 1.35,
   size: 2.05,
   twinkleSpeed: 0.62,
@@ -88,14 +88,17 @@ void main() {
   vOpacity *= smoothstep(0.0, 0.2, introLocalProgress);
 
   float depthScale = clamp(8.5 / cameraDepth, 0.28, 2.05);
-  gl_PointSize = uPixelRatio
+  float opticalDiameter = uPixelRatio
     * (0.35 + starScale * 3.8)
     * depthScale
     * (0.97 + twinkle * 0.03)
     * introParticleScale;
 
-  vParticleDiameter = gl_PointSize;
-  gl_PointSize = max(gl_PointSize, 4.0);
+  // Keep Astra's optical diameter, but render it inside a larger transparent
+  // point sprite. This gives the radial falloff enough room to reach near-zero
+  // before the square sprite boundary, so bloom no longer reveals that boundary.
+  vParticleDiameter = opticalDiameter;
+  gl_PointSize = max(opticalDiameter * 1.55, 6.0);
   gl_Position = projectionMatrix * viewPosition;
 }
 `;
@@ -108,27 +111,57 @@ varying float vRayStrength;
 ${ASTRA_FILTERED_CORE_GLSL}
 
 void main() {
-  vec2 pixel = (gl_PointCoord - vec2(0.5)) * max(vParticleDiameter, 4.0);
+  float spriteDiameter = max(vParticleDiameter * 1.55, 6.0);
+  vec2 pixel = (gl_PointCoord - vec2(0.5)) * spriteDiameter;
   vec2 point = pixel * 2.0 / max(vParticleDiameter, 0.0001);
-  float distanceToCenter = length(point);
-  float disc = 1.0 - smoothstep(0.08, 1.0, distanceToCenter);
-  float core = pow(disc, 2.2);
-  float horizontalRay = exp(-abs(point.y) * 28.0)
-    * (1.0 - smoothstep(0.18, 1.0, abs(point.x)));
-  float verticalRay = exp(-abs(point.x) * 28.0)
-    * (1.0 - smoothstep(0.18, 1.0, abs(point.y)));
-  float rays = max(horizontalRay, verticalRay) * 0.28 * vRayStrength;
-  float resolved = smoothstep(2.0, 4.0, vParticleDiameter);
-  float alpha = mix(astraFilteredCore(pixel, 0.150904), max(core, rays), resolved) * vOpacity;
-  if (alpha <= 0.0) discard;
+  float r2 = dot(point, point);
+  float r = sqrt(r2);
 
-  float whiteCore = mix(0.59228, core, resolved)
-    * smoothstep(0.9, 2.8, vBrightness)
-    * 0.82;
+  // Sub-pixel stars retain Astra's filtered coverage. Resolved stars switch to
+  // a radial optical model so their glow source is circular rather than a
+  // magnified square point-sprite footprint.
+  float filteredCore = astraFilteredCore(pixel, 0.150904);
+  float needle = exp(-r2 * 42.0);
+  float photosphere = exp(-r2 * 10.5);
+  float corona = exp(-r2 * 3.2);
+
+  float horizontalRay = exp(-abs(point.y) * 34.0)
+    * exp(-abs(point.x) * 2.9)
+    * (1.0 - smoothstep(0.20, 1.55, abs(point.x)));
+  float verticalRay = exp(-abs(point.x) * 34.0)
+    * exp(-abs(point.y) * 2.9)
+    * (1.0 - smoothstep(0.20, 1.55, abs(point.y)));
+  float rays = max(horizontalRay, verticalRay) * 0.16 * vRayStrength;
+
+  float resolved = smoothstep(1.25, 2.85, vParticleDiameter);
+  float radialAlpha = clamp(
+      needle * 1.18
+    + photosphere * 0.72
+    + corona * 0.16
+    + rays,
+    0.0,
+    1.0
+  );
+
+  // Extra radial guard removes any residual corner energy before the sprite edge.
+  float edgeGuard = 1.0 - smoothstep(1.52, 2.05, r);
+  radialAlpha *= edgeGuard;
+
+  float alpha = mix(filteredCore, radialAlpha, resolved) * vOpacity;
+  if (alpha <= 0.00008) discard;
+
+  float whiteCore = clamp(
+      needle * 1.12
+    + photosphere * 0.36,
+    0.0,
+    1.0
+  ) * smoothstep(0.9, 2.8, vBrightness) * 0.86;
+
   float colorEnergy = 1.0 - min(vColor.r, min(vColor.g, vColor.b));
   vec3 emission = mix(vColor, vec3(1.0), whiteCore)
     * vBrightness
     * (1.0 + colorEnergy * 0.42);
+
   gl_FragColor = vec4(emission, alpha);
 }
 `;

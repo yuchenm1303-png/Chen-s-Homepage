@@ -71,11 +71,10 @@
     }),
 
     blog: makeFieldLayout({
-      // Screen-first composition on the 1664x918 reference viewport. Blog is a
-      // lower endpoint, not the centre of a ring. The eight companions span the
-      // marked left-side canvas (roughly x=200..675 / y=293..724) in two open
-      // branches, so the constellation uses the available screen instead of
-      // collapsing into a compact cluster.
+      // Screen-first composition on the 1664x918 reference viewport. Blog stays
+      // low in the field while every companion is reached directly from the
+      // primary star. The radial topology keeps the hierarchy obvious and avoids
+      // ring / chain silhouettes without changing the approved star positions.
       centre: [-0.5868, -0.4530],
       offsets: {
         'building-homepage': [-0.1709, 0.1828],
@@ -89,13 +88,13 @@
       },
       edges: [
         ['blog', 'building-homepage'],
-        ['building-homepage', 'opengl-liquid-glass'],
-        ['opengl-liquid-glass', 'computer-use-design'],
-        ['computer-use-design', 'gan-hemt-stability'],
-        ['gan-hemt-stability', 'ai-ledger-real-streaming'],
-        ['opengl-liquid-glass', 'app-performance-optimization'],
-        ['app-performance-optimization', 'compose-parent-bubble-rendering'],
-        ['compose-parent-bubble-rendering', 'ai-listing-research'],
+        ['blog', 'opengl-liquid-glass'],
+        ['blog', 'computer-use-design'],
+        ['blog', 'gan-hemt-stability'],
+        ['blog', 'ai-ledger-real-streaming'],
+        ['blog', 'app-performance-optimization'],
+        ['blog', 'compose-parent-bubble-rendering'],
+        ['blog', 'ai-listing-research'],
       ],
     }),
 

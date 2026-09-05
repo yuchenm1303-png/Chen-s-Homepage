@@ -6,8 +6,9 @@ if (!starCanvas) {
 }
 
 // Milky Way density / extinction renderer.
-// The approved Astra-style resolved-star renderer stays untouched. This layer adds
-// only unresolved stellar density, embedded micro-stars, and dust extinction.
+// The Astra-style resolved-star renderer stays untouched. This layer contributes
+// the broad galactic stellar disk, the central bulge, split bright ridges, embedded
+// micro-stars, and physically-motivated dust extinction.
 const canvas = document.createElement('canvas');
 canvas.id = 'galaxyNebulaCanvas';
 canvas.setAttribute('aria-hidden', 'true');
@@ -117,6 +118,11 @@ float gaussian(float x, float width) {
   return exp(-pow(x / max(width, 0.0001), 2.0));
 }
 
+float ellipticalGaussian(vec2 q, vec2 width) {
+  vec2 n = q / max(width, vec2(0.0001));
+  return exp(-dot(n, n));
+}
+
 float microStar(vec2 p, float scale, float threshold, float radius) {
   vec2 cellCoord = p * scale;
   vec2 cell = floor(cellCoord);
@@ -125,8 +131,6 @@ float microStar(vec2 p, float scale, float threshold, float radius) {
   float d = length(local - jitter);
   float gate = smoothstep(threshold, 1.0, hash21(cell + 31.77));
 
-  // Pixel-footprint AA keeps subpixel micro-stars alive on DPR=1 displays instead
-  // of relying on a lucky fragment sample landing inside a tiny procedural radius.
   float footprint = max(fwidth(d) * 0.82, 0.006);
   float coverage = 1.0 - smoothstep(radius - footprint, radius + footprint, d);
   return coverage * gate;
@@ -136,155 +140,221 @@ void main() {
   float aspect = uResolution.x / max(uResolution.y, 1.0);
   vec2 p = (vUv - 0.5) * vec2(aspect, 1.0);
 
-  // Deep-space layer: tiny parallax only.
+  // Deep-space layer: tiny camera parallax only.
   p += vec2(uCamera.x * 0.0025, uCamera.y * 0.0018);
 
-  // Preserve the approved diagonal composition, but use a mildly curved galactic plane.
+  // Keep the diagonal composition, but model the Milky Way as a thick stellar disk
+  // instead of a single procedural stripe.
   vec2 axis = normalize(vec2(0.69, 0.724));
   vec2 normal = vec2(-axis.y, axis.x);
   float along = dot(p, axis);
   float across = dot(p, normal);
 
-  float curve = 0.036 * sin(along * 1.55 + 0.48)
-              + 0.009 * sin(along * 4.20 - 0.68);
+  float curve = 0.026 * sin(along * 1.35 + 0.34)
+              + 0.010 * sin(along * 3.35 - 0.72);
   across -= curve;
 
-  // Essentially static. This prevents the Milky Way body from reading as animated smoke.
-  float drift = uTime * 0.000018;
+  // Nearly static: the body should read as a star field, not animated smoke.
+  float drift = uTime * 0.000012;
   vec2 driftOffset = vec2(drift, -drift * 0.22);
 
-  float warpA = fbm(vec2(along * 0.52, across * 1.06) + vec2(3.8, -2.7) + driftOffset);
-  float warpB = fbm(vec2(along * 1.28, across * 2.45) + vec2(-5.6, 6.9));
+  float warpBroad = fbm(vec2(along * 0.55, across * 1.00) + vec2(3.8, -2.7) + driftOffset);
+  float warpMid = fbm(vec2(along * 1.40, across * 2.65) + vec2(-5.6, 6.9));
   float warpedAcross = across
-    + (warpA - 0.5) * 0.080
-    + (warpB - 0.5) * 0.030;
+    + (warpBroad - 0.5) * 0.060
+    + (warpMid - 0.5) * 0.025;
 
-  // Portrait screens should not be filled by a giant cloud stripe.
-  float widthScale = mix(0.76, 1.0, smoothstep(0.78, 1.12, aspect));
-  float broadProfile = gaussian(warpedAcross, 0.245 * widthScale);
-  float innerProfile = gaussian(warpedAcross, 0.135 * widthScale);
-  float coreProfile = gaussian(warpedAcross, 0.070 * widthScale);
+  float widthScale = mix(0.82, 1.0, smoothstep(0.78, 1.12, aspect));
 
-  // Longitudinal stellar density: one dominant centre and weaker shoulders.
-  float leftShoulder = gaussian(along + 0.82, 0.66);
-  float galacticCentre = gaussian(along + 0.04, 0.46);
-  float rightShoulder = gaussian(along - 0.66, 0.68);
-  float farTail = gaussian(along - 1.08, 0.50);
+  // --- Global silhouette ----------------------------------------------------
+  // The real Milky Way is not constant-width. It swells around the galactic centre,
+  // then tapers into a broad but much fainter disk on both sides.
+  float galacticCentreLong = gaussian(along + 0.13, 0.47);
+  float centreWidthBoost = 1.0 + galacticCentreLong * 0.62;
 
+  float broadProfile = gaussian(warpedAcross, 0.315 * widthScale * centreWidthBoost);
+  float diskProfile = gaussian(warpedAcross, 0.205 * widthScale * (1.0 + galacticCentreLong * 0.38));
+  float innerProfile = gaussian(warpedAcross, 0.125 * widthScale * (1.0 + galacticCentreLong * 0.22));
+
+  float leftDisk = gaussian(along + 0.94, 0.88);
+  float centreDisk = gaussian(along + 0.10, 0.72);
+  float rightDisk = gaussian(along - 0.78, 0.92);
+  float farRight = gaussian(along - 1.36, 0.62);
   float longitudinal = clamp(
-      leftShoulder * 0.30
-    + galacticCentre * 1.00
-    + rightShoulder * 0.40
-    + farTail * 0.17,
+      leftDisk * 0.50
+    + centreDisk * 0.95
+    + rightDisk * 0.58
+    + farRight * 0.20,
     0.0,
     1.0
   );
 
-  // Multi-scale stellar structure. These fields modulate density, not opaque cloud colour.
-  float macroA = fbm(vec2(along * 0.74, warpedAcross * 1.50) + vec2(7.8, 1.2));
-  float macroB = fbm(vec2(along * 1.08, warpedAcross * 2.00) + vec2(-3.4, 9.1));
-  float mid = fbm(vec2(along * 2.65, warpedAcross * 5.00) + vec2(-9.0, 2.9));
-  float fine = fbm(vec2(along * 6.20, warpedAcross * 12.0) + vec2(4.9, -8.1));
-  float ridges = ridgedFbm(vec2(along * 3.20, warpedAcross * 7.40) + vec2(11.4, -5.0));
+  // A separate elliptical nuclear bulge is the key silhouette cue that was missing.
+  float bulge = ellipticalGaussian(
+    vec2(along + 0.13, warpedAcross - 0.008),
+    vec2(0.42, 0.190 * widthScale)
+  );
+  float outerBulge = ellipticalGaussian(
+    vec2(along + 0.13, warpedAcross - 0.004),
+    vec2(0.58, 0.275 * widthScale)
+  );
 
-  float macroDensity = smoothstep(0.37, 0.70, macroA * 0.58 + macroB * 0.42);
-  float midDensity = smoothstep(0.34, 0.71, mid);
-  float filamentDensity = smoothstep(0.43, 0.75, ridges);
-  float fineDensity = smoothstep(0.39, 0.72, fine);
+  // --- Multi-scale stellar cloud structure --------------------------------
+  float macroA = fbm(vec2(along * 0.72, warpedAcross * 1.35) + vec2(7.8, 1.2));
+  float macroB = fbm(vec2(along * 1.12, warpedAcross * 2.20) + vec2(-3.4, 9.1));
+  float mid = fbm(vec2(along * 2.75, warpedAcross * 5.40) + vec2(-9.0, 2.9));
+  float fine = fbm(vec2(along * 6.60, warpedAcross * 12.8) + vec2(4.9, -8.1));
+  float ridges = ridgedFbm(vec2(along * 3.45, warpedAcross * 7.60) + vec2(11.4, -5.0));
 
-  // This is the actual Milky Way stellar-density field.
-  float stellarDensity = broadProfile
+  float macroDensity = smoothstep(0.34, 0.70, macroA * 0.56 + macroB * 0.44);
+  float midDensity = smoothstep(0.31, 0.72, mid);
+  float filamentDensity = smoothstep(0.40, 0.76, ridges);
+  float fineDensity = smoothstep(0.36, 0.73, fine);
+
+  // Two irregular luminous ridges on opposite sides of the central dust rift.
+  // This gives the characteristic "split Milky Way" appearance instead of one ribbon.
+  float ridgeOffsetA = 0.082
+    + sin(along * 1.95 + 0.70) * 0.018
+    + (macroA - 0.5) * 0.032;
+  float ridgeOffsetB = -0.092
+    + sin(along * 1.55 - 0.45) * 0.022
+    + (macroB - 0.5) * 0.036;
+
+  float ridgeA = gaussian(warpedAcross - ridgeOffsetA, 0.070 * widthScale)
     * longitudinal
-    * (0.24 + 0.76 * macroDensity)
-    * (0.40 + 0.60 * midDensity);
+    * (0.35 + 0.65 * macroDensity)
+    * (0.48 + 0.52 * filamentDensity);
 
-  float denseLane = innerProfile
+  float ridgeB = gaussian(warpedAcross - ridgeOffsetB, 0.082 * widthScale)
     * longitudinal
-    * (0.18 + 0.82 * macroDensity)
-    * (0.40 + 0.60 * filamentDensity);
-
-  float granularDensity = innerProfile
-    * longitudinal
-    * midDensity
-    * fineDensity;
-
-  float centreDensity = coreProfile
-    * galacticCentre
     * (0.30 + 0.70 * macroDensity)
-    * (0.44 + 0.56 * filamentDensity);
+    * (0.44 + 0.56 * midDensity);
 
-  // Dust optical depth. Dark structure is produced by attenuation, not by painting black fog.
-  float dustWarp = (mid - 0.5) * 0.072
-    + (fine - 0.5) * 0.024
-    + sin(along * 2.15 - 0.16) * 0.012;
+  // Localized giant star-cloud complexes make the band asymmetric and lumpy.
+  float cloudMaskA = gaussian(along + 0.55, 0.28);
+  float cloudMaskB = gaussian(along - 0.28, 0.34);
+  float cloudMaskC = gaussian(along - 0.82, 0.30);
+  float cloudComplexes = clamp(
+      cloudMaskA * smoothstep(0.40, 0.73, macroA) * 0.72
+    + cloudMaskB * smoothstep(0.38, 0.71, macroB) * 0.82
+    + cloudMaskC * smoothstep(0.50, 0.76, mid) * 0.46,
+    0.0,
+    1.0
+  );
 
-  float mainRift = gaussian(
-    warpedAcross + 0.010 + dustWarp,
+  float broadStars = broadProfile
+    * longitudinal
+    * (0.28 + 0.72 * macroDensity)
+    * (0.50 + 0.50 * midDensity);
+
+  float diskStars = diskProfile
+    * longitudinal
+    * (0.34 + 0.66 * macroDensity)
+    * (0.42 + 0.58 * filamentDensity);
+
+  float granularStars = innerProfile
+    * longitudinal
+    * (0.18 + 0.82 * midDensity)
+    * (0.30 + 0.70 * fineDensity);
+
+  float ridgeStars = ridgeA * 0.88 + ridgeB * 0.82;
+  float bulgeStars = bulge * (0.56 + 0.44 * macroDensity)
+    + outerBulge * 0.34 * (0.55 + 0.45 * midDensity);
+
+  float stellarDensity = clamp(
+      broadStars * 0.56
+    + diskStars * 0.62
+    + ridgeStars * 0.78
+    + granularStars * 0.36
+    + bulgeStars * 0.92
+    + cloudComplexes * diskProfile * 0.38,
+    0.0,
+    1.65
+  );
+
+  // --- Dust extinction ------------------------------------------------------
+  // A wide, wandering main rift cuts the stellar disk into two luminous banks.
+  // Secondary branches and opaque pockets break it up like photographic dust lanes.
+  float dustWarp = (mid - 0.5) * 0.085
+    + (fine - 0.5) * 0.030
+    + sin(along * 2.05 - 0.25) * 0.018;
+
+  float riftWidth = (0.052 + galacticCentreLong * 0.020) * widthScale;
+  float mainRift = gaussian(warpedAcross + 0.006 + dustWarp, riftWidth)
+    * longitudinal
+    * (0.58 + 0.54 * smoothstep(0.35, 0.72, macroB));
+
+  float upperBranch = gaussian(
+    warpedAcross - 0.122 + (macroA - 0.5) * 0.060,
+    0.038 * widthScale
+  ) * longitudinal
+    * smoothstep(0.45, 0.76, fine)
+    * (0.45 + 0.55 * cloudMaskB);
+
+  float lowerBranch = gaussian(
+    warpedAcross + 0.148 + (mid - 0.5) * 0.068,
     0.043 * widthScale
-  ) * (0.38 + 0.62 * smoothstep(0.39, 0.70, macroB));
+  ) * longitudinal
+    * (1.0 - smoothstep(0.48, 0.72, fine))
+    * (0.48 + 0.52 * cloudMaskA);
 
-  float branchA = gaussian(
-    warpedAcross - 0.082 + (macroA - 0.5) * 0.050,
-    0.028 * widthScale
-  ) * smoothstep(0.50, 0.76, fine);
-
-  float branchB = gaussian(
-    warpedAcross + 0.108 + (mid - 0.5) * 0.054,
-    0.032 * widthScale
-  ) * (1.0 - smoothstep(0.46, 0.70, fine));
-
-  float pocketA = fbm(vec2(along * 3.9, warpedAcross * 9.0) + vec2(-12.5, 5.1));
-  float pocketB = fbm(vec2(along * 5.0, warpedAcross * 11.0) + vec2(6.7, 11.9));
-  float cloudPockets = innerProfile
+  float pocketA = fbm(vec2(along * 4.1, warpedAcross * 9.4) + vec2(-12.5, 5.1));
+  float pocketB = fbm(vec2(along * 5.3, warpedAcross * 11.4) + vec2(6.7, 11.9));
+  float darkPockets = diskProfile
     * longitudinal
     * clamp(
-        smoothstep(0.60, 0.78, pocketA) * 0.60
-      + smoothstep(0.65, 0.82, pocketB) * 0.40,
+        smoothstep(0.58, 0.78, pocketA) * 0.66
+      + smoothstep(0.62, 0.82, pocketB) * 0.54,
       0.0,
       1.0
     );
 
+  float centralDust = mainRift
+    * (0.72 + galacticCentreLong * 0.46);
+
   float dustOpticalDepth = clamp(
-      mainRift * 1.15
-    + branchA * 0.55
-    + branchB * 0.42
-    + cloudPockets * 0.92,
+      centralDust * 1.48
+    + upperBranch * 0.82
+    + lowerBranch * 0.68
+    + darkPockets * 1.08,
     0.0,
-    2.4
+    3.2
   );
 
-  // Beer-Lambert-like transmission: the dust genuinely removes stellar energy.
-  float transmission = exp(-dustOpticalDepth * 1.55);
+  float transmission = exp(-dustOpticalDepth * 1.48);
 
+  // Dust removes stellar energy. No independently-painted black cloud silhouette.
   float visibleStellarDensity = stellarDensity * transmission;
-  float visibleDenseLane = denseLane * transmission;
-  float visibleGranular = granularDensity * transmission;
-  float visibleCentre = centreDensity * transmission;
+  float visibleRidgeA = ridgeA * transmission;
+  float visibleRidgeB = ridgeB * transmission;
+  float visibleBulge = bulgeStars * transmission;
+  float visibleGranular = granularStars * transmission;
 
-  // Unresolved light stays density-driven, but a photographic exposure curve lifts
-  // faint stellar populations without turning the band into a uniform fog layer.
+  // Tone-map stellar density into unresolved photographic glow.
   float unresolvedLinear =
-      visibleStellarDensity * 0.42
-    + visibleDenseLane * 0.40
-    + visibleGranular * 0.24
-    + visibleCentre * 0.64;
-  float unresolved = 1.0 - exp(-unresolvedLinear * 1.55);
+      visibleStellarDensity * 0.72
+    + (visibleRidgeA + visibleRidgeB) * 0.30
+    + visibleGranular * 0.18
+    + visibleBulge * 0.48;
+  float unresolved = 1.0 - exp(-unresolvedLinear * 1.38);
 
-  // Subtle physical colour hierarchy.
-  float centreWarmth = galacticCentre * (0.45 + 0.55 * macroDensity);
-  float dustReddening = clamp((1.0 - transmission) * visibleStellarDensity, 0.0, 1.0);
-  float youngBlue = broadProfile
-    * (1.0 - galacticCentre)
-    * smoothstep(0.58, 0.82, macroB)
-    * filamentDensity
-    * transmission;
+  // --- Colour hierarchy -----------------------------------------------------
+  float centreWarmth = clamp(outerBulge * 0.72 + bulge * 0.52, 0.0, 1.0);
+  float dustReddening = clamp((1.0 - transmission) * stellarDensity, 0.0, 1.0);
+  float youngBlue = clamp(
+    (visibleRidgeA * 0.55 + visibleRidgeB * 0.34)
+    * smoothstep(0.54, 0.80, macroB)
+    * (1.0 - bulge * 0.70),
+    0.0,
+    1.0
+  );
 
-  float hiiA = gaussian(along + 0.42, 0.13)
-    * gaussian(warpedAcross - 0.055, 0.075);
-  float hiiB = gaussian(along - 0.37, 0.14)
-    * gaussian(warpedAcross + 0.065, 0.082);
+  float hiiA = gaussian(along + 0.48, 0.14)
+    * gaussian(warpedAcross - ridgeOffsetA, 0.082);
+  float hiiB = gaussian(along - 0.34, 0.16)
+    * gaussian(warpedAcross - ridgeOffsetB, 0.090);
   float hii = max(hiiA, hiiB)
-    * smoothstep(0.58, 0.80, fine)
+    * smoothstep(0.54, 0.80, fine)
     * transmission
     * 0.22;
 
@@ -295,27 +365,26 @@ void main() {
   vec3 hiiLight = vec3(0.390, 0.145, 0.175);
 
   vec3 glowColor = neutralLight;
-  glowColor = mix(glowColor, warmLight, clamp(centreWarmth * 0.72, 0.0, 1.0));
-  glowColor = mix(glowColor, reddenedLight, clamp(dustReddening * 0.32, 0.0, 0.30));
+  glowColor = mix(glowColor, warmLight, clamp(centreWarmth * 0.78, 0.0, 1.0));
+  glowColor = mix(glowColor, reddenedLight, clamp(dustReddening * 0.30, 0.0, 0.28));
   glowColor += blueLight * youngBlue * 0.16;
   glowColor += hiiLight * hii * 0.18;
 
-  // Micro-star density is also modulated by extinction. Tone-map the mask so low-DPR
-  // displays retain the dense unresolved-star impression without filling empty sky.
+  // --- Embedded micro-stars -------------------------------------------------
   float microMaskLinear =
-      visibleStellarDensity * 0.62
-    + visibleDenseLane * 0.58
-    + visibleCentre * 0.55;
-  float microMask = 1.0 - exp(-microMaskLinear * 1.35);
+      visibleStellarDensity * 0.70
+    + (visibleRidgeA + visibleRidgeB) * 0.36
+    + visibleBulge * 0.30;
+  float microMask = 1.0 - exp(-microMaskLinear * 1.42);
 
-  float microA = microStar(p + vec2(1.3, -2.1), 185.0, 0.980, 0.050);
-  float microB = microStar(p + vec2(-3.0, 1.6), 285.0, 0.989, 0.046);
-  float microC = microStar(p + vec2(4.6, 3.3), 410.0, 0.995, 0.042);
+  float microA = microStar(p + vec2(1.3, -2.1), 185.0, 0.978, 0.052);
+  float microB = microStar(p + vec2(-3.0, 1.6), 285.0, 0.988, 0.047);
+  float microC = microStar(p + vec2(4.6, 3.3), 410.0, 0.994, 0.043);
 
   float microStars = (
-      microA * 0.68
-    + microB * 0.48
-    + microC * 0.32
+      microA * 0.72
+    + microB * 0.52
+    + microC * 0.34
   ) * microMask;
 
   float starTemperature = hash21(floor(p * 173.0) + 9.17);
@@ -323,12 +392,11 @@ void main() {
   vec3 warmStar = vec3(0.95, 0.76, 0.54);
   vec3 microColor = mix(coolStar, warmStar, smoothstep(0.36, 0.76, starTemperature));
 
-  // Keep alpha responsible for occupancy/extinction, while RGB carries exposed stellar
-  // radiance. Avoid multiplying density into both channels and effectively squaring it
-  // during browser canvas composition.
+  // Keep the previous debug exposure behaviour. This iteration changes geometry,
+  // not the browser-level brightness experiment already applied to this canvas.
   float emissionAlpha = clamp(
       unresolved * 0.150
-    + visibleCentre * 0.070
+    + visibleBulge * 0.070
     + hii * 0.020,
     0.0,
     0.260
@@ -336,29 +404,32 @@ void main() {
 
   float exposure = 0.42
     + unresolved * 0.58
-    + visibleCentre * 0.22;
+    + visibleBulge * 0.22;
   vec3 emission = glowColor * exposure;
 
   emission += microColor * microStars * 0.86;
   emissionAlpha = clamp(emissionAlpha + microStars * 0.34, 0.0, 0.30);
 
-  // Extinction pass: black alpha removes the resolved star field beneath this canvas.
-  // Keep it localized to the galactic plane so the rest of the screen is untouched.
+  // Black alpha only where the dust actually lives, so it extinguishes the resolved
+  // star canvas below and makes the rift visually carve through the galactic band.
   float extinctionAlpha = clamp(
     (1.0 - transmission)
-    * innerProfile
+    * diskProfile
     * longitudinal
-    * 0.30,
+    * 0.34,
     0.0,
-    0.26
+    0.29
   );
 
-  float alpha = clamp(emissionAlpha + extinctionAlpha, 0.0, 0.40);
+  float alpha = clamp(emissionAlpha + extinctionAlpha, 0.0, 0.42);
   float extinctionMix = extinctionAlpha / max(alpha, 0.0001);
   vec3 color = mix(emission, vec3(0.0012, 0.0017, 0.0024), extinctionMix);
 
-  // Mild texture contrast only; no global fog or large opaque beige fields.
-  color *= 0.92 + filamentDensity * visibleDenseLane * 0.18;
+  // Add local stellar-cloud contrast without introducing a separate fog field.
+  float structuralContrast = 0.90
+    + (visibleRidgeA + visibleRidgeB) * 0.12
+    + cloudComplexes * transmission * 0.10;
+  color *= structuralContrast;
 
   float grain = hash21(gl_FragCoord.xy + 41.37) - 0.5;
   color += vec3(grain * 0.0014) * emissionAlpha;

@@ -81,27 +81,38 @@
     const starSlot = shell.querySelector('.star-detail-star-slot');
     const originalBack = document.querySelector('.smirel-star-back');
 
-    // Keep the arrival beat, but do not make the user wait through a second long
-    // UI animation. The detail model is a real clone of the arrived Three.js star,
-    // not the same world-space object dragged across the frustum.
-    const HOLD_MS = reducedMotion ? 20 : 140;
-    const OPEN_MS = reducedMotion ? 1 : 460;
-    const CLOSE_MS = reducedMotion ? 1 : 280;
+    // The detail transition owns the exact arrived star body. There is no clone,
+    // sprite or screenshot hand-off: one starGroup moves from arrival into the UI.
+    const HOLD_MS = reducedMotion ? 1 : 70;
+    const OPEN_MS = reducedMotion ? 1 : 620;
+    const CLOSE_MS = reducedMotion ? 1 : 440;
+    const DETAIL_DISTANCE = 8.4;
 
     let phase = 'idle';
     let arrivedAt = 0;
     let phaseStartedAt = 0;
     let starGroup = null;
-    let detailStar = null;
     let previousArrived = false;
+    let arrivalScale = 0.84;
+    let detailScale = 0.34;
 
     const arrivalPosition = new THREE.Vector3();
-    const detailLocal = new THREE.Vector3();
-    const detailWorld = new THREE.Vector3();
+    const targetPosition = new THREE.Vector3();
+    const startPosition = new THREE.Vector3();
+    const cameraLocal = new THREE.Vector3();
+    const arcOffset = new THREE.Vector3();
+    const cameraRight = new THREE.Vector3();
+    const cameraUp = new THREE.Vector3();
+    const cameraForward = new THREE.Vector3();
 
     function easeOutQuint(value) {
       const t = THREE.MathUtils.clamp(value, 0, 1);
       return 1 - Math.pow(1 - t, 5);
+    }
+
+    function smootherstep01(value) {
+      const t = THREE.MathUtils.clamp(value, 0, 1);
+      return t * t * t * (t * (t * 6 - 15) + 10);
     }
 
     function locateStarGroup() {
@@ -110,7 +121,6 @@
       let refinedCore = null;
       let fallbackCore = null;
       scene.traverse((object) => {
-        if (object === detailStar || detailStar?.getObjectById?.(object.id)) return;
         const fragment = object.material?.fragmentShader || '';
         if (!refinedCore && fragment.includes('float convection = noise3(p * 4.2')) {
           refinedCore = object;
@@ -125,56 +135,31 @@
       return starGroup;
     }
 
-    function ensureDetailStar() {
-      if (detailStar?.parent) return detailStar;
-      const source = locateStarGroup();
-      if (!source) return null;
-
-      // Object3D.clone(true) keeps the exact geometry/material graph. Materials and
-      // uniforms stay shared with the arrived star, so photosphere, chromosphere,
-      // corona and halo continue to animate as the very same stellar design.
-      detailStar = source.clone(true);
-      detailStar.name = 'smirel-detail-star-model';
-      detailStar.visible = false;
-      detailStar.frustumCulled = false;
-      detailStar.traverse((object) => {
-        object.frustumCulled = false;
-        if (Number.isFinite(object.renderOrder)) object.renderOrder += 24;
-      });
-      scene.add(detailStar);
-      return detailStar;
-    }
-
-    function updateDetailStar(progress = 1) {
-      const star = ensureDetailStar();
-      if (!star || !starSlot) return;
-
+    function updateDetailTarget() {
+      if (!starSlot) return false;
       const rect = starSlot.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
+      if (rect.width <= 0 || rect.height <= 0) return false;
 
-      const viewportWidth = Math.max(window.innerWidth, 1);
-      const viewportHeight = Math.max(window.innerHeight, 1);
-      const mobile = viewportWidth <= 620;
-      const distance = mobile ? 8.8 : 10.5;
-      const halfHeight = Math.tan(THREE.MathUtils.degToRad(camera.fov) * 0.5) * distance;
-      const halfWidth = halfHeight * camera.aspect;
+      const width = Math.max(window.innerWidth, 1);
+      const height = Math.max(window.innerHeight, 1);
       const centreX = rect.left + rect.width * 0.5;
       const centreY = rect.top + rect.height * 0.5;
-      const ndcX = centreX / viewportWidth * 2 - 1;
-      const ndcY = 1 - centreY / viewportHeight * 2;
+      const ndcX = centreX / width * 2 - 1;
+      const ndcY = 1 - centreY / height * 2;
 
-      detailLocal.set(ndcX * halfWidth, ndcY * halfHeight, -distance);
+      const halfHeight = Math.tan(THREE.MathUtils.degToRad(camera.fov) * 0.5) * DETAIL_DISTANCE;
+      const halfWidth = halfHeight * camera.aspect;
+      cameraLocal.set(ndcX * halfWidth, ndcY * halfHeight, -DETAIL_DISTANCE);
       camera.updateMatrixWorld();
-      detailWorld.copy(detailLocal).applyMatrix4(camera.matrixWorld);
-      star.position.copy(detailWorld);
+      targetPosition.copy(cameraLocal).applyMatrix4(camera.matrixWorld);
 
-      // Size the actual spherical core from a pixel target, then apply one scalar
-      // uniformly to XYZ. This is what prevents the old off-axis "oval logo" look.
-      const pixelsPerWorldUnit = viewportHeight / Math.max(2 * halfHeight, 1e-5);
-      const desiredCoreRadiusPx = Math.min(rect.width, rect.height) * (mobile ? 0.285 : 0.30);
-      const finalScale = desiredCoreRadiusPx / pixelsPerWorldUnit;
-      const reveal = easeOutQuint(progress);
-      star.scale.setScalar(finalScale * THREE.MathUtils.lerp(0.86, 1.0, reveal));
+      // Keep the real sphere physically smaller than the arrived body, while
+      // placing it far enough from the camera that off-axis perspective is tiny.
+      const pixelsPerWorldUnit = height / Math.max(2 * halfHeight, 1e-5);
+      const desiredCoreRadiusPx = Math.min(rect.width, rect.height) * 0.39;
+      detailScale = desiredCoreRadiusPx / pixelsPerWorldUnit;
+      detailScale = Math.min(arrivalScale * 0.72, Math.max(0.22, detailScale));
+      return true;
     }
 
     function showDetail() {
@@ -186,16 +171,17 @@
     function hideDetail() {
       shell.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('star-detail-open', 'star-detail-closing');
-      if (detailStar) detailStar.visible = false;
     }
 
     function beginClose() {
       if (!document.body.classList.contains('star-flight-arrived')) return;
       if (phase !== 'opening' && phase !== 'open') return;
-      if (!locateStarGroup()) return;
+      const group = locateStarGroup();
+      if (!group) return;
 
       phase = 'closing';
       phaseStartedAt = performance.now();
+      startPosition.copy(group.position);
       document.body.classList.remove('star-detail-open');
       document.body.classList.add('star-detail-closing');
     }
@@ -206,9 +192,6 @@
       if (event.key !== 'Escape') return;
       if (phase !== 'opening' && phase !== 'open') return;
       if (!document.body.classList.contains('star-flight-arrived')) return;
-
-      // Baseline Escape is registered in bubble phase. Capture first so this quick
-      // detail dissolve finishes before the untouched star-flight return begins.
       event.preventDefault();
       event.stopImmediatePropagation();
       beginClose();
@@ -223,10 +206,10 @@
         const group = locateStarGroup();
         if (group) {
           arrivalPosition.copy(group.position);
+          arrivalScale = group.scale.x || 0.84;
           group.visible = true;
           phase = 'holding';
           arrivedAt = now;
-          ensureDetailStar();
           hideDetail();
         }
       }
@@ -237,48 +220,49 @@
           if (phase === 'holding' && now - arrivedAt >= HOLD_MS) {
             phase = 'opening';
             phaseStartedAt = now;
+            startPosition.copy(arrivalPosition);
             showDetail();
-            if (detailStar) detailStar.visible = true;
           }
 
           if (phase === 'holding') {
             group.visible = true;
             group.position.copy(arrivalPosition);
+            group.scale.setScalar(arrivalScale);
           } else if (phase === 'opening') {
             const raw = THREE.MathUtils.clamp((now - phaseStartedAt) / OPEN_MS, 0, 1);
+            const move = easeOutQuint(raw);
+            const size = smootherstep01(raw);
+            updateDetailTarget();
 
-            // A short optical hand-off replaces the old world-space travel to the
-            // corner. The giant star remains for only the first ~80 ms while the
-            // title-sized real model materializes in its dedicated header slot.
-            group.visible = raw < 0.18;
-            if (detailStar) {
-              detailStar.visible = true;
-              updateDetailStar(raw);
-            }
+            // Move the exact arrived star along a shallow camera-space arc so the
+            // transition reads as one physical object receding into the archive UI.
+            camera.getWorldDirection(cameraForward);
+            cameraRight.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
+            cameraUp.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
+            group.position.lerpVectors(startPosition, targetPosition, move);
+            arcOffset.copy(cameraUp).multiplyScalar(Math.sin(Math.PI * raw) * 0.18)
+              .addScaledVector(cameraRight, Math.sin(Math.PI * raw) * -0.10);
+            group.position.add(arcOffset);
+            group.scale.setScalar(THREE.MathUtils.lerp(arrivalScale, detailScale, size));
+            group.visible = true;
 
             if (raw >= 1) phase = 'open';
           } else if (phase === 'open') {
-            group.visible = false;
-            if (detailStar) {
-              detailStar.visible = true;
-              updateDetailStar(1);
-            }
+            updateDetailTarget();
+            group.position.copy(targetPosition);
+            group.scale.setScalar(detailScale);
+            group.visible = true;
           } else if (phase === 'closing') {
             const raw = THREE.MathUtils.clamp((now - phaseStartedAt) / CLOSE_MS, 0, 1);
-
-            // Dissolve the archive layer instead of mechanically flying the logo
-            // back. Re-introduce the arrived giant only after the page has started
-            // fading, then hand control back to the original return animation.
-            group.visible = raw >= 0.34;
-            if (detailStar) {
-              detailStar.visible = raw < 0.58;
-              if (detailStar.visible) updateDetailStar(1);
-            }
+            const move = smootherstep01(raw);
+            updateDetailTarget();
+            group.position.lerpVectors(startPosition, arrivalPosition, move);
+            group.scale.setScalar(THREE.MathUtils.lerp(detailScale, arrivalScale, move));
+            group.visible = true;
 
             if (raw >= 1) {
-              group.visible = true;
               group.position.copy(arrivalPosition);
-              group.scale.setScalar(0.84);
+              group.scale.setScalar(arrivalScale);
               hideDetail();
               phase = 'handoff';
               originalBack?.click();
@@ -286,7 +270,6 @@
           }
         }
       } else if (previousArrived) {
-        if (starGroup) starGroup.visible = true;
         hideDetail();
         phase = 'idle';
       }

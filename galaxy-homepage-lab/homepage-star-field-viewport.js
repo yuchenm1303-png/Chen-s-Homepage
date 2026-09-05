@@ -15,9 +15,12 @@
     const catalog = Array.isArray(controller.catalog)
       ? controller.catalog
       : (window.__SMIREL_STELLAR_CATALOG__ || []);
-    const fieldById = new Map(catalog.filter((item) => item.kind === 'field').map((item) => [item.id, item]));
+    const fieldById = new Map(
+      catalog.filter((item) => item.kind === 'field').map((item) => [item.id, item]),
+    );
 
     const ENTER_MS = reducedMotion ? 1 : 1180;
+    const REFRAME_MS = reducedMotion ? 1 : 520;
     const FIT_FOV_MAX = 62;
     const POINTER_DAMP_SPEED = 2.7;
 
@@ -25,9 +28,11 @@
       mode: 'galaxy',
       field: null,
       startedAt: 0,
+
       startPosition: new THREE.Vector3(),
       startQuaternion: new THREE.Quaternion(),
       startFov: camera.fov,
+
       centre: new THREE.Vector3(),
       basePosition: new THREE.Vector3(),
       baseQuaternion: new THREE.Quaternion(),
@@ -36,11 +41,27 @@
       up: new THREE.Vector3(0, 1, 0),
       distance: 16,
       fov: camera.fov,
+
       pointerTargetX: 0,
       pointerTargetY: 0,
       pointerCurrentX: 0,
       pointerCurrentY: 0,
       renderUntil: 0,
+
+      // A content flight leaves a fitted local field, visits a detail, then
+      // returns through the base star-flight controller. Freeze the exact field
+      // camera + pointer state for that whole trip so the field can resume from
+      // the same pose instead of recomputing a different camera on the handoff
+      // frame.
+      contentHandoff: null,
+      pendingRefit: false,
+
+      reframeStartPosition: new THREE.Vector3(),
+      reframeStartQuaternion: new THREE.Quaternion(),
+      reframeStartFov: camera.fov,
+      reframeTargetPosition: new THREE.Vector3(),
+      reframeTargetQuaternion: new THREE.Quaternion(),
+      reframeTargetFov: camera.fov,
     };
 
     const scratch = {
@@ -97,10 +118,27 @@
       return current + (target - current) * (1 - Math.exp(-speed * dt));
     }
 
+    function contentOwnsCamera() {
+      return document.body.classList.contains('star-flight-active')
+        || document.body.classList.contains('star-detail-open');
+    }
+
     function advancePointer(dt) {
-      if (reducedMotion || (state.mode !== 'entering' && state.mode !== 'field')) return;
-      state.pointerCurrentX = damp(state.pointerCurrentX, state.pointerTargetX, POINTER_DAMP_SPEED, dt);
-      state.pointerCurrentY = damp(state.pointerCurrentY, state.pointerTargetY, POINTER_DAMP_SPEED, dt);
+      if (reducedMotion) return;
+      if (state.contentHandoff || contentOwnsCamera()) return;
+      if (state.mode !== 'entering' && state.mode !== 'field') return;
+      state.pointerCurrentX = damp(
+        state.pointerCurrentX,
+        state.pointerTargetX,
+        POINTER_DAMP_SPEED,
+        dt,
+      );
+      state.pointerCurrentY = damp(
+        state.pointerCurrentY,
+        state.pointerTargetY,
+        POINTER_DAMP_SPEED,
+        dt,
+      );
     }
 
     function anchorWorldPosition(id, target) {
@@ -127,7 +165,11 @@
     }
 
     function requiredDistance(points, centre, back, fov) {
-      scratch.lookMatrix.lookAt(scratch.position.copy(centre).add(back), centre, camera.up);
+      scratch.lookMatrix.lookAt(
+        scratch.position.copy(centre).add(back),
+        centre,
+        camera.up,
+      );
       scratch.targetQuaternion.setFromRotationMatrix(scratch.lookMatrix);
       scratch.right.set(1, 0, 0).applyQuaternion(scratch.targetQuaternion).normalize();
       scratch.up.set(0, 1, 0).applyQuaternion(scratch.targetQuaternion).normalize();
@@ -145,7 +187,11 @@
         const x = Math.abs(scratch.relative.dot(scratch.right));
         const y = Math.abs(scratch.relative.dot(scratch.up));
         const towardCamera = scratch.relative.dot(back);
-        distance = Math.max(distance, x / tanH + towardCamera, y / tanV + towardCamera);
+        distance = Math.max(
+          distance,
+          x / tanH + towardCamera,
+          y / tanV + towardCamera,
+        );
       }
       return distance + 1.35;
     }
@@ -179,6 +225,7 @@
         scratch.relative.subVectors(point.position, state.centre);
         depthRadius = Math.max(depthRadius, Math.abs(scratch.relative.dot(state.baseBack)));
       }
+
       const farBudget = Math.max(13, camera.far - depthRadius - 3.5);
       while (distance > farBudget && fieldFov < FIT_FOV_MAX) {
         fieldFov = Math.min(FIT_FOV_MAX, fieldFov + 2);
@@ -197,7 +244,7 @@
     }
 
     function pointerMotionActive(now = performance.now()) {
-      if (state.mode !== 'field' || reducedMotion) return false;
+      if (state.mode !== 'field' || reducedMotion || state.contentHandoff) return false;
       const settling = Math.abs(state.pointerTargetX - state.pointerCurrentX) > 0.0007
         || Math.abs(state.pointerTargetY - state.pointerCurrentY) > 0.0007;
       return settling || now < state.renderUntil;
@@ -207,10 +254,6 @@
       const px = reducedMotion ? 0 : state.pointerCurrentX * scale;
       const py = reducedMotion ? 0 : state.pointerCurrentY * scale;
 
-      // Match the homepage's global camera-parallax language, but scale it to
-      // the fitted local-field distance so the motion remains obvious at any
-      // constellation size. The look target moves farther than the camera,
-      // creating a real spatial slide rather than a DOM translation.
       const positionX = state.distance * 0.016;
       const positionY = state.distance * 0.010;
       const lookX = state.distance * 0.072;
@@ -291,32 +334,118 @@
       }
     }
 
+    function captureContentHandoff() {
+      if (state.mode !== 'field' || !state.field || state.contentHandoff) return;
+      if (!document.body.classList.contains('star-field-open')) return;
+
+      state.contentHandoff = {
+        fieldId: state.field.id,
+        pointerTargetX: state.pointerTargetX,
+        pointerTargetY: state.pointerTargetY,
+        pointerCurrentX: state.pointerCurrentX,
+        pointerCurrentY: state.pointerCurrentY,
+        cameraPosition: camera.position.clone(),
+        cameraQuaternion: camera.quaternion.clone(),
+        cameraFov: camera.fov,
+      };
+      state.pendingRefit = false;
+    }
+
+    function startReframe(now) {
+      if (!state.field) return false;
+
+      state.reframeStartPosition.copy(camera.position);
+      state.reframeStartQuaternion.copy(camera.quaternion);
+      state.reframeStartFov = camera.fov;
+
+      if (!computeFit(state.field, true)) return false;
+      buildInteractivePose(1);
+      state.reframeTargetPosition.copy(scratch.targetPosition);
+      state.reframeTargetQuaternion.copy(scratch.targetQuaternion);
+      state.reframeTargetFov = state.fov;
+      state.startedAt = now;
+      state.mode = 'reframing';
+      state.renderUntil = now + REFRAME_MS + 120;
+      return true;
+    }
+
+    function finishContentHandoff(now) {
+      const snapshot = state.contentHandoff;
+      if (!snapshot) return false;
+
+      state.contentHandoff = null;
+      if (!state.field || snapshot.fieldId !== state.field.id) {
+        state.pendingRefit = false;
+        return false;
+      }
+
+      state.pointerTargetX = snapshot.pointerTargetX;
+      state.pointerTargetY = snapshot.pointerTargetY;
+      state.pointerCurrentX = snapshot.pointerCurrentX;
+      state.pointerCurrentY = snapshot.pointerCurrentY;
+
+      // Force the first field-owned frame to be byte-for-byte the pose that the
+      // star-flight controller originally captured as homePosition. The inner
+      // field controller may have written its legacy static pose earlier in this
+      // same update; this outer viewport owns the final camera and restores the
+      // exact handoff pose before presentation.
+      camera.position.copy(snapshot.cameraPosition);
+      camera.quaternion.copy(snapshot.cameraQuaternion);
+      camera.fov = snapshot.cameraFov;
+      camera.updateProjectionMatrix();
+      camera.updateMatrixWorld(true);
+
+      const needsRefit = state.pendingRefit;
+      state.pendingRefit = false;
+      state.mode = 'field';
+      state.renderUntil = now + 220;
+      refreshVisibleConstellation();
+
+      if (needsRefit) startReframe(now);
+      return true;
+    }
+
+    window.addEventListener('smirel:stellar-object', captureContentHandoff);
+
     window.addEventListener('pointermove', (event) => {
-      if (reducedMotion) return;
-      state.pointerTargetX = shapeAxis(event.clientX / Math.max(window.innerWidth, 1) * 2 - 1);
-      state.pointerTargetY = shapeAxis(-(event.clientY / Math.max(window.innerHeight, 1) * 2 - 1));
+      if (reducedMotion || state.contentHandoff || contentOwnsCamera()) return;
+      state.pointerTargetX = shapeAxis(
+        event.clientX / Math.max(window.innerWidth, 1) * 2 - 1,
+      );
+      state.pointerTargetY = shapeAxis(
+        -(event.clientY / Math.max(window.innerHeight, 1) * 2 - 1),
+      );
       if (state.mode === 'field' || state.mode === 'entering') {
         state.renderUntil = performance.now() + 220;
       }
     }, { passive: true });
 
     function resetFieldPointer() {
+      if (state.contentHandoff || contentOwnsCamera()) return;
       state.pointerTargetX = 0;
       state.pointerTargetY = 0;
       if (state.mode === 'field') state.renderUntil = performance.now() + 220;
     }
+
     window.addEventListener('pointerleave', resetFieldPointer, { passive: true });
     window.addEventListener('blur', resetFieldPointer, { passive: true });
 
     window.addEventListener('resize', () => {
-      if (!state.field || (state.mode !== 'field' && state.mode !== 'entering')) return;
+      if (!state.field) return;
+      if (state.contentHandoff || contentOwnsCamera()) {
+        state.pendingRefit = true;
+        return;
+      }
+      if (state.mode !== 'field' && state.mode !== 'entering') return;
       computeFit(state.field, true);
       state.renderUntil = performance.now() + 240;
     }, { passive: true });
 
     window.addEventListener('smirel:field-change', (event) => {
       const phase = event.detail?.phase;
-      const field = event.detail?.field || fieldById.get(document.body.dataset.starField) || null;
+      const field = event.detail?.field
+        || fieldById.get(document.body.dataset.starField)
+        || null;
 
       if (phase === 'entering' && field) {
         state.mode = 'entering';
@@ -327,6 +456,8 @@
         state.startFov = camera.fov;
         state.pointerCurrentX = 0;
         state.pointerCurrentY = 0;
+        state.contentHandoff = null;
+        state.pendingRefit = false;
         computeFit(field, false);
         state.renderUntil = performance.now() + ENTER_MS + 220;
         return;
@@ -341,6 +472,8 @@
 
       if (phase === 'leaving') {
         state.mode = 'leaving';
+        state.contentHandoff = null;
+        state.pendingRefit = false;
         return;
       }
 
@@ -349,6 +482,8 @@
         state.field = null;
         state.pointerCurrentX = 0;
         state.pointerCurrentY = 0;
+        state.contentHandoff = null;
+        state.pendingRefit = false;
       }
     });
 
@@ -358,17 +493,23 @@
         const baseNeeds = baseNeedsDescriptor?.get
           ? Boolean(baseNeedsDescriptor.get.call(controller))
           : false;
-        return baseNeeds || state.mode === 'entering' || pointerMotionActive();
+        return baseNeeds
+          || state.mode === 'entering'
+          || state.mode === 'reframing'
+          || pointerMotionActive();
       },
     });
 
     controller.shouldRenderFrame = (now, lastCompositeMs) => {
-      if (state.mode === 'entering' || pointerMotionActive(now)) return true;
+      if (state.mode === 'entering' || state.mode === 'reframing' || pointerMotionActive(now)) {
+        return true;
+      }
       return baseShouldRenderFrame ? baseShouldRenderFrame(now, lastCompositeMs) : false;
     };
 
     controller.motionLodActive = (now = performance.now()) => (
       state.mode === 'entering'
+      || state.mode === 'reframing'
       || pointerMotionActive(now)
       || (baseMotionLodActive ? baseMotionLodActive(now) : false)
     );
@@ -376,20 +517,60 @@
     controller.update = (now, dt, elapsed) => {
       advancePointer(dt);
       const baseOwnsCamera = baseUpdate(now, dt, elapsed);
-      const contentFlightActive = document.body.classList.contains('star-flight-active')
-        || document.body.classList.contains('star-detail-open');
-      if (contentFlightActive) return baseOwnsCamera;
+      const contentActiveAfterBase = contentOwnsCamera();
+
+      if (state.contentHandoff) {
+        if (contentActiveAfterBase) return baseOwnsCamera;
+        finishContentHandoff(now);
+        return true;
+      }
+
+      if (contentActiveAfterBase) return baseOwnsCamera;
 
       if (state.mode === 'entering' && state.field) {
         const raw = THREE.MathUtils.clamp((now - state.startedAt) / ENTER_MS, 0, 1);
         const t = smootherstep01(raw);
         buildInteractivePose(t);
         camera.position.lerpVectors(state.startPosition, scratch.targetPosition, t);
-        camera.quaternion.slerpQuaternions(state.startQuaternion, scratch.targetQuaternion, t);
+        camera.quaternion.slerpQuaternions(
+          state.startQuaternion,
+          scratch.targetQuaternion,
+          t,
+        );
         camera.fov = THREE.MathUtils.lerp(state.startFov, state.fov, t);
         camera.updateProjectionMatrix();
         camera.updateMatrixWorld(true);
         refreshVisibleConstellation();
+        return true;
+      }
+
+      if (state.mode === 'reframing' && state.field) {
+        const raw = THREE.MathUtils.clamp((now - state.startedAt) / REFRAME_MS, 0, 1);
+        const t = smootherstep01(raw);
+        camera.position.lerpVectors(
+          state.reframeStartPosition,
+          state.reframeTargetPosition,
+          t,
+        );
+        camera.quaternion.slerpQuaternions(
+          state.reframeStartQuaternion,
+          state.reframeTargetQuaternion,
+          t,
+        );
+        camera.fov = THREE.MathUtils.lerp(
+          state.reframeStartFov,
+          state.reframeTargetFov,
+          t,
+        );
+        camera.updateProjectionMatrix();
+        camera.updateMatrixWorld(true);
+        refreshVisibleConstellation();
+
+        if (raw >= 1) {
+          state.mode = 'field';
+          applyStablePose(1);
+          refreshVisibleConstellation();
+        }
         return true;
       }
 

@@ -21,6 +21,14 @@
       return null;
     }
 
+    const catalog = Array.isArray(window.__SMIREL_STELLAR_CATALOG__)
+      ? window.__SMIREL_STELLAR_CATALOG__
+      : [];
+    if (!catalog.length) {
+      console.warn('[homepage-star-flight] stellar catalog unavailable');
+      return null;
+    }
+
     const positions = brightField.geometry.getAttribute('position');
     const brightness = brightField.geometry.getAttribute('starBrightness');
     const colors = brightField.geometry.getAttribute('starColor');
@@ -35,8 +43,15 @@
     const APPROACH_DISTANCE = 3.2;
     const FINAL_FOV = 47;
 
+    const anchors = new Map();
+    const usedAnchorIndices = new Set();
+    const anchorButtons = new Map();
+    let visibleKind = 'project';
+    let anchorsResolved = false;
+
     const state = {
       mode: 'idle',
+      activeObject: null,
       anchorIndex: -1,
       anchorPosition: new THREE.Vector3(),
       anchorColor: new THREE.Color(0xcfeeff),
@@ -66,12 +81,16 @@
       side: new THREE.Vector3(),
       up: new THREE.Vector3(0, 1, 0),
       look: new THREE.Vector3(),
+      candidateColor: new THREE.Color(),
+      targetColor: new THREE.Color(),
+      modelColor: new THREE.Color(),
     };
 
     const style = document.createElement('style');
     style.dataset.smirelStarFlight = 'true';
     style.textContent = `
       .smirel-star-anchor {
+        --star-anchor-color: #d8efff;
         position: fixed;
         left: 0;
         top: 0;
@@ -83,19 +102,19 @@
         border: 0;
         border-radius: 50%;
         background: transparent;
-        color: rgba(235,248,255,.92);
+        color: rgba(242,248,255,.94);
         cursor: pointer;
-        pointer-events: auto;
+        pointer-events: none;
         opacity: 0;
-        transition: opacity .35s ease;
+        transition: opacity .30s ease;
       }
       .smirel-star-anchor::before {
         content: '';
         position: absolute;
         inset: 13px;
-        border: 1px solid rgba(193,229,255,.34);
+        border: 1px solid color-mix(in srgb, var(--star-anchor-color) 42%, transparent);
         border-radius: inherit;
-        box-shadow: 0 0 18px rgba(133,204,255,.12), inset 0 0 10px rgba(210,239,255,.08);
+        box-shadow: 0 0 18px color-mix(in srgb, var(--star-anchor-color) 14%, transparent), inset 0 0 10px rgba(255,255,255,.06);
         transform: scale(.72);
         transition: transform .3s cubic-bezier(.2,.8,.2,1), border-color .3s ease, box-shadow .3s ease;
       }
@@ -108,31 +127,44 @@
         height: 3px;
         margin: -1.5px 0 0 -1.5px;
         border-radius: 50%;
-        background: rgba(245,252,255,.92);
-        box-shadow: 0 0 9px rgba(158,218,255,.9);
+        background: var(--star-anchor-color);
+        box-shadow: 0 0 10px var(--star-anchor-color);
+      }
+      .smirel-star-anchor[data-star-kind="note"]::before {
+        inset: 15px;
+        border-style: dashed;
+        opacity: .80;
       }
       .smirel-star-anchor:hover::before,
       .smirel-star-anchor:focus-visible::before {
         transform: scale(1);
-        border-color: rgba(216,240,255,.76);
-        box-shadow: 0 0 25px rgba(133,204,255,.26), inset 0 0 13px rgba(220,244,255,.12);
+        border-color: color-mix(in srgb, var(--star-anchor-color) 82%, white 18%);
+        box-shadow: 0 0 26px color-mix(in srgb, var(--star-anchor-color) 28%, transparent), inset 0 0 13px rgba(255,255,255,.10);
       }
       .smirel-star-anchor__label {
         position: absolute;
         left: 52px;
-        top: 21px;
+        top: 20px;
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
         font: 600 9px/1 ui-sans-serif, system-ui, sans-serif;
-        letter-spacing: .16em;
+        letter-spacing: .14em;
         text-transform: uppercase;
         white-space: nowrap;
         opacity: 0;
         transform: translateX(-5px);
-        transition: opacity .25s ease, transform .25s ease;
-        text-shadow: 0 1px 10px #000;
+        transition: opacity .22s ease, transform .22s ease;
+        text-shadow: 0 1px 12px #000, 0 0 18px #000;
+      }
+      .smirel-star-anchor__label small {
+        color: rgba(255,255,255,.44);
+        font-size: 8px;
+        letter-spacing: .12em;
       }
       .smirel-star-anchor:hover .smirel-star-anchor__label,
       .smirel-star-anchor:focus-visible .smirel-star-anchor__label {
-        opacity: .82;
+        opacity: .92;
         transform: translateX(0);
       }
       .smirel-star-back {
@@ -157,22 +189,10 @@
         transition: opacity .35s ease, transform .35s ease, border-color .25s ease, color .25s ease;
       }
       .smirel-star-back:hover { border-color: rgba(255,255,255,.28); color: rgba(255,255,255,.9); }
-      body.star-flight-active .home-overlay {
-        opacity: 0;
-        pointer-events: none;
-      }
-      body.star-flight-active .home-overlay {
-        transition: opacity .7s cubic-bezier(.22,.61,.36,1);
-      }
-      body.star-flight-active .smirel-star-anchor { opacity: 0 !important; pointer-events: none; }
-      body.star-flight-arrived .smirel-star-back {
-        opacity: 1;
-        pointer-events: auto;
-        transform: translateY(0);
-      }
-      @media (max-width: 760px) {
-        .smirel-star-back { right: 14px; top: 14px; }
-      }
+      body.star-flight-active .home-overlay { opacity: 0; pointer-events: none; transition: opacity .7s cubic-bezier(.22,.61,.36,1); }
+      body.star-flight-active .smirel-star-anchor { opacity: 0 !important; pointer-events: none !important; }
+      body.star-flight-arrived .smirel-star-back { opacity: 1; pointer-events: auto; transform: translateY(0); }
+      @media (max-width: 760px) { .smirel-star-back { right: 14px; top: 14px; } }
       @media (prefers-reduced-motion: reduce) {
         .smirel-star-anchor,
         .smirel-star-anchor::before,
@@ -182,18 +202,28 @@
     `;
     document.head.appendChild(style);
 
-    const anchorButton = document.createElement('button');
-    anchorButton.type = 'button';
-    anchorButton.className = 'smirel-star-anchor';
-    anchorButton.setAttribute('aria-label', 'Open Loom test star');
-    anchorButton.innerHTML = '<span class="smirel-star-anchor__label">Loom · Test star</span>';
-    document.body.appendChild(anchorButton);
-
     const backButton = document.createElement('button');
     backButton.type = 'button';
     backButton.className = 'smirel-star-back';
     backButton.textContent = 'Esc · Back to galaxy';
     document.body.appendChild(backButton);
+
+    for (const object of catalog) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'smirel-star-anchor';
+      button.dataset.starId = object.id;
+      button.dataset.starKind = object.kind;
+      button.style.setProperty('--star-anchor-color', object.star?.tint || '#d8efff');
+      button.setAttribute('aria-label', `Open ${object.title} ${object.kind === 'note' ? 'note' : 'project'} star`);
+      button.innerHTML = `<span class="smirel-star-anchor__label"><span>${object.title}</span><small>${object.kind}</small></span>`;
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        beginFlight(object.id);
+      });
+      document.body.appendChild(button);
+      anchorButtons.set(object.id, button);
+    }
 
     function smoothstep01(value) {
       const t = THREE.MathUtils.clamp(value, 0, 1);
@@ -221,61 +251,101 @@
         && y >= rect.top - margin && y <= rect.bottom + margin;
     }
 
-    function chooseAnchor() {
-      if (state.anchorIndex >= 0 || camera.aspect <= 0) return;
+    function chooseAnchors() {
+      if (anchorsResolved || camera.aspect <= 0) return;
 
       const introRect = document.querySelector('.home-intro')?.getBoundingClientRect() || null;
-      const projectsRect = document.querySelector('.home-projects')?.getBoundingClientRect() || null;
+      const indexRect = document.querySelector('.home-index')?.getBoundingClientRect() || null;
       const viewportWidth = Math.max(window.innerWidth, 1);
       const viewportHeight = Math.max(window.innerHeight, 1);
-      const targetNdcX = 0.12;
-      const targetNdcY = 0.46;
+      const chosenProjected = [];
 
-      let bestIndex = -1;
-      let bestScore = -Infinity;
-      const passes = [3.0, 2.35, 1.7];
+      for (const object of catalog) {
+        const target = object.star?.target || [0, 0];
+        const depthRange = object.star?.depth || [13, 38];
+        const requestedBrightness = object.star?.minBrightness ?? 1.8;
+        const brightnessPasses = [requestedBrightness, Math.max(1.35, requestedBrightness - 0.55), 1.05];
+        scratch.targetColor.set(object.star?.tint || '#d8efff');
 
-      for (const minBrightness of passes) {
-        for (let i = 0; i < positions.count; i += 1) {
-          const b = brightness.getX(i);
-          if (b < minBrightness) continue;
+        let bestIndex = -1;
+        let bestScore = -Infinity;
+        let bestProjectedX = 0;
+        let bestProjectedY = 0;
 
-          scratch.world.fromBufferAttribute(positions, i);
-          const depth = -scratch.world.z;
-          if (depth < 13 || depth > 38) continue;
+        for (const minBrightness of brightnessPasses) {
+          for (let i = 0; i < positions.count; i += 1) {
+            if (usedAnchorIndices.has(i)) continue;
+            const b = brightness.getX(i);
+            if (b < minBrightness) continue;
 
-          scratch.projected.copy(scratch.world).project(camera);
-          if (scratch.projected.z < -1 || scratch.projected.z > 1) continue;
-          if (Math.abs(scratch.projected.x) > 0.82 || Math.abs(scratch.projected.y) > 0.80) continue;
+            scratch.world.fromBufferAttribute(positions, i);
+            const depth = -scratch.world.z;
+            if (depth < depthRange[0] || depth > depthRange[1]) continue;
 
-          const screenX = (scratch.projected.x * 0.5 + 0.5) * viewportWidth;
-          const screenY = (-scratch.projected.y * 0.5 + 0.5) * viewportHeight;
-          if (pointInsideExpandedRect(screenX, screenY, introRect, 46)) continue;
-          if (pointInsideExpandedRect(screenX, screenY, projectsRect, 54)) continue;
+            scratch.projected.copy(scratch.world).project(camera);
+            if (scratch.projected.z < -1 || scratch.projected.z > 1) continue;
+            if (Math.abs(scratch.projected.x) > 0.86 || Math.abs(scratch.projected.y) > 0.82) continue;
 
-          const dx = scratch.projected.x - targetNdcX;
-          const dy = scratch.projected.y - targetNdcY;
-          const centrePenalty = Math.sqrt(dx * dx + dy * dy);
-          const score = b * 0.38 - centrePenalty * 3.2 + Math.min(depth, 30) * 0.012;
-          if (score > bestScore) {
-            bestScore = score;
-            bestIndex = i;
+            const screenX = (scratch.projected.x * 0.5 + 0.5) * viewportWidth;
+            const screenY = (-scratch.projected.y * 0.5 + 0.5) * viewportHeight;
+            if (pointInsideExpandedRect(screenX, screenY, introRect, 42)) continue;
+            if (pointInsideExpandedRect(screenX, screenY, indexRect, 34)) continue;
+
+            let tooClose = false;
+            for (const previous of chosenProjected) {
+              const px = scratch.projected.x - previous.x;
+              const py = scratch.projected.y - previous.y;
+              if (px * px + py * py < 0.0225) {
+                tooClose = true;
+                break;
+              }
+            }
+            if (tooClose) continue;
+
+            scratch.candidateColor.setRGB(colors.getX(i), colors.getY(i), colors.getZ(i));
+            const colorDistance = Math.sqrt(
+              (scratch.candidateColor.r - scratch.targetColor.r) ** 2
+              + (scratch.candidateColor.g - scratch.targetColor.g) ** 2
+              + (scratch.candidateColor.b - scratch.targetColor.b) ** 2
+            );
+            const dx = scratch.projected.x - target[0];
+            const dy = scratch.projected.y - target[1];
+            const positionPenalty = Math.sqrt(dx * dx + dy * dy);
+            const depthCentre = (depthRange[0] + depthRange[1]) * 0.5;
+            const depthPenalty = Math.abs(depth - depthCentre) / Math.max(depthRange[1] - depthRange[0], 1);
+            const score = b * 0.40 - positionPenalty * 3.55 - colorDistance * 0.70 - depthPenalty * 0.18;
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestIndex = i;
+              bestProjectedX = scratch.projected.x;
+              bestProjectedY = scratch.projected.y;
+            }
           }
+          if (bestIndex >= 0) break;
         }
-        if (bestIndex >= 0) break;
+
+        if (bestIndex < 0) continue;
+        const position = new THREE.Vector3().fromBufferAttribute(positions, bestIndex);
+        const naturalColor = new THREE.Color(
+          colors.getX(bestIndex),
+          colors.getY(bestIndex),
+          colors.getZ(bestIndex),
+        );
+        const anchor = {
+          object,
+          index: bestIndex,
+          position,
+          naturalColor,
+          originalOpacity: opacity.getX(bestIndex),
+        };
+        anchors.set(object.id, anchor);
+        usedAnchorIndices.add(bestIndex);
+        chosenProjected.push({ x: bestProjectedX, y: bestProjectedY });
       }
 
-      if (bestIndex < 0) return;
-      state.anchorIndex = bestIndex;
-      state.anchorPosition.fromBufferAttribute(positions, bestIndex);
-      state.anchorColor.setRGB(
-        colors.getX(bestIndex),
-        colors.getY(bestIndex),
-        colors.getZ(bestIndex),
-      );
-      state.originalOpacity = opacity.getX(bestIndex);
-      buildStar();
-      updateAnchorButton();
+      anchorsResolved = true;
+      updateAnchorButtons();
     }
 
     let starGroup = null;
@@ -306,7 +376,7 @@
     }
 
     function buildStar() {
-      if (starGroup || state.anchorIndex < 0) return;
+      if (starGroup) return;
 
       const coreVertex = `
         varying vec3 vLocalPosition;
@@ -407,7 +477,7 @@
       coreMaterial = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
-          uBaseColor: { value: state.anchorColor.clone().lerp(new THREE.Color(0xf7fbff), 0.18) },
+          uBaseColor: { value: new THREE.Color(0xd8efff) },
         },
         vertexShader: coreVertex,
         fragmentShader: coreFragment,
@@ -417,7 +487,7 @@
       coronaMaterial = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
-          uBaseColor: { value: state.anchorColor.clone().lerp(new THREE.Color(0xffffff), 0.28) },
+          uBaseColor: { value: new THREE.Color(0xe8f6ff) },
           uStrength: { value: 1 },
         },
         vertexShader: coreVertex,
@@ -431,7 +501,6 @@
       });
 
       starGroup = new THREE.Group();
-      starGroup.position.copy(state.anchorPosition);
       starGroup.scale.setScalar(0.001);
       starGroup.visible = false;
       starGroup.renderOrder = 20;
@@ -440,7 +509,7 @@
       corona = new THREE.Mesh(new THREE.SphereGeometry(1.09, 64, 40), coronaMaterial);
 
       const haloMaterial = new THREE.SpriteMaterial({
-        map: makeHaloTexture(state.anchorColor),
+        map: makeHaloTexture(new THREE.Color(0xd8efff)),
         transparent: true,
         depthWrite: false,
         depthTest: false,
@@ -456,36 +525,83 @@
       scene.add(starGroup);
     }
 
+    function configureActiveStar(anchor) {
+      buildStar();
+      const object = anchor.object;
+      scratch.targetColor.set(object.star?.tint || '#d8efff');
+      scratch.modelColor.copy(anchor.naturalColor).lerp(scratch.targetColor, 0.64);
+      state.anchorColor.copy(scratch.modelColor);
+
+      coreMaterial.uniforms.uBaseColor.value.copy(scratch.modelColor).lerp(new THREE.Color(0xf7fbff), 0.18);
+      coronaMaterial.uniforms.uBaseColor.value.copy(scratch.modelColor).lerp(new THREE.Color(0xffffff), 0.28);
+
+      if (halo?.material) {
+        const previousMap = halo.material.map;
+        halo.material.map = makeHaloTexture(scratch.modelColor);
+        halo.material.needsUpdate = true;
+        previousMap?.dispose?.();
+      }
+
+      starGroup.position.copy(anchor.position);
+    }
+
     function setPointOpacity(value) {
       if (state.anchorIndex < 0) return;
       opacity.setX(state.anchorIndex, Math.max(0, value));
       opacity.needsUpdate = true;
     }
 
-    function updateAnchorButton() {
-      if (state.anchorIndex < 0 || state.mode !== 'idle') {
-        anchorButton.style.opacity = '0';
-        anchorButton.style.pointerEvents = 'none';
-        return;
-      }
-      scratch.projected.copy(state.anchorPosition).project(camera);
-      const visible = scratch.projected.z >= -1 && scratch.projected.z <= 1
-        && Math.abs(scratch.projected.x) <= 1.05
-        && Math.abs(scratch.projected.y) <= 1.05;
-      if (!visible) {
-        anchorButton.style.opacity = '0';
-        anchorButton.style.pointerEvents = 'none';
-        return;
-      }
-      const x = (scratch.projected.x * 0.5 + 0.5) * window.innerWidth;
-      const y = (-scratch.projected.y * 0.5 + 0.5) * window.innerHeight;
-      anchorButton.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-      anchorButton.style.opacity = '1';
-      anchorButton.style.pointerEvents = 'auto';
+    function setVisibleKind(kind) {
+      if (kind !== 'project' && kind !== 'note') return;
+      visibleKind = kind;
+      updateAnchorButtons();
     }
 
-    function beginFlight() {
-      if (state.mode !== 'idle' || state.anchorIndex < 0 || !starGroup) return;
+    function updateAnchorButtons() {
+      for (const object of catalog) {
+        const button = anchorButtons.get(object.id);
+        const anchor = anchors.get(object.id);
+        if (!button || !anchor || state.mode !== 'idle' || object.kind !== visibleKind) {
+          if (button) {
+            button.style.opacity = '0';
+            button.style.pointerEvents = 'none';
+          }
+          continue;
+        }
+
+        scratch.projected.copy(anchor.position).project(camera);
+        const visible = scratch.projected.z >= -1 && scratch.projected.z <= 1
+          && Math.abs(scratch.projected.x) <= 1.06
+          && Math.abs(scratch.projected.y) <= 1.06;
+        if (!visible) {
+          button.style.opacity = '0';
+          button.style.pointerEvents = 'none';
+          continue;
+        }
+
+        const x = (scratch.projected.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-scratch.projected.y * 0.5 + 0.5) * window.innerHeight;
+        button.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+        button.style.opacity = '1';
+        button.style.pointerEvents = 'auto';
+      }
+    }
+
+    function beginFlight(objectId) {
+      if (state.mode !== 'idle') return;
+      chooseAnchors();
+      const anchor = anchors.get(objectId);
+      if (!anchor) return;
+
+      if (document.body.classList.contains('home-panel-open')) {
+        document.querySelector('.home-panel-close')?.click();
+      }
+
+      state.activeObject = anchor.object;
+      state.anchorIndex = anchor.index;
+      state.anchorPosition.copy(anchor.position);
+      state.originalOpacity = anchor.originalOpacity;
+      configureActiveStar(anchor);
 
       state.mode = 'flying';
       state.startedAt = performance.now();
@@ -522,12 +638,16 @@
         .addScaledVector(scratch.side, -curve * 0.38)
         .addScaledVector(scratch.up, curve * 0.12);
 
+      const radius = state.activeObject.star?.radius ?? 1;
       starGroup.visible = true;
-      starGroup.scale.setScalar(0.035);
-      state.starScale = 0.035;
+      starGroup.scale.setScalar(0.035 * radius);
+      state.starScale = 0.035 * radius;
+      document.body.dataset.activeStar = state.activeObject.id;
+      document.body.dataset.activeStarKind = state.activeObject.kind;
       document.body.classList.add('star-flight-active');
       document.body.classList.remove('star-flight-arrived');
-      updateAnchorButton();
+      updateAnchorButtons();
+      window.dispatchEvent(new CustomEvent('smirel:stellar-object', { detail: state.activeObject }));
     }
 
     function beginReturn() {
@@ -541,10 +661,22 @@
       document.body.classList.remove('star-flight-arrived');
     }
 
-    anchorButton.addEventListener('click', beginFlight);
     backButton.addEventListener('click', beginReturn);
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && state.mode === 'arrived') beginReturn();
+    });
+
+    document.addEventListener('click', (event) => {
+      const panelButton = event.target.closest?.('[data-home-panel]');
+      const panelName = panelButton?.dataset?.homePanel;
+      if (panelName === 'projects') setVisibleKind('project');
+      if (panelName === 'notes') setVisibleKind('note');
+
+      const objectButton = event.target.closest?.('[data-star-object]');
+      if (objectButton?.dataset?.starObject) {
+        event.preventDefault();
+        beginFlight(objectButton.dataset.starObject);
+      }
     });
 
     function updateStarVisuals(elapsed, reveal) {
@@ -575,8 +707,9 @@
       camera.fov = THREE.MathUtils.lerp(state.homeFov, FINAL_FOV, motion) + speedPulse * 13.5;
       camera.updateProjectionMatrix();
 
+      const radius = state.activeObject?.star?.radius ?? 1;
       const reveal = smoothstep01((raw - 0.43) / 0.50);
-      state.starScale = THREE.MathUtils.lerp(0.035, 1.0, reveal);
+      state.starScale = THREE.MathUtils.lerp(0.035 * radius, radius, reveal);
       starGroup.scale.setScalar(state.starScale);
       setPointOpacity(state.originalOpacity * (1 - reveal));
       updateStarVisuals(elapsed, reveal);
@@ -587,7 +720,7 @@
         camera.lookAt(state.anchorPosition);
         camera.fov = FINAL_FOV;
         camera.updateProjectionMatrix();
-        starGroup.scale.setScalar(1);
+        starGroup.scale.setScalar(radius);
         setPointOpacity(0);
         document.body.classList.add('star-flight-arrived');
       }
@@ -611,8 +744,9 @@
       camera.fov = THREE.MathUtils.lerp(state.returnStartFov, state.homeFov, motion);
       camera.updateProjectionMatrix();
 
+      const radius = state.activeObject?.star?.radius ?? 1;
       const reveal = 1 - smoothstep01((raw - 0.08) / 0.76);
-      state.starScale = Math.max(0.035, reveal);
+      state.starScale = Math.max(0.035 * radius, reveal * radius);
       starGroup.scale.setScalar(state.starScale);
       setPointOpacity(state.originalOpacity * (1 - reveal));
       updateStarVisuals(elapsed, reveal);
@@ -633,7 +767,11 @@
           pointer.currentY = state.homePointer.currentY;
         }
         document.body.classList.remove('star-flight-active', 'star-flight-arrived');
-        updateAnchorButton();
+        delete document.body.dataset.activeStar;
+        delete document.body.dataset.activeStarKind;
+        state.activeObject = null;
+        state.anchorIndex = -1;
+        updateAnchorButtons();
       }
       return true;
     }
@@ -642,11 +780,22 @@
       get needsContinuousRender() {
         return state.mode !== 'idle';
       },
+      get activeObject() {
+        return state.activeObject;
+      },
+      get activeAnchor() {
+        return state.activeObject ? anchors.get(state.activeObject.id) || null : null;
+      },
+      get catalog() {
+        return catalog;
+      },
+      openObject: beginFlight,
+      setVisibleKind,
       update(now, dt, elapsed) {
-        chooseAnchor();
+        chooseAnchors();
 
         if (state.mode === 'idle') {
-          updateAnchorButton();
+          updateAnchorButtons();
           return false;
         }
         if (state.mode === 'flying') return updateFlying(now, elapsed);

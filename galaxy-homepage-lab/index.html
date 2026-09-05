@@ -86,14 +86,16 @@
         <section class="home-panel-view" data-home-panel-view="projects" hidden>
           <p class="home-panel-kicker">01 / Projects</p>
           <h2>Selected work</h2>
-          <p class="home-panel-lede">Each project owns a different star in this galaxy. Open an object here or select its marked star directly.</p>
+          <p class="home-panel-lede">Each project owns a different star in this galaxy. Hover a primary star to reveal its related branches as a constellation.</p>
           <div class="home-project-index">
-            <button class="home-object-link" type="button" data-star-object="loom"><span>Loom</span><small>General-purpose agent</small><b>◎</b></button>
-            <button class="home-object-link" type="button" data-star-object="termrelay"><span>TermRelay</span><small>AI gateway &amp; infrastructure</small><b>◎</b></button>
             <button class="home-object-link" type="button" data-star-object="ai-ledger"><span>AI Ledger</span><small>Android AI assistant &amp; visual agent</small><b>◎</b></button>
             <button class="home-object-link" type="button" data-star-object="listing-studio"><span>Listing Studio</span><small>AI commerce automation</small><b>◎</b></button>
+            <button class="home-object-link" type="button" data-star-object="computer-use"><span>Computer Use</span><small>Vision + accessibility GUI agent</small><b>◎</b></button>
+            <button class="home-object-link" type="button" data-star-object="liquid-glass"><span>Liquid Glass Design</span><small>Realtime glass rendering system</small><b>◎</b></button>
+            <button class="home-object-link" type="button" data-star-object="stock-crawler"><span>Market Data Proxy</span><small>A-share realtime data service</small><b>◎</b></button>
+            <button class="home-object-link" type="button" data-star-object="gan-hemt"><span>GaN HEMT Simulation</span><small>TCAD · heavy ion · temperature</small><b>◎</b></button>
           </div>
-          <p class="home-panel-note">Project stars use a solid orbital marker.</p>
+          <p class="home-panel-note">Primary project labels stay visible. Hovering a star reveals its constellation branches.</p>
         </section>
 
         <section class="home-panel-view" data-home-panel-view="about" hidden>
@@ -112,14 +114,14 @@
         <section class="home-panel-view" data-home-panel-view="notes" hidden>
           <p class="home-panel-kicker">03 / Notes</p>
           <h2>Build logs &amp; research.</h2>
-          <p class="home-panel-lede">Notes live on their own quieter stars. Their archive is designed for reading rather than project inspection.</p>
+          <p class="home-panel-lede">The original homepage articles remain independent reading objects; project-specific articles can also appear as companion stars around their parent project.</p>
           <div class="home-note-list">
             <button class="home-object-link" type="button" data-star-object="building-homepage"><span>Building a Homepage From Zero</span><time datetime="2026-08-01">2026.08.01</time><b>◌</b></button>
-            <button class="home-object-link" type="button" data-star-object="numerical-stability"><span>Numerical Stability in Engineering Simulation</span><time datetime="2026-07-25">2026.07.25</time><b>◌</b></button>
-            <button class="home-object-link" type="button" data-star-object="visual-agent-interaction"><span>Visual Interaction Design for AI Agents</span><time datetime="2026-07-12">2026.07.12</time><b>◌</b></button>
-            <button class="home-object-link" type="button" data-star-object="gan-hemt-sweep"><span>GaN HEMT Temperature &amp; Heavy-Ion Sweep</span><time datetime="2026-07-10">2026.07.10</time><b>◌</b></button>
+            <button class="home-object-link" type="button" data-star-object="opengl-liquid-glass"><span>Two OpenGL Liquid Glass Systems</span><time datetime="2026-07-28">2026.07.28</time><b>◌</b></button>
+            <button class="home-object-link" type="button" data-star-object="computer-use-design"><span>Computer Use: Screenshot to Verified Action</span><time datetime="2026-07-20">2026.07.20</time><b>◌</b></button>
+            <button class="home-object-link" type="button" data-star-object="gan-hemt-stability"><span>Numerical Stability in GaN HEMT Simulation</span><time datetime="2026-07-10">2026.07.10</time><b>◌</b></button>
           </div>
-          <p class="home-panel-note">Note stars use a broken orbital marker.</p>
+          <p class="home-panel-note">Note stars use a quieter broken orbital marker.</p>
         </section>
 
         <section class="home-panel-view" data-home-panel-view="contact" hidden>
@@ -144,6 +146,7 @@
   <script src="https://raw.githack.com/yuchenm1303-png/yuchen1303.github.io/48b489c08dd226444d8f40be97ea03eb1c7ac714/ai-ledger-android/opengl-glass-edge-mini-v24-shader.js"></script>
   <script src="./homepage-liquid-glass-v29-sync.js"></script>
   <script src="./homepage-star-flight.js"></script>
+  <script src="./homepage-star-constellation.js"></script>
   <script src="./homepage-star-flight-refine.js"></script>
   <script src="./homepage-star-detail.js"></script>
   <script type="module" src="./astra-homepage-glass-capture-loader.js"></script>

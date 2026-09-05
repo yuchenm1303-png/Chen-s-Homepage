@@ -63,20 +63,38 @@ source = replaceOnce(
   /  pointer\\.currentX = damp\\(pointer\\.currentX, pointer\\.targetX, 2\\.7, dt\\);[\\s\\S]*?  const intro =/,
   \`  const starFlightOwnsCamera = starFlight?.update(now, dt, elapsed) === true;
   if (!starFlightOwnsCamera) {
-    pointer.currentX = damp(pointer.currentX, pointer.targetX, 2.7, dt);
-    pointer.currentY = damp(pointer.currentY, pointer.targetY, 2.7, dt);
+    // The old home motion was dominated by view rotation: only ~0.34 world units
+    // of lateral translation while the look target moved more than 1 unit. With
+    // most stars now tens to hundreds of units deep, that collapses near/mid/far
+    // layers into nearly the same screen motion. Drive the camera through real
+    // space instead: stronger translation, a small forward dolly, and a quieter
+    // look target that keeps the galaxy framed while preserving differential
+    // parallax between foreground stars, nebula layers and the distant field.
+    pointer.currentX = damp(pointer.currentX, pointer.targetX, 2.45, dt);
+    pointer.currentY = damp(pointer.currentY, pointer.targetY, 2.45, dt);
     if (!reducedMotion) {
-      camera.position.x = pointer.currentX * 0.34;
-      camera.position.y = pointer.currentY * 0.20;
-      lookTarget.set(pointer.currentX * 1.05, pointer.currentY * 0.62, -12);
+      const pointerEnergy = Math.min(
+        1.0,
+        Math.sqrt(pointer.currentX * pointer.currentX + pointer.currentY * pointer.currentY),
+      );
+      camera.position.set(
+        pointer.currentX * 0.98,
+        pointer.currentY * 0.58,
+        -pointerEnergy * 0.46,
+      );
+      lookTarget.set(
+        pointer.currentX * 0.18,
+        pointer.currentY * 0.10,
+        -14.5,
+      );
       camera.lookAt(lookTarget);
     } else {
       camera.position.set(0, 0, 0);
-      camera.lookAt(0, 0, -12);
+      camera.lookAt(0, 0, -14.5);
     }
   }
   const intro =\`,
-  'Interactive star camera ownership',
+  'Spatial home-camera parallax',
 );
 
 // During flight, camera position and FOV change every presented frame. The

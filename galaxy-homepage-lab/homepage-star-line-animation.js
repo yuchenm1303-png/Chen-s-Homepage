@@ -69,8 +69,8 @@
     line.classList.remove('smirel-edge-drawing', 'smirel-edge-retracting');
     line.classList.add('smirel-edge-seed');
 
-    // Force the fully-hidden dash state to be committed after the real line
-    // coordinates exist. The next frame can then animate from 1 -> 0 visibly.
+    // Commit the hidden dash state only after the projected endpoints are real.
+    // The following frame therefore has an actual line length to animate over.
     void line.getTotalLength();
     void getComputedStyle(line).strokeDashoffset;
 
@@ -99,8 +99,6 @@
   function startRetracting(line) {
     const token = nextToken(line);
     line.classList.remove('smirel-edge-seed', 'smirel-edge-drawing');
-    // Read the current computed dash position before changing the target so the
-    // browser has a concrete start value for the reverse animation.
     void getComputedStyle(line).strokeDashoffset;
     line.classList.add('smirel-edge-retracting');
 
@@ -113,24 +111,29 @@
     cleanupTimers.set(line, timer);
   }
 
-  function syncLine(line) {
-    if (!(line instanceof SVGLineElement)) return;
-    if (line.classList.contains('is-open')) startDrawing(line);
-    else startRetracting(line);
+  function classValueHasOpen(value) {
+    return String(value || '').split(/\s+/).includes('is-open');
   }
 
   const observer = new MutationObserver((records) => {
     for (const record of records) {
-      const target = record.target;
-      if (!(target instanceof SVGLineElement)) continue;
-      if (!target.classList.contains('smirel-constellation-edge')) continue;
-      syncLine(target);
+      const line = record.target;
+      if (!(line instanceof SVGLineElement)) continue;
+      if (!line.classList.contains('smirel-constellation-edge')) continue;
+
+      const wasOpen = classValueHasOpen(record.oldValue);
+      const isOpen = line.classList.contains('is-open');
+      if (wasOpen === isOpen) continue;
+
+      if (isOpen) startDrawing(line);
+      else startRetracting(line);
     }
   });
 
   observer.observe(document.documentElement, {
     subtree: true,
     attributes: true,
+    attributeOldValue: true,
     attributeFilter: ['class'],
   });
 })();

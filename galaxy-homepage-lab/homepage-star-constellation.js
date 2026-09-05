@@ -311,6 +311,18 @@
         && y >= rect.top - margin && y <= rect.bottom + margin;
     }
 
+    function resetCompanionPresentation(button, clearTransform = false) {
+      if (!button) return;
+      button.style.opacity = '';
+      button.style.pointerEvents = '';
+      if (clearTransform) button.style.transform = '';
+    }
+
+    function resetEdgePresentation(line) {
+      if (!line) return;
+      line.style.opacity = '';
+    }
+
     /* Keep this resolver byte-for-byte equivalent in behavior to the base flight
        resolver. That makes a DOM constellation node and the star that openObject()
        later approaches the same bright-field point, not two visually similar stars. */
@@ -554,11 +566,12 @@
       const nodeIds = new Set(field.constellation.nodes || []);
       for (const [id, button] of companionButtons) {
         const shouldOpen = nodeIds.has(id);
+        resetCompanionPresentation(button);
         button.classList.toggle('is-open', shouldOpen);
-        if (!shouldOpen) button.style.pointerEvents = 'none';
       }
 
       for (const [key, line] of edgeElements) {
+        resetEdgePresentation(line);
         line.classList.toggle('is-open', key.startsWith(`${fieldId}:`));
       }
       return true;
@@ -568,8 +581,15 @@
       if (persistentFieldId && !force) return false;
       cancelScheduledClose();
       if (openFieldId) setFieldPreviewClass(openFieldId, false);
-      for (const button of companionButtons.values()) button.classList.remove('is-open');
-      for (const line of edgeElements.values()) line.classList.remove('is-open');
+      for (const button of companionButtons.values()) {
+        button.classList.remove('is-open');
+        resetCompanionPresentation(button);
+      }
+      for (const line of edgeElements.values()) {
+        line.classList.remove('is-open');
+        resetEdgePresentation(line);
+      }
+      projected.clear();
       openFieldId = null;
       if (force && clearPersistent) persistentFieldId = null;
       return true;
@@ -578,6 +598,7 @@
     function setPersistentField(fieldId, persistent) {
       if (!persistent) {
         if (persistentFieldId === fieldId) persistentFieldId = null;
+        if (openFieldId === fieldId) closeConstellation(true, false);
         return true;
       }
       persistentFieldId = fieldId;
@@ -629,12 +650,24 @@
     }
 
     function updateCompanionsAndEdges() {
-      if (!openFieldId) return;
+      if (!openFieldId) {
+        for (const button of companionButtons.values()) resetCompanionPresentation(button);
+        for (const line of edgeElements.values()) resetEdgePresentation(line);
+        projected.clear();
+        return;
+      }
+
       const field = objectById.get(openFieldId);
       if (!field?.constellation) return;
 
       const mapHidden = document.body.classList.contains('star-flight-active');
       const nodeIds = field.constellation.nodes || [];
+      const activeNodes = new Set(nodeIds);
+
+      for (const [id, button] of companionButtons) {
+        if (!activeNodes.has(id)) resetCompanionPresentation(button);
+      }
+
       projectAnchor(field.id);
       for (const id of nodeIds) {
         const point = projectAnchor(id);
@@ -647,16 +680,17 @@
         }
         button.style.transform = `translate3d(${point.x}px, ${point.y}px, 0)`;
         if (button.classList.contains('is-open')) {
-          button.style.opacity = '1';
-          if (!button.classList.contains('is-static') && !document.body.classList.contains('star-field-transition')) {
-            button.style.pointerEvents = 'auto';
-          }
+          button.style.opacity = '';
+          button.style.pointerEvents = '';
         }
       }
 
       const edges = field.constellation.edges || [];
+      const activeEdgeKeys = new Set();
       edges.forEach((edge, index) => {
-        const line = edgeElements.get(edgeKey(field.id, edge, index));
+        const key = edgeKey(field.id, edge, index);
+        activeEdgeKeys.add(key);
+        const line = edgeElements.get(key);
         if (!line) return;
         const from = projected.get(edge[0]) || projectAnchor(edge[0]);
         const to = projected.get(edge[1]) || projectAnchor(edge[1]);
@@ -670,6 +704,10 @@
         line.setAttribute('y2', to.y.toFixed(2));
         line.style.opacity = '';
       });
+
+      for (const [key, line] of edgeElements) {
+        if (!activeEdgeKeys.has(key)) resetEdgePresentation(line);
+      }
     }
 
     window.addEventListener('resize', () => {

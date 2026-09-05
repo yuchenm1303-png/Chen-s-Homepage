@@ -79,6 +79,22 @@ source = replaceOnce(
   'Interactive star camera ownership',
 );
 
+// Keep two persistent continuum surfaces. The old path resized the same HDR
+// target at the beginning/end of every motion phase, forcing GPU texture
+// reallocation exactly when the camera animation needed stable frame times.
+// The full and motion targets are now allocated independently and the composite
+// simply switches which texture it samples.
+source = replaceOnce(
+  source,
+  /continuumTarget\\.texture\\.colorSpace = THREE\\.NoColorSpace;\\nconst continuumComposite = buildContinuumComposite\\(continuumTarget\\.texture\\);/,
+  \`continuumTarget.texture.colorSpace = THREE.NoColorSpace;
+const continuumMotionTarget = continuumTarget.clone();
+continuumMotionTarget.texture.colorSpace = THREE.NoColorSpace;
+continuumMotionTarget.userData.prewarmed = false;
+const continuumComposite = buildContinuumComposite(continuumTarget.texture);\`,
+  'Preallocate motion continuum target',
+);
+
 // Camera motion needs a temporally fresh continuum, but the full-resolution
 // volume is far more expensive than the point-star and stellar passes. Reuse the
 // already-approved flight motion budget for both the flight itself and the
@@ -91,23 +107,45 @@ source = replaceOnce(
   const starFlightMoving = document.body.classList.contains('star-flight-active')
     && (!document.body.classList.contains('star-flight-arrived') || detailMotionLod);
   const baseContinuumScale = width >= 1100 ? 0.40 : 0.48;
-  const flightContinuumScale = baseContinuumScale * (starFlightMoving ? 0.42 : 1.0);
-  const desiredContinuumWidth = Math.max(
+  const motionContinuumScale = baseContinuumScale * 0.42;
+  const desiredMotionWidth = Math.max(
     256,
-    Math.min(960, Math.round(width * pixelRatio * flightContinuumScale)),
+    Math.min(960, Math.round(width * pixelRatio * motionContinuumScale)),
   );
-  const desiredContinuumHeight = Math.max(
+  const desiredMotionHeight = Math.max(
     144,
-    Math.min(600, Math.round(height * pixelRatio * flightContinuumScale)),
+    Math.min(600, Math.round(height * pixelRatio * motionContinuumScale)),
   );
-  if (continuumTarget.width !== desiredContinuumWidth
-      || continuumTarget.height !== desiredContinuumHeight) {
-    continuumTarget.setSize(desiredContinuumWidth, desiredContinuumHeight);
-    continuumCache.valid = false;
+  if (continuumMotionTarget.width !== desiredMotionWidth
+      || continuumMotionTarget.height !== desiredMotionHeight) {
+    continuumMotionTarget.setSize(desiredMotionWidth, desiredMotionHeight);
+    continuumMotionTarget.userData.prewarmed = false;
   }
-  const targetChanged = continuumCache.width !== continuumTarget.width
-    || continuumCache.height !== continuumTarget.height;\`,
+  if (!continuumMotionTarget.userData.prewarmed && !starFlightMoving && intro > 0.9999) {
+    renderer.setRenderTarget(continuumMotionTarget);
+    renderer.clear();
+    renderer.setRenderTarget(null);
+    continuumMotionTarget.userData.prewarmed = true;
+  }
+  const activeContinuumTarget = starFlightMoving ? continuumMotionTarget : continuumTarget;
+  continuumComposite.material.uniforms.uContinuumTexture.value = activeContinuumTarget.texture;
+  const targetChanged = continuumCache.width !== activeContinuumTarget.width
+    || continuumCache.height !== activeContinuumTarget.height;\`,
   'Interactive star flight continuum LOD',
+);
+
+source = replaceOnce(
+  source,
+  /renderer\\.setRenderTarget\\(continuumTarget\\);/,
+  'renderer.setRenderTarget(activeContinuumTarget);',
+  'Render continuum into active persistent target',
+);
+source = replaceOnce(
+  source,
+  /continuumCache\\.width = continuumTarget\\.width;\\n    continuumCache\\.height = continuumTarget\\.height;/,
+  \`continuumCache.width = activeContinuumTarget.width;
+    continuumCache.height = activeContinuumTarget.height;\`,
+  'Cache active continuum target dimensions',
 );
 
 // FOV changes are projection changes too. Track tanHalfFov in the cache so the

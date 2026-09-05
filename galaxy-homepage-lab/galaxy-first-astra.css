@@ -15,12 +15,5 @@ body { min-width: 320px; }
   height: 100vh;
   display: block;
   background: #030509;
-  filter: brightness(1.28) saturate(1.10) contrast(1.03);
-}
-
-/* Deliberately aggressive debug exposure for the Milky Way overlay.
-   This is not a final grade: it isolates whether the remaining desktop issue
-   is simply post-composite energy loss rather than density/extinction structure. */
-#galaxyNebulaCanvas {
-  filter: brightness(4.8) saturate(1.05) contrast(1.08);
+  filter: brightness(1.22) saturate(1.06) contrast(1.04);
 }

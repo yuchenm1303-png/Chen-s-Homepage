@@ -36,7 +36,11 @@ const capturePatch = `
 source = replaceOnce(
   source,
   /    composer\\.render\\(dt\\);\\n    lastCompositeMs = now;/,
-  \`    composer.render(dt);\n    if (!document.body.classList.contains('star-flight-active')) {\n      try {\n        window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n      } catch (error) {\n        console.warn('[homepage-liquid-glass] frame handoff failed', error);\n      }\n    }\n    lastCompositeMs = now;\`,
+  \`    const stellarBloomThreshold = document.body.classList.contains('star-flight-active')
+      ? 0.95
+      : CONFIG.bloomThreshold;
+    bloom.luminanceMaterial.uniforms.threshold.value = stellarBloomThreshold;
+    composer.render(dt);\n    if (!document.body.classList.contains('star-flight-active')) {\n      try {\n        window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n      } catch (error) {\n        console.warn('[homepage-liquid-glass] frame handoff failed', error);\n      }\n    }\n    lastCompositeMs = now;\`,
   'Synchronized homepage glass framebuffer handoff',
 );
 

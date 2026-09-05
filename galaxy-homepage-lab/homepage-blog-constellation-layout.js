@@ -4,12 +4,31 @@
   const catalog = window.__SMIREL_STELLAR_CATALOG__;
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
-  // Companion stars are authored in field-local coordinates. The field primary owns
-  // the absolute screen target; every companion target is derived from that centre.
-  // This keeps a constellation together as one object instead of scattering its
-  // children across unrelated regions of the galaxy.
-  const LOCAL_DEPTH = Object.freeze([22, 32]);
-  const COMPANION_MIN_BRIGHTNESS = 0.82;
+  // The bright field is deterministic (seed 0xA57A2D31), so constellation design
+  // should also be deterministic. These indices were selected once from the real
+  // bright-field geometry and are now part of the visual identity of each field.
+  // Runtime code must not re-score or replace them.
+  const FIXED_INDICES = Object.freeze({
+    blog: 5596,
+    'ai-ledger-real-streaming': 2630,
+    'building-homepage': 204,
+    'opengl-liquid-glass': 5451,
+    'computer-use-design': 5173,
+    'app-performance-optimization': 4538,
+    'compose-parent-bubble-rendering': 6740,
+    'gan-hemt-stability': 8132,
+    'ai-listing-research': 2462,
+
+    contact: 3913,
+    'contact-github': 7173,
+    'contact-email': 1483,
+    'contact-phone': 4389,
+    'contact-qq': 12626,
+  });
+
+  // Targets remain as design documentation / graceful fallback if the renderer's
+  // deterministic star field is intentionally replaced in a future revision.
+  const LOCAL_DEPTH = Object.freeze([18, 34]);
 
   function freezePair(pair) {
     return Object.freeze([pair[0], pair[1]]);
@@ -29,16 +48,16 @@
 
   const layouts = Object.freeze({
     blog: makeFieldLayout({
-      centre: [-0.48, -0.56],
+      centre: [-0.46, -0.45],
       offsets: {
-        'ai-ledger-real-streaming': [-0.16, 0.16],
-        'building-homepage': [0.04, 0.20],
-        'opengl-liquid-glass': [0.22, 0.12],
-        'computer-use-design': [0.34, -0.02],
-        'app-performance-optimization': [0.22, -0.20],
-        'compose-parent-bubble-rendering': [0.02, -0.24],
-        'gan-hemt-stability': [-0.18, -0.16],
-        'ai-listing-research': [-0.32, 0.00],
+        'ai-ledger-real-streaming': [-0.14, 0.18],
+        'building-homepage': [0.04, 0.22],
+        'opengl-liquid-glass': [0.19, 0.15],
+        'computer-use-design': [0.25, -0.01],
+        'app-performance-optimization': [0.17, -0.17],
+        'compose-parent-bubble-rendering': [0.00, -0.23],
+        'gan-hemt-stability': [-0.19, -0.16],
+        'ai-listing-research': [-0.23, 0.00],
       },
       edges: [
         ['blog', 'ai-ledger-real-streaming'],
@@ -54,12 +73,12 @@
     }),
 
     contact: makeFieldLayout({
-      centre: [0.54, 0.46],
+      centre: [0.51, 0.50],
       offsets: {
-        'contact-github': [-0.18, 0.12],
-        'contact-email': [0.18, 0.12],
-        'contact-phone': [-0.12, -0.16],
-        'contact-qq': [0.16, -0.16],
+        'contact-github': [-0.18, 0.09],
+        'contact-email': [0.18, 0.10],
+        'contact-phone': [-0.11, -0.17],
+        'contact-qq': [0.09, -0.16],
       },
       edges: [
         ['contact-github', 'contact'],
@@ -86,21 +105,17 @@
     if (!layout) return item;
 
     const target = absoluteTarget(layout, item);
-    const isPrimary = item.kind === 'field';
+    const fixedIndex = FIXED_INDICES[item.id];
     const star = target && item.star
       ? Object.freeze({
           ...item.star,
           target,
           depth: LOCAL_DEPTH,
-          // Primary stars stay visibly dominant. Companion markers may use slightly
-          // dimmer real stars so geometry wins over brightness during anchor search.
-          minBrightness: isPrimary
-            ? Math.min(item.star.minBrightness ?? 1.8, 1.30)
-            : COMPANION_MIN_BRIGHTNESS,
+          fixedIndex: Number.isInteger(fixedIndex) ? fixedIndex : undefined,
         })
       : item.star;
 
-    if (isPrimary) {
+    if (item.kind === 'field') {
       const constellation = Object.freeze({
         ...item.constellation,
         edges: layout.edges,

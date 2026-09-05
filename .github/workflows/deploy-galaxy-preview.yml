@@ -45,6 +45,14 @@ jobs:
           path: galaxy-source
           persist-credentials: false
 
+      - name: Checkout pinned liquid glass shader source
+        uses: actions/checkout@v4
+        with:
+          repository: yuchenm1303-png/yuchen1303.github.io
+          ref: 48b489c08dd226444d8f40be97ea03eb1c7ac714
+          path: glass-source
+          persist-credentials: false
+
       - name: Assemble Pages artifact
         shell: bash
         run: |
@@ -68,6 +76,42 @@ jobs:
             exit 1
           fi
           test "$(tr -d '\r\n' < published/CNAME)" = "smirel.com"
+
+      - name: Localize blocking liquid glass shader
+        shell: bash
+        run: |
+          set -euo pipefail
+          GLASS_SOURCE="glass-source/ai-ledger-android/opengl-glass-edge-mini-v24-shader.js"
+          GLASS_NAME="opengl-glass-edge-mini-v24-shader.js"
+          GLASS_REMOTE="https://raw.githack.com/yuchenm1303-png/yuchen1303.github.io/48b489c08dd226444d8f40be97ea03eb1c7ac714/ai-ledger-android/opengl-glass-edge-mini-v24-shader.js"
+          GLASS_LOCAL="./vendor/${GLASS_NAME}"
+
+          test -s "$GLASS_SOURCE"
+          mkdir -p published/vendor published/galaxy/vendor
+          cp "$GLASS_SOURCE" "published/vendor/${GLASS_NAME}"
+          cp "$GLASS_SOURCE" "published/galaxy/vendor/${GLASS_NAME}"
+          cmp -s "$GLASS_SOURCE" "published/vendor/${GLASS_NAME}"
+          cmp -s "$GLASS_SOURCE" "published/galaxy/vendor/${GLASS_NAME}"
+
+          python - <<'PY'
+          from pathlib import Path
+
+          remote = "https://raw.githack.com/yuchenm1303-png/yuchen1303.github.io/48b489c08dd226444d8f40be97ea03eb1c7ac714/ai-ledger-android/opengl-glass-edge-mini-v24-shader.js"
+          local = "./vendor/opengl-glass-edge-mini-v24-shader.js"
+          for name in ("published/index.html", "published/galaxy/index.html"):
+              path = Path(name)
+              text = path.read_text(encoding="utf-8")
+              if remote not in text:
+                  raise SystemExit(f"Pinned liquid-glass source URL missing from {name}")
+              path.write_text(text.replace(remote, local), encoding="utf-8")
+          PY
+
+          grep -Fq "$GLASS_LOCAL" published/index.html
+          grep -Fq "$GLASS_LOCAL" published/galaxy/index.html
+          if grep -Fq 'raw.githack.com' published/index.html published/galaxy/index.html; then
+            echo 'A blocking raw.githack.com dependency remains in the published homepage' >&2
+            exit 1
+          fi
 
       - name: Flatten galaxy runtime loaders before deploy
         shell: bash

@@ -5,14 +5,15 @@
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
   // The bright field is deterministic (seed 0xA57A2D31), so these are authored
-  // identities rather than runtime search hints. Blog deliberately uses an open,
-  // branched silhouette: one rising spine plus two short lower branches. It must
-  // never collapse back into a closed ring around the primary.
+  // identities rather than runtime search hints. About stays deliberately local
+  // to its primary: four nearby nodes form a compact personal-field fan instead
+  // of stretching across the viewport. Blog keeps an open branched silhouette.
   const FIXED_INDICES = Object.freeze({
-    'about-identity': 1405,
-    'about-work': 8953,
-    'about-study': 2782,
-    'about-place': 3482,
+    about: 8430,
+    'about-identity': 13906,
+    'about-work': 3010,
+    'about-study': 12329,
+    'about-place': 5869,
 
     blog: 5596,
     'building-homepage': 156,
@@ -52,6 +53,22 @@
   }
 
   const layouts = Object.freeze({
+    about: makeFieldLayout({
+      centre: [-0.12, -0.79],
+      offsets: {
+        'about-identity': [-0.11, 0.10],
+        'about-work': [0.27, 0.09],
+        'about-study': [0.16, 0.03],
+        'about-place': [-0.16, -0.03],
+      },
+      edges: [
+        ['about', 'about-identity'],
+        ['about', 'about-work'],
+        ['about', 'about-study'],
+        ['about', 'about-place'],
+      ],
+    }),
+
     blog: makeFieldLayout({
       centre: [-0.70, -0.45],
       offsets: {

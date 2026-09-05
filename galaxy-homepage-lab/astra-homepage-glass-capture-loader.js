@@ -129,7 +129,8 @@ source = replaceOnce(
   }
   const activeContinuumTarget = starFlightMoving ? continuumMotionTarget : continuumTarget;
   continuumComposite.material.uniforms.uContinuumTexture.value = activeContinuumTarget.texture;
-  const targetChanged = continuumCache.width !== activeContinuumTarget.width
+  const targetChanged = continuumCache.motionLod !== starFlightMoving
+    || continuumCache.width !== activeContinuumTarget.width
     || continuumCache.height !== activeContinuumTarget.height;\`,
   'Interactive star flight continuum LOD',
 );
@@ -143,9 +144,10 @@ source = replaceOnce(
 source = replaceOnce(
   source,
   /continuumCache\\.width = continuumTarget\\.width;\\n    continuumCache\\.height = continuumTarget\\.height;/,
-  \`continuumCache.width = activeContinuumTarget.width;
+  \`continuumCache.motionLod = starFlightMoving;
+    continuumCache.width = activeContinuumTarget.width;
     continuumCache.height = activeContinuumTarget.height;\`,
-  'Cache active continuum target dimensions',
+  'Cache active continuum target identity and dimensions',
 );
 
 // FOV changes are projection changes too. Track tanHalfFov in the cache so the

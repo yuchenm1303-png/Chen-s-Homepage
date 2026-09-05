@@ -148,19 +148,13 @@
     }
 
     function locateStarGroup() {
+      const sharedGroup = controller.stellarModel?.group || null;
+      if (sharedGroup?.parent) {
+        starGroup = sharedGroup;
+        return starGroup;
+      }
       if (starGroup?.parent) return starGroup;
-
-      let refinedCore = null;
-      let fallbackCore = null;
-      scene.traverse((object) => {
-        const fragment = object.material?.fragmentShader || '';
-        if (!refinedCore && fragment.includes('float convection = noise3(p * 4.2')) refinedCore = object;
-        if (!fallbackCore && fragment.includes('float hot = smoothstep(0.40, 0.86')) fallbackCore = object;
-      });
-
-      const core = refinedCore || fallbackCore;
-      if (core?.parent) starGroup = core.parent;
-      return starGroup;
+      return null;
     }
 
     function markLayoutDirty() {

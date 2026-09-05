@@ -47,22 +47,17 @@
     shoulderCaptureWidthPx: 96,
   });
 
-  // Keep a real sampling domain around the card. The old homepage adapter cropped
-  // the texture exactly to the card, so V29.5 optical coordinates hit CLAMP_TO_EDGE
-  // instead of seeing the neighboring galaxy that exists in the original test.
+  // Keep the approved V29.5 sampling domain around the card. The performance
+  // problem was not this margin; it was the duplicate 24 Hz throttle plus the
+  // 36 full-surface manual blur copies performed for every captured frame.
   const SAMPLE_MARGIN_CSS_PX = 128;
-  const CAPTURE_INTERVAL_MS = 1000 / 24;
+  const MAX_CAPTURE_DPR = 1.25;
 
-  const captureCanvas = document.createElement('canvas');
-  const captureCtx = captureCanvas.getContext('2d', { alpha: false });
-  const colorCanvas = document.createElement('canvas');
-  const colorCtx = colorCanvas.getContext('2d', { alpha: false });
-  const blurA = document.createElement('canvas');
-  const blurACtx = blurA.getContext('2d', { alpha: false });
-  const blurB = document.createElement('canvas');
-  const blurBCtx = blurB.getContext('2d', { alpha: false });
-  const blurCanvas = document.createElement('canvas');
-  const blurCtx = blurCanvas.getContext('2d', { alpha: false });
+  // One prefilter surface replaces the old capture -> color -> blurA -> blurB ->
+  // blur chain. Canvas native filters can combine color treatment and the small
+  // V29.5 blur in one raster pass, which removes dozens of full-canvas copies.
+  const prefilterCanvas = document.createElement('canvas');
+  const prefilterCtx = prefilterCanvas.getContext('2d', { alpha: false });
   const backdropCtx = backdropCanvas.getContext('2d', { alpha: true });
 
   let gl;
@@ -70,10 +65,10 @@
   let buffer;
   let locations;
   let blurTexture;
+  let textureWidth = 0;
+  let textureHeight = 0;
   let visible = true;
   let failed = false;
-  let lastCapture = -1e9;
-  let lastRectKey = '';
   let captureState = null;
 
   function setCanvasSize(canvas, width, height) {
@@ -112,42 +107,7 @@
     ctx.globalCompositeOperation = 'source-over';
     ctx.imageSmoothingEnabled = true;
     try { ctx.imageSmoothingQuality = 'high'; } catch (_) {}
-  }
-
-  function shift(dst, src, width, height, step, horizontal) {
-    smoothContext(dst);
-    dst.clearRect(0, 0, width, height);
-    dst.save();
-    dst.globalCompositeOperation = 'lighter';
-    dst.globalAlpha = 0.2;
-    for (let i = -2; i <= 2; i += 1) {
-      dst.drawImage(src, horizontal ? i * step : 0, horizontal ? 0 : i * step, width, height);
-    }
-    dst.restore();
-    dst.save();
-    dst.globalCompositeOperation = 'destination-over';
-    dst.drawImage(src, 0, 0, width, height);
-    dst.restore();
-  }
-
-  function blur(source, width, height, radius) {
-    smoothContext(blurCtx);
-    blurCtx.clearRect(0, 0, width, height);
-    if (radius <= 0.025) {
-      blurCtx.drawImage(source, 0, 0, width, height);
-      return;
-    }
-    setCanvasSize(blurA, width, height);
-    setCanvasSize(blurB, width, height);
-    const passes = Math.max(1, Math.min(3, Math.ceil(params.blurIterations / 4)));
-    const step = Math.max(0.25, radius / Math.sqrt(2 * passes));
-    let current = source;
-    for (let i = 0; i < passes; i += 1) {
-      shift(blurACtx, current, width, height, step, true);
-      shift(blurBCtx, blurA, width, height, step, false);
-      current = blurB;
-    }
-    blurCtx.drawImage(current, 0, 0, width, height);
+    try { ctx.filter = 'none'; } catch (_) {}
   }
 
   function compile(type, source) {
@@ -204,9 +164,13 @@
   function captureBackdrop() {
     const sourceRect = sourceCanvas.getBoundingClientRect();
     const cardRect = getUntransformedCardRect();
-    if (sourceRect.width <= 0 || sourceRect.height <= 0 || cardRect.width <= 0 || cardRect.height <= 0) return false;
+    if (sourceRect.width <= 0 || sourceRect.height <= 0 || cardRect.width <= 0 || cardRect.height <= 0) {
+      return false;
+    }
 
-    const quality = Math.min(window.devicePixelRatio || 1, 1.5);
+    // The glass is deliberately soft and distorted, so sampling above 1.25 DPR
+    // adds bandwidth much faster than visible detail. DOM text remains native.
+    const quality = Math.min(window.devicePixelRatio || 1, MAX_CAPTURE_DPR);
     const cropLeft = Math.max(sourceRect.left, cardRect.left - SAMPLE_MARGIN_CSS_PX);
     const cropTop = Math.max(sourceRect.top, cardRect.top - SAMPLE_MARGIN_CSS_PX);
     const cropRight = Math.min(sourceRect.right, cardRect.right + SAMPLE_MARGIN_CSS_PX);
@@ -227,33 +191,38 @@
     const sw = (cropRight - cropLeft) * scaleX;
     const sh = (cropBottom - cropTop) * scaleY;
 
-    for (const canvas of [captureCanvas, colorCanvas, blurCanvas]) {
-      setCanvasSize(canvas, rootWidth, rootHeight);
-    }
+    setCanvasSize(prefilterCanvas, rootWidth, rootHeight);
     setCanvasSize(backdropCanvas, cardWidth, cardHeight);
     setCanvasSize(opticsCanvas, cardWidth, cardHeight);
-
-    smoothContext(captureCtx);
-    captureCtx.clearRect(0, 0, rootWidth, rootHeight);
-    captureCtx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, rootWidth, rootHeight);
-
-    smoothContext(colorCtx);
-    colorCtx.clearRect(0, 0, rootWidth, rootHeight);
-    colorCtx.save();
-    colorCtx.filter = `brightness(${params.brightness}) contrast(${params.contrast}) saturate(${params.saturation})`;
-    colorCtx.drawImage(captureCanvas, 0, 0, rootWidth, rootHeight);
-    colorCtx.restore();
 
     const effectiveBlur = Math.max(
       0,
       params.blurRadius * quality * Math.pow(Math.max(1, params.blurIterations), 0.55),
     );
-    blur(colorCanvas, rootWidth, rootHeight, effectiveBlur);
+
+    // One source read and one native filtered raster pass. The old implementation
+    // first copied WebGL -> 2D, then ran three horizontal/vertical five-tap passes
+    // (36 full-surface drawImage operations) before uploading the result again.
+    smoothContext(prefilterCtx);
+    prefilterCtx.clearRect(0, 0, rootWidth, rootHeight);
+    prefilterCtx.save();
+    prefilterCtx.filter = [
+      `brightness(${params.brightness})`,
+      `contrast(${params.contrast})`,
+      `saturate(${params.saturation})`,
+      `blur(${effectiveBlur}px)`,
+    ].join(' ');
+    prefilterCtx.drawImage(
+      sourceCanvas,
+      sx, sy, sw, sh,
+      0, 0, rootWidth, rootHeight,
+    );
+    prefilterCtx.restore();
 
     smoothContext(backdropCtx);
     backdropCtx.clearRect(0, 0, cardWidth, cardHeight);
     backdropCtx.drawImage(
-      blurCanvas,
+      prefilterCanvas,
       originX, originY, cardWidth, cardHeight,
       0, 0, cardWidth, cardHeight,
     );
@@ -261,7 +230,31 @@
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, blurTexture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, blurCanvas);
+
+    // Preserve texture storage while the capture dimensions are stable. Reusing
+    // the allocation avoids a texture redefinition/synchronization on every frame.
+    if (textureWidth !== rootWidth || textureHeight !== rootHeight) {
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        prefilterCanvas,
+      );
+      textureWidth = rootWidth;
+      textureHeight = rootHeight;
+    } else {
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        0,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        prefilterCanvas,
+      );
+    }
 
     captureState = { quality, rootWidth, rootHeight, cardWidth, cardHeight, originX, originY };
     return true;
@@ -325,19 +318,17 @@
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
-  function syncFromGalaxyFrame(now = performance.now()) {
+  function syncFromGalaxyFrame() {
     if (failed || !visible || document.hidden) return;
 
-    const rect = getUntransformedCardRect();
-    const rectKey = `${Math.round(rect.left)}:${Math.round(rect.top)}:${Math.round(rect.width)}:${Math.round(rect.height)}:${sourceCanvas.width}:${sourceCanvas.height}`;
-    const layoutChanged = rectKey !== lastRectKey;
-    if (!layoutChanged && now - lastCapture < CAPTURE_INTERVAL_MS) return;
-
+    // Do not add a second frame-rate gate here. The galaxy renderer already
+    // decides which frames are presented (24 Hz when truly idle, browser cadence
+    // while the camera is moving) and calls this hook immediately after each one.
+    // Following that cadence keeps the glass background spatially locked to the
+    // visible galaxy instead of replaying it at a separate 24 Hz.
     try {
       if (captureBackdrop()) {
         renderOptics();
-        lastCapture = now;
-        lastRectKey = rectKey;
         card.classList.remove('liquid-glass--fallback');
       }
     } catch (error) {

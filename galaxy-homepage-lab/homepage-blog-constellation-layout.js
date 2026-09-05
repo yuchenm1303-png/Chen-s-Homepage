@@ -9,6 +9,11 @@
   // branched silhouette: one rising spine plus two short lower branches. It must
   // never collapse back into a closed ring around the primary.
   const FIXED_INDICES = Object.freeze({
+    'about-identity': 1405,
+    'about-work': 8953,
+    'about-study': 2782,
+    'about-place': 3482,
+
     blog: 5596,
     'building-homepage': 156,
     'opengl-liquid-glass': 1918,
@@ -101,20 +106,20 @@
   const enriched = catalog.map((item) => {
     const fieldId = item.kind === 'field' ? item.id : item.parentField;
     const layout = layouts[fieldId];
-    if (!layout) return item;
-
-    const target = absoluteTarget(layout, item);
     const fixedIndex = FIXED_INDICES[item.id];
-    const star = target && item.star
+    const hasFixedIndex = Number.isInteger(fixedIndex);
+    if (!layout && !hasFixedIndex) return item;
+
+    const target = layout ? absoluteTarget(layout, item) : item.star?.target;
+    const star = item.star
       ? Object.freeze({
           ...item.star,
-          target,
-          depth: LOCAL_DEPTH,
-          fixedIndex: Number.isInteger(fixedIndex) ? fixedIndex : undefined,
+          ...(layout ? { target, depth: LOCAL_DEPTH } : {}),
+          fixedIndex: hasFixedIndex ? fixedIndex : undefined,
         })
       : item.star;
 
-    if (item.kind === 'field') {
+    if (item.kind === 'field' && layout) {
       const constellation = Object.freeze({
         ...item.constellation,
         edges: layout.edges,
@@ -136,6 +141,8 @@
   style.textContent = `
     /* Labels point away from each constellation's centre so the silhouette and
        connector lines remain readable in both hover preview and local-field view. */
+    .smirel-companion-star[data-parent-field="about"][data-companion-id="about-identity"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="about"][data-companion-id="about-place"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
@@ -146,6 +153,8 @@
       text-align: right;
     }
 
+    .smirel-companion-star[data-parent-field="about"][data-companion-id="about-identity"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="about"][data-companion-id="about-work"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="building-homepage"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="opengl-liquid-glass"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
@@ -155,6 +164,8 @@
       top: -15px;
     }
 
+    .smirel-companion-star[data-parent-field="about"][data-companion-id="about-study"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="about"][data-companion-id="about-place"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="app-performance-optimization"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="compose-parent-bubble-rendering"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,

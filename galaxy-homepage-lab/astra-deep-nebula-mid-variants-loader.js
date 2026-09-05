@@ -69,6 +69,84 @@ const splitMid = `    vec2 midP = rot2(-0.60) * sky;
 
 source = replaceOnce(source, baselineMid, splitMid, 'C / Split mid-nebula topology');
 
+// Anchor the approved nebula topology to absolute world-space depth. The
+// baseline shader already reconstructs each ray sample as p = camera + ray*t
+// and stores -p.z in `depth`; only the layer windows/drift were still keyed to
+// camera-relative `t`. Replacing those terms after C/Split is assembled keeps
+// the home composition intact while making the volume stay put as the camera
+// actually flies through it.
+const worldSpaceDepthReplacements = [
+  [
+    '    // Three coherent depth layers. They share the same ray-space volume but\n    // have different orientations and depth windows, so camera motion exposes\n    // real parallax instead of sliding one flat fog texture around.',
+    '    // Three coherent depth layers are fixed in world space. Camera motion\n    // now crosses their absolute Z windows instead of carrying those windows\n    // forward with the viewer.',
+    'World-space nebula architecture comment',
+  ],
+  [
+    '    farP += vec2((t - 46.0) * 0.0018, (t - 46.0) * -0.0007);',
+    '    farP += vec2((depth - 46.0) * 0.0018, (depth - 46.0) * -0.0007);',
+    'Far nebula world-space drift',
+  ],
+  [
+    '    float farWindow = gaussianWeight(t, 47.0, 15.0)',
+    '    float farWindow = gaussianWeight(depth, 47.0, 15.0)',
+    'Far nebula world-space window',
+  ],
+  [
+    '    midP += vec2((t - 31.0) * -0.0022, (t - 31.0) * 0.0012);',
+    '    midP += vec2((depth - 31.0) * -0.0022, (depth - 31.0) * 0.0012);',
+    'Mid nebula world-space drift',
+  ],
+  [
+    '    float midWindow = gaussianWeight(t, 31.0, 11.5)',
+    '    float midWindow = gaussianWeight(depth, 31.0, 11.5)',
+    'Mid nebula world-space window',
+  ],
+  [
+    '    nearP += vec2((t - 17.0) * 0.0034, (t - 17.0) * -0.0020);',
+    '    nearP += vec2((depth - 17.0) * 0.0034, (depth - 17.0) * -0.0020);',
+    'Near nebula world-space drift',
+  ],
+  [
+    '    float nearWindow = gaussianWeight(t, 17.0, 7.8)',
+    '    float nearWindow = gaussianWeight(depth, 17.0, 7.8)',
+    'Near nebula world-space window',
+  ],
+  [
+    '      * gaussianWeight(t, 34.0, 8.0);',
+    '      * gaussianWeight(depth, 34.0, 8.0);',
+    'Warm complex world-space window',
+  ],
+  [
+    '      * gaussianWeight(t, 50.0, 10.0);',
+    '      * gaussianWeight(depth, 50.0, 10.0);',
+    'Far complex world-space window',
+  ],
+  [
+    '      * gaussianWeight(t, 18.0, 6.0);',
+    '      * gaussianWeight(depth, 18.0, 6.0);',
+    'Near complex world-space window',
+  ],
+  [
+    '      dustLane0 * gaussianWeight(t, 24.0, 13.0) * 0.92',
+    '      dustLane0 * gaussianWeight(depth, 24.0, 13.0) * 0.92',
+    'Primary dust world-space window',
+  ],
+  [
+    '      + dustLane1 * gaussianWeight(t, 29.0, 10.0) * 0.58',
+    '      + dustLane1 * gaussianWeight(depth, 29.0, 10.0) * 0.58',
+    'Secondary dust world-space window',
+  ],
+  [
+    '      + dustLane2 * gaussianWeight(t, 15.0, 7.0) * 0.40',
+    '      + dustLane2 * gaussianWeight(depth, 15.0, 7.0) * 0.40',
+    'Foreground dust world-space window',
+  ],
+];
+
+for (const [search, replacement, label] of worldSpaceDepthReplacements) {
+  source = replaceOnce(source, search, replacement, label);
+}
+
 // Inject performance-only patches after the upstream loader has built the final
 // renderer source. C / Split math, star counts, colors and bloom parameters stay
 // unchanged. The optimizations remove work that cannot affect the displayed

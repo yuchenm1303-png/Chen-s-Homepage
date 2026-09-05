@@ -1,49 +1,48 @@
 (() => {
   'use strict';
 
-  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  if (!finePointer.matches || reducedMotion.matches) return;
-
-  const MAX_TILT_DEG = 2.3;
-  const cards = document.querySelectorAll('.home-project-card');
+  // Source-faithful BA Hero motion model from the recovered production bundle.
+  // The original uses raw pointer distance from the transformed card centre,
+  // divided by 15, with no normalized max-angle clamp.
+  const TILT_DIVISOR = 15;
+  const cards = document.querySelectorAll('.home-project-card, .liquid-glass-card');
 
   for (const card of cards) {
-    let frame = 0;
-    let pointerX = 0;
-    let pointerY = 0;
+    let rotateX = 0;
+    let rotateY = 0;
+    let gradientAngle = 135;
 
-    const applyTilt = () => {
-      frame = 0;
-      const rect = card.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-
-      const normalizedX = Math.max(-1, Math.min(1, ((pointerX - rect.left) / rect.width - 0.5) * 2));
-      const normalizedY = Math.max(-1, Math.min(1, ((pointerY - rect.top) / rect.height - 0.5) * 2));
-
-      card.classList.add('is-tilting');
-      card.style.setProperty('--project-tilt-y', `${normalizedX * MAX_TILT_DEG}deg`);
-      card.style.setProperty('--project-tilt-x', `${-normalizedY * MAX_TILT_DEG}deg`);
+    const apply = () => {
+      card.style.transform = `perspective(1000px) rotateY(${rotateY}deg) rotateX(${rotateX}deg)`;
+      card.style.setProperty('--ba-tilt-gradient-angle', `${gradientAngle}deg`);
     };
 
-    const handlePointerMove = (event) => {
-      pointerX = event.clientX;
-      pointerY = event.clientY;
-      if (!frame) frame = requestAnimationFrame(applyTilt);
+    const handleMouseMove = (event) => {
+      window.requestAnimationFrame(() => {
+        const rect = card.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        rotateY = (event.clientX - centerX) / TILT_DIVISOR;
+        rotateX = -(event.clientY - centerY) / TILT_DIVISOR;
+
+        const dx = event.clientX - centerX;
+        const dy = event.clientY - centerY;
+        gradientAngle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+
+        apply();
+      });
     };
 
-    const resetTilt = () => {
-      if (frame) {
-        cancelAnimationFrame(frame);
-        frame = 0;
-      }
-      card.classList.remove('is-tilting');
-      card.style.setProperty('--project-tilt-x', '0deg');
-      card.style.setProperty('--project-tilt-y', '0deg');
+    const handleMouseLeave = () => {
+      rotateX = 0;
+      rotateY = 0;
+      gradientAngle = 135;
+      apply();
     };
 
-    card.addEventListener('pointermove', handlePointerMove, { passive: true });
-    card.addEventListener('pointerleave', resetTilt, { passive: true });
-    card.addEventListener('pointercancel', resetTilt, { passive: true });
+    apply();
+    card.addEventListener('mousemove', handleMouseMove, { passive: true });
+    card.addEventListener('mouseleave', handleMouseLeave, { passive: true });
   }
 })();

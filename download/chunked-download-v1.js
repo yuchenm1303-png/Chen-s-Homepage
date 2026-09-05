@@ -1,6 +1,7 @@
 (() => {
   const MAX_ATTEMPTS = 3;
   const RETRY_DELAYS_MS = [800, 2200];
+  const NATIVE_PREFETCH_WINDOW = 2;
 
   function sleep(ms) {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -71,6 +72,36 @@
     throw lastError || new Error("chunk_download_failed");
   }
 
+  function fetchChunkSettled(chunk) {
+    return fetchChunk(chunk).then(
+      (blob) => ({ blob, error: null }),
+      (error) => ({ blob: null, error })
+    );
+  }
+
+  async function consumeNativeChunks(chunks, consume) {
+    const pending = new Map();
+    const schedule = (index) => {
+      if (index >= chunks.length || pending.has(index)) return;
+      pending.set(index, fetchChunkSettled(chunks[index]));
+    };
+
+    for (let index = 0; index < Math.min(NATIVE_PREFETCH_WINDOW, chunks.length); index += 1) {
+      schedule(index);
+    }
+
+    for (let index = 0; index < chunks.length; index += 1) {
+      const outcome = await pending.get(index);
+      pending.delete(index);
+      if (!outcome || outcome.error || !outcome.blob) {
+        throw outcome?.error || new Error("chunk_prefetch_failed");
+      }
+
+      await consume(chunks[index], outcome.blob);
+      schedule(index + NATIVE_PREFETCH_WINDOW);
+    }
+  }
+
   function emitProgress(options, completedChunks, totalChunks, downloadedBytes, totalBytes) {
     options.onProgress?.({ completedChunks, totalChunks, downloadedBytes, totalBytes });
   }
@@ -80,13 +111,12 @@
     let downloaded = 0;
 
     try {
-      for (const chunk of normalized.chunks) {
+      await consumeNativeChunks(normalized.chunks, async (chunk, blob) => {
         emitProgress(options, chunk.index, normalized.chunks.length, downloaded, normalized.size);
-        const blob = await fetchChunk(chunk);
         await writable.write({ type: "write", position: downloaded, data: blob });
         downloaded += blob.size;
         emitProgress(options, chunk.index + 1, normalized.chunks.length, downloaded, normalized.size);
-      }
+      });
 
       if (downloaded !== normalized.size) throw new Error("assembled_size_mismatch");
       await writable.truncate(normalized.size);

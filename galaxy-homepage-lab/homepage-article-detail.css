@@ -1,0 +1,281 @@
+/* Editorial detail layout for long-form note objects.
+   The stellar subject remains a spatial anchor; article typography lives in the
+   document flow instead of sharing the fixed project-detail hero. */
+
+.star-detail-shell.is-article-reader::before {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(0,0,0,0) 0 12%, rgba(0,0,0,.035) 21%, rgba(0,0,0,.15) 34%, transparent 50%),
+    linear-gradient(90deg, rgba(0,0,0,.06) 0%, rgba(0,0,0,.14) 22%, rgba(0,0,0,.38) 48%, rgba(0,0,0,.54) 100%);
+}
+
+.star-detail-shell.is-article-reader::after {
+  background: linear-gradient(180deg, rgba(0,0,0,.04) 0%, rgba(0,0,0,.10) 28%, rgba(0,0,0,.34) 100%);
+  opacity: .72;
+}
+
+/* The fixed layer is reduced to the stellar subject only. Long article titles
+   never live in this fixed grid, so they cannot collide with the star or body. */
+.star-detail-shell.is-article-reader .star-detail-header {
+  left: clamp(42px, 5.2vw, 84px);
+  right: auto;
+  top: clamp(78px, 9.5vh, 116px);
+  width: clamp(164px, 14vw, 218px);
+  display: block;
+}
+
+.star-detail-shell.is-article-reader .star-detail-heading {
+  display: none;
+}
+
+.star-detail-shell.is-article-reader .star-detail-star-slot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.star-detail-shell.is-article-reader .star-detail-main {
+  width: min(900px, calc(100vw - 520px));
+  margin: 0 0 0 clamp(330px, 27vw, 440px);
+  padding: clamp(72px, 8.5vh, 108px) clamp(30px, 4vw, 64px) 138px 0;
+}
+
+.star-detail-shell.is-article-reader .star-detail-back {
+  top: 22px;
+  right: 24px;
+  left: auto;
+  padding: 7px 11px;
+  border-color: rgba(255,255,255,.10);
+  background: rgba(0,0,0,.18);
+  color: rgba(255,255,255,.54);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.stellar-article-page {
+  width: 100%;
+  font-family: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", ui-rounded, "SF Pro Rounded", "Segoe UI", sans-serif;
+}
+
+.stellar-article-hero {
+  width: min(850px, 100%);
+  padding-bottom: clamp(34px, 4vw, 52px);
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+.stellar-article-eyebrow {
+  margin: 0;
+  color: rgba(255,255,255,.38);
+  font: 650 9px/1.2 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.stellar-article-title {
+  margin: 12px 0 0;
+  max-width: 850px;
+  color: rgba(255,255,255,.96);
+  font-size: clamp(32px, 3vw, 46px);
+  font-weight: 560;
+  line-height: 1.10;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-break: strict;
+  text-shadow: 0 2px 24px rgba(0,0,0,.72);
+}
+
+.stellar-article-deck {
+  margin: 18px 0 0;
+  max-width: 66ch;
+  color: rgba(255,255,255,.62);
+  font-size: 14px;
+  line-height: 1.68;
+}
+
+.stellar-article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 18px 0 0;
+  color: rgba(255,255,255,.36);
+  font: 560 9px/1.4 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .055em;
+}
+
+.star-detail-shell.is-article-reader .stellar-article-reader {
+  width: min(680px, 100%);
+  max-width: none;
+  margin-top: clamp(44px, 5.2vw, 66px);
+  color: rgba(255,255,255,.72);
+  font-family: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", ui-rounded, "SF Pro Rounded", "Segoe UI", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.90;
+  letter-spacing: .002em;
+}
+
+.star-detail-shell.is-article-reader .stellar-article-reader > :first-child {
+  margin-top: 0 !important;
+}
+
+.star-detail-shell.is-article-reader .stellar-article-reader p {
+  margin: 0 0 24px;
+}
+
+.star-detail-shell.is-article-reader .stellar-article-reader .article-lead,
+.star-detail-shell.is-article-reader .stellar-article-reader > p:first-child {
+  color: rgba(255,255,255,.86);
+  font-size: 18px;
+  line-height: 1.82;
+  letter-spacing: -.008em;
+}
+
+.star-detail-shell.is-article-reader .stellar-article-reader h2 {
+  margin: 64px 0 20px;
+  color: rgba(255,255,255,.94);
+  font-size: clamp(25px, 2.2vw, 31px);
+  line-height: 1.25;
+  font-weight: 560;
+  letter-spacing: -.025em;
+  text-wrap: balance;
+}
+
+.star-detail-shell.is-article-reader .stellar-article-reader h3 {
+  margin: 42px 0 15px;
+  color: rgba(255,255,255,.88);
+  font-size: 19px;
+  line-height: 1.42;
+  font-weight: 570;
+}
+
+.star-detail-shell.is-article-reader .stellar-article-reader ul,
+.star-detail-shell.is-article-reader .stellar-article-reader ol {
+  margin: 20px 0 28px;
+  padding-left: 1.4em;
+}
+
+.star-detail-shell.is-article-reader .stellar-article-reader li {
+  margin: 9px 0;
+}
+
+.star-detail-shell.is-article-reader .stellar-article-reader blockquote {
+  margin: 34px 0;
+  padding: 2px 0 2px 21px;
+  border-left: 1px solid rgba(194,225,255,.30);
+  color: rgba(225,239,255,.76);
+  font-size: 17px;
+  line-height: 1.78;
+}
+
+.star-detail-shell.is-article-reader .stellar-article-reader pre,
+.star-detail-shell.is-article-reader .stellar-article-reader .article-code {
+  margin: 32px 0;
+  border-radius: 12px;
+  background: rgba(3,7,13,.42);
+}
+
+.stellar-article-footer {
+  width: min(680px, 100%);
+  margin-top: 76px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,.10);
+  color: rgba(255,255,255,.28);
+  font: 600 8px/1.5 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1100px) {
+  .star-detail-shell.is-article-reader .star-detail-header {
+    left: 28px;
+    top: 82px;
+    width: 146px;
+  }
+
+  .star-detail-shell.is-article-reader .star-detail-main {
+    width: calc(100vw - 250px);
+    margin-left: 210px;
+    padding-right: 32px;
+  }
+
+  .stellar-article-title {
+    font-size: clamp(30px, 4vw, 42px);
+  }
+}
+
+@media (max-width: 760px) {
+  .star-detail-shell.is-article-reader::before {
+    background:
+      radial-gradient(circle at 18% 10%, rgba(0,0,0,0) 0 9%, rgba(0,0,0,.08) 19%, transparent 34%),
+      linear-gradient(180deg, rgba(0,0,0,.03) 0%, rgba(0,0,0,.18) 24%, rgba(0,0,0,.48) 100%);
+  }
+
+  .star-detail-shell.is-article-reader .star-detail-header {
+    left: 20px;
+    top: 64px;
+    width: 108px;
+  }
+
+  .star-detail-shell.is-article-reader .star-detail-main {
+    width: auto;
+    margin: 0 20px;
+    padding: 194px 0 96px;
+  }
+
+  .star-detail-shell.is-article-reader .star-detail-back {
+    top: 14px;
+    right: 14px;
+  }
+
+  .stellar-article-hero {
+    padding-bottom: 30px;
+  }
+
+  .stellar-article-title {
+    margin-top: 10px;
+    font-size: clamp(28px, 8.4vw, 36px);
+    line-height: 1.13;
+    letter-spacing: -.03em;
+  }
+
+  .stellar-article-deck {
+    margin-top: 15px;
+    font-size: 13px;
+    line-height: 1.64;
+  }
+
+  .stellar-article-meta {
+    margin-top: 15px;
+  }
+
+  .star-detail-shell.is-article-reader .stellar-article-reader {
+    width: 100%;
+    margin-top: 38px;
+    font-size: 15px;
+    line-height: 1.86;
+  }
+
+  .star-detail-shell.is-article-reader .stellar-article-reader .article-lead,
+  .star-detail-shell.is-article-reader .stellar-article-reader > p:first-child {
+    font-size: 16.5px;
+    line-height: 1.78;
+  }
+
+  .star-detail-shell.is-article-reader .stellar-article-reader h2 {
+    margin-top: 50px;
+    font-size: 24px;
+  }
+
+  .stellar-article-footer {
+    margin-top: 60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-detail-shell.is-article-reader .star-detail-header,
+  .star-detail-shell.is-article-reader .star-detail-main,
+  .star-detail-shell.is-article-reader .star-detail-back {
+    transition: none !important;
+  }
+}

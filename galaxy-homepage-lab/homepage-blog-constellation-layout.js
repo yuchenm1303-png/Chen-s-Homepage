@@ -6,8 +6,8 @@
 
   // The bright field is deterministic (seed 0xA57A2D31), so these are authored
   // identities rather than runtime search hints. About stays deliberately local
-  // to its primary: four nearby nodes form a compact personal-field fan instead
-  // of stretching across the viewport. Blog keeps an open branched silhouette.
+  // to its primary: four nearby nodes form a compact personal-field constellation
+  // instead of stretching across the viewport. Blog keeps an open branched silhouette.
   const FIXED_INDICES = Object.freeze({
     about: 8430,
     'about-identity': 13906,
@@ -66,6 +66,7 @@
         ['about', 'about-work'],
         ['about', 'about-study'],
         ['about', 'about-place'],
+        ['about-identity', 'about-work'],
       ],
     }),
 

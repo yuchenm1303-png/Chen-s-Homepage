@@ -156,11 +156,47 @@ source = replaceOnce(
   'Interactive star presentation budget',
 );
 
-// Depth-aware visibility experiment. Keep all 48.8k star points and their
-// positions unchanged, but move visual emphasis toward the near and middle
-// shells. The previous uniform 0.90 px floor disproportionately rescued the
-// farthest micro-stars; this version gives near/mid stars a larger optical floor
-// and energy window while deliberately letting the far shell fall back.
+// The screenshot exposed the actual spatial problem: every micro star was sampled
+// from the Milky Way band, and 82% of them lived in the old 24-58 depth shell.
+// Keep the same 34k points, but reallocate roughly half into a true near/mid
+// full-view ambient volume. The remaining band stars now favour mid depth and
+// leave only a small far population. This changes depth structure, not workload.
+source = replaceOnce(
+  source,
+  /    const shell = random\\(\\);\\n    const depth = shell < 0\\.18 \\? 12 \\+ Math\\.pow\\(random\\(\\), 0\\.82\\) \\* 16 : 24 \\+ Math\\.pow\\(random\\(\\), 0\\.92\\) \\* 34;\\n    const band = sampleMilkyWayBand\\(random\\);\\n    const thickness = 0\\.016 \\+ \\(1 - band\\.centreWeight\\) \\* 0\\.010;\\n    const p = toWorld\\(band, depth, thickness, random\\);/,
+  \`    const shell = random();
+    const ambient = random() < 0.52;
+    let depth;
+    let band;
+    let p;
+    if (ambient) {
+      const ambientShell = random();
+      depth = ambientShell < 0.54
+        ? 6.0 + Math.pow(random(), 0.72) * 10.0
+        : 14.0 + Math.pow(random(), 0.84) * 16.0;
+      const ambientFovTan = Math.tan(THREE.MathUtils.degToRad(CONFIG.fov * 0.5));
+      const ambientHalfHeight = ambientFovTan * depth * 1.24;
+      const ambientHalfWidth = ambientHalfHeight * 2.05;
+      p = {
+        x: (random() * 2 - 1) * ambientHalfWidth,
+        y: (random() * 2 - 1) * ambientHalfHeight,
+        z: -depth,
+      };
+      band = { centreWeight: 0.0, complexPeak: 0.0, dustTransmission: 1.0 };
+    } else {
+      depth = shell < 0.68
+        ? 18.0 + Math.pow(random(), 0.86) * 16.0
+        : 30.0 + Math.pow(random(), 1.08) * 20.0;
+      band = sampleMilkyWayBand(random);
+      const thickness = 0.016 + (1 - band.centreWeight) * 0.010;
+      p = toWorld(band, depth, thickness, random);
+    }\`,
+  'Near-mid micro-star population redistribution',
+);
+
+// Depth-aware visibility now reinforces the redistributed geometry. Near/mid
+// points receive the stronger optical floor; the small remaining far shell is
+// intentionally quieter so it reads as depth instead of the dominant layer.
 source = replaceOnce(
   source,
   /vParticleDiameter = max\\(opticalDiameter, uPixelRatio \\* 0\\.58\\);/,

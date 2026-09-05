@@ -53,6 +53,39 @@
   box-shadow: none;
 }
 
+.cards.home-project-card {
+  --project-tilt-x: 0deg;
+  --project-tilt-y: 0deg;
+  --project-tilt-scale: 1;
+  transform:
+    perspective(1150px)
+    rotateX(var(--project-tilt-x))
+    rotateY(var(--project-tilt-y))
+    scale(var(--project-tilt-scale));
+  transform-style: preserve-3d;
+  transform-origin: center center;
+  backface-visibility: hidden;
+  will-change: transform;
+  transition:
+    transform 260ms cubic-bezier(.25,.46,.45,.94),
+    backdrop-filter .3s,
+    background-color .3s;
+}
+
+.cards.home-project-card:hover {
+  --project-tilt-scale: 1.01;
+}
+
+.cards.home-project-card:active {
+  --project-tilt-scale: .985;
+}
+
+.cards.home-project-card.is-tilting {
+  transition:
+    backdrop-filter .3s,
+    background-color .3s;
+}
+
 .home-project-card:hover {
   background-color: rgba(0,0,0,.4);
 }

@@ -1,6 +1,20 @@
 .home-profile-card {
+  left: clamp(32px, 8vw, 132px);
+  top: clamp(28px, 7vh, 88px);
   width: min(410px, calc(100vw - 40px));
   min-height: 214px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.home-profile-card.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+  transition: none;
+}
+
+.home-profile-card a {
+  cursor: pointer;
 }
 
 .home-profile-card .liquid-glass__content {
@@ -77,6 +91,11 @@
 }
 
 @media (max-width: 760px) {
+  .home-profile-card {
+    left: 14px;
+    top: 14px;
+  }
+
   .home-profile-card,
   .home-profile-card .liquid-glass__content {
     min-height: 198px;

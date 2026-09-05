@@ -155,6 +155,35 @@ source = replaceOnce(
     || introActive\`,
   'Interactive star presentation budget',
 );
+
+// Visibility-only experiment: keep all 48.8k existing star points, spatial
+// distribution, palettes, bloom, camera and flight behavior unchanged. Raise
+// only the micro-star energy that currently falls below practical display
+// visibility, so more of the existing 34k micro stars are actually perceived.
+source = replaceOnce(
+  source,
+  /vParticleDiameter = max\\(opticalDiameter, uPixelRatio \\* 0\\.58\\);/,
+  'vParticleDiameter = max(opticalDiameter, uPixelRatio * 0.90);',
+  'Micro-star minimum optical footprint',
+);
+source = replaceOnce(
+  source,
+  /vFluxCompensation = clamp\\(ratio \\* ratio, 1\\.0, 1\\.85\\);/,
+  'vFluxCompensation = clamp(ratio * ratio, 1.0, 2.35);',
+  'Micro-star sub-pixel flux compensation',
+);
+source = replaceOnce(
+  source,
+  /data\\.brightness\\[i\\] = \\(0\\.46 \\+ random\\(\\) \\* 0\\.46\\) \\* centreBoost \\* complexBoost \\* depthQuiet;/,
+  'data.brightness[i] = (0.54 + random() * 0.44) * centreBoost * complexBoost * depthQuiet;',
+  'Micro-star source brightness floor',
+);
+source = replaceOnce(
+  source,
+  /data\\.opacity\\[i\\] = \\(0\\.24 \\+ random\\(\\) \\* 0\\.34\\) \\* band\\.dustTransmission \\* \\(0\\.90 \\+ band\\.centreWeight \\* 0\\.12\\);/,
+  'data.opacity[i] = (0.30 + random() * 0.34) * band.dustTransmission * (0.92 + band.centreWeight * 0.12);',
+  'Micro-star source opacity floor',
+);
 `;
 
 // The stable loader first injects its performance patch into the deep-nebula

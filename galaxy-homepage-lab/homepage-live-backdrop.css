@@ -1,0 +1,33 @@
+/* Live backdrop blur: the blur itself samples the current composed galaxy behind
+   each glass surface. V29.5 stays above it as the optical/refraction layer. */
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid-glass-card,
+  .home-panel {
+    --live-glass-blur: 14px;
+    --live-glass-saturation: 1.08;
+    --live-glass-brightness: .90;
+    background-color: rgba(3, 5, 8, .12);
+    -webkit-backdrop-filter:
+      blur(var(--live-glass-blur))
+      saturate(var(--live-glass-saturation))
+      brightness(var(--live-glass-brightness));
+    backdrop-filter:
+      blur(var(--live-glass-blur))
+      saturate(var(--live-glass-saturation))
+      brightness(var(--live-glass-brightness));
+  }
+
+  .home-panel {
+    --live-glass-blur: 16px;
+    --live-glass-saturation: 1.06;
+    --live-glass-brightness: .88;
+  }
+
+  /* The old captured blur image is no longer the visible glass body. Keep the
+     canvas in the DOM because V29.5 still owns the optical sampling pipeline. */
+  .liquid-glass-card > .liquid-glass__backdrop,
+  .home-panel > .liquid-glass__backdrop {
+    opacity: 0;
+  }
+}

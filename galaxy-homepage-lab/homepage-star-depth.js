@@ -208,14 +208,16 @@
     'Depth expansion insertion',
   );
 
-  // Keep the test anchor in the rear half of the original bright field. The new
-  // continuation layers extend far beyond it, so the star no longer defines the
-  // perceived edge of the universe.
+  // The continuum raymarch spans t=6..62 from the home camera, with its far
+  // nebula mass centred near t=47. Keep the interactive target inside that
+  // luminous volume instead of selecting it from the deep continuation shells.
+  // The 150..455 continuation layers remain behind it to preserve the larger
+  // universe and visible starfield depth.
   source = replaceOnce(
     source,
     '          if (depth < 13 || depth > 38) continue;',
-    '          if (depth < 92 || depth > 150) continue;',
-    'Deep anchor selection',
+    '          if (depth < 36 || depth > 54) continue;',
+    'Nebula-bounded anchor selection',
   );
 
   source = replaceOnce(

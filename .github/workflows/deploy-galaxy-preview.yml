@@ -1,0 +1,63 @@
+name: Deploy galaxy preview to smirel.com/galaxy
+
+on:
+  push:
+    branches: ["feat/galaxy-homepage-redesign"]
+    paths:
+      - "galaxy-homepage-lab/**"
+      - ".github/workflows/deploy-galaxy-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}galaxy/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production homepage
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+          persist-credentials: false
+
+      - name: Checkout galaxy development branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: galaxy-source
+          persist-credentials: false
+
+      - name: Assemble Pages artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p published
+          rsync -a --exclude='.git' production/ published/
+          rm -rf published/galaxy
+          mkdir -p published/galaxy
+          rsync -a --delete galaxy-source/galaxy-homepage-lab/ published/galaxy/
+          test -s published/galaxy/index.html
+          test "$(tr -d '\r\n' < published/CNAME)" = "smirel.com"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload combined homepage and galaxy preview
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: published
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

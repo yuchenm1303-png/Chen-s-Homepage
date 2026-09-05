@@ -113,17 +113,25 @@ jobs:
             exit 1
           fi
 
-      - name: Flatten galaxy runtime loaders before deploy
+      - name: Build static galaxy runtime before deploy
         shell: bash
         run: |
           set -euo pipefail
           BUILDER="galaxy-source/galaxy-homepage-lab/tools/build-static-runtime.mjs"
+          STARTUP_OPTIMIZER="galaxy-source/galaxy-homepage-lab/tools/parallelize-galaxy-startup.mjs"
           node --check "$BUILDER"
+          node --check "$STARTUP_OPTIMIZER"
 
           # Execute the exact existing loader transformations during the build,
           # so mobile browsers receive the already-expanded renderer module.
           node "$BUILDER" published "${GITHUB_SHA}-production"
           node "$BUILDER" published/galaxy "${GITHUB_SHA}-preview"
+
+          # The precomputed star cache and the expensive continuum shader used to
+          # run serially. Start both as early as possible and join them only at
+          # the point where real star buffers are bound, without changing pixels.
+          node "$STARTUP_OPTIMIZER" published
+          node "$STARTUP_OPTIMIZER" published/galaxy
 
           test -s published/astra-homepage-runtime.generated.js
           test -s published/galaxy/astra-homepage-runtime.generated.js
@@ -131,6 +139,10 @@ jobs:
           grep -q '__SMIREL_HOMEPAGE_GLASS_SYNC__' published/astra-homepage-runtime.generated.js
           grep -q '__SMIREL_STAR_FLIGHT_INSTALL__' published/galaxy/astra-homepage-runtime.generated.js
           grep -q '__SMIREL_HOMEPAGE_GLASS_SYNC__' published/galaxy/astra-homepage-runtime.generated.js
+          grep -q 'renderer.compileAsync(continuumScene, continuumCamera)' published/astra-homepage-runtime.generated.js
+          grep -q 'renderer.compileAsync(continuumScene, continuumCamera)' published/galaxy/astra-homepage-runtime.generated.js
+          grep -q 'smirel-star-cache-bootstrap' published/index.html
+          grep -q 'smirel-star-cache-bootstrap' published/galaxy/index.html
 
           if grep -q 'astra-homepage-glass-capture-loader.js' published/index.html; then
             echo 'Production root still references the runtime Blob loader' >&2
@@ -146,6 +158,10 @@ jobs:
           fi
           if grep -q 'homepage-galaxy-preload.js' published/galaxy/index.html; then
             echo 'Galaxy preview still references the temporary preload shim' >&2
+            exit 1
+          fi
+          if grep -q 'rel="preload" href="./astra-starfield-cache.bin' published/index.html published/galaxy/index.html; then
+            echo 'Legacy star-cache preload hint remains beside the active early fetch' >&2
             exit 1
           fi
 

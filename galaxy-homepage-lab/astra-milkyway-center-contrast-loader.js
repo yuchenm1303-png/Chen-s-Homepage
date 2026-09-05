@@ -21,6 +21,25 @@ source = replaceOnce(
   'World-space source URL',
 );
 
+// The observer already sits on the galactic mid-plane, but the previous basis
+// pointed the camera about five degrees out of that plane. With a thin outer
+// disk this exponentially suppresses distant disk light. Preserve the same
+// 34-degree sky orientation and Sun-to-centre galactic coordinates, while
+// making the viewing axis lie in the galactic plane.
+source = replaceOnce(
+  source,
+  `  const vec3 galMajor = vec3(0.82903757, 0.55919290, 0.0);\n  const vec3 galNormal = vec3(-0.55706501, 0.82588283, 0.08715574);\n  const vec3 galDepth = vec3(-0.04873687, 0.07225539, -0.99619470);\n  const vec3 galCenter = vec3(2.82980316, 6.53439458, -43.83256680);`,
+  `  const vec3 galMajor = vec3(0.82903757, 0.55919290, 0.0);\n  const vec3 galNormal = vec3(-0.55919290, 0.82903757, 0.0);\n  const vec3 galDepth = vec3(0.0, 0.0, -1.0);\n  const vec3 galCenter = vec3(4.97422542, 3.35515740, -44.0);`,
+  'GLSL galactic plane alignment',
+);
+
+source = replaceOnce(
+  source,
+  `const GALACTIC_MAJOR = Object.freeze({ x: 0.82903757, y: 0.55919290, z: 0.0 });\nconst GALACTIC_NORMAL = Object.freeze({ x: -0.55706501, y: 0.82588283, z: 0.08715574 });\nconst GALACTIC_DEPTH = Object.freeze({ x: -0.04873687, y: 0.07225539, z: -0.99619470 });\nconst GALACTIC_CENTER = Object.freeze({ x: 2.82980316, y: 6.53439458, z: -43.83256680 });`,
+  `const GALACTIC_MAJOR = Object.freeze({ x: 0.82903757, y: 0.55919290, z: 0.0 });\nconst GALACTIC_NORMAL = Object.freeze({ x: -0.55919290, y: 0.82903757, z: 0.0 });\nconst GALACTIC_DEPTH = Object.freeze({ x: 0.0, y: 0.0, z: -1.0 });\nconst GALACTIC_CENTER = Object.freeze({ x: 4.97422542, y: 3.35515740, z: -44.0 });`,
+  'CPU galactic plane alignment',
+);
+
 source = replaceOnce(
   source,
   `    float centreWeight = exp(-pow(radius / 12.5, 2.0));\n    float diskScaleHeight = 2.35 + radius * 0.010 + centreWeight * 2.65;\n    float vertical = exp(-0.82 * pow(gz / diskScaleHeight, 2.0));\n    float radial = exp(-radius / 58.0);\n    float bulge = centreWeight * exp(-0.38 * pow(gz / 4.4, 2.0));`,

@@ -18,17 +18,16 @@
 
   let source = baseInstall.toString();
 
-  // The approved field was generated inside roughly 3..58 world units. Merely
-  // moving those exact points farther away preserves the same projected star map
-  // and still reads like a thin sky dome. Keep the original near/mid population,
-  // stretch its rear half, then continue the volume with deterministic deep and
-  // ultra-deep shells derived from the same angular Milky Way distribution.
+  // Preserve the approved near-field composition, but expand the star volume in
+  // both depth and angular breadth. The wide continuation shells intentionally
+  // extend beyond the home frustum so camera travel reveals a much larger world
+  // instead of a compact patch of stars around the original Milky Way band.
   source = replaceOnce(
     source,
     '    const FLIGHT_DURATION_MS = reducedMotion ? 1100 : 4200;',
     `    const DEPTH_START = 12.0;
     const DEPTH_STRETCH = 4.4;
-    const DEPTH_FAR = 720;
+    const DEPTH_FAR = 980;
 
     function deepenPoints(pointsObject) {
       const geometry = pointsObject?.geometry;
@@ -63,19 +62,19 @@
       if (vertex.includes('clamp(8.5 / cameraDepth, 0.28, 2.05)')) {
         vertex = vertex.replace(
           'clamp(8.5 / cameraDepth, 0.28, 2.05)',
-          'clamp(9.0 / cameraDepth, 0.045, 2.05)',
+          'clamp(9.0 / cameraDepth, 0.035, 2.05)',
         );
       }
       if (vertex.includes('clamp(9.0 / cameraDepth, 0.26, 1.12)')) {
         vertex = vertex.replace(
           'clamp(9.0 / cameraDepth, 0.26, 1.12)',
-          'clamp(9.0 / cameraDepth, 0.035, 1.12)',
+          'clamp(9.0 / cameraDepth, 0.028, 1.12)',
         );
       }
       if (vertex.includes('max(opticalDiameter, uPixelRatio * 0.58)')) {
         vertex = vertex.replace(
           'max(opticalDiameter, uPixelRatio * 0.58)',
-          'max(opticalDiameter, uPixelRatio * 0.24)',
+          'max(opticalDiameter, uPixelRatio * 0.22)',
         );
       }
 
@@ -107,6 +106,8 @@
 
       const count = options.count;
       const random = seededDepthRandom(options.seed);
+      const angularScaleX = options.angularScaleX ?? 1.0;
+      const angularScaleY = options.angularScaleY ?? 1.0;
       const geometry = new THREE.BufferGeometry();
       const positionsOut = new Float32Array(count * 3);
       const brightnessOut = new Float32Array(count);
@@ -119,8 +120,8 @@
       for (let i = 0; i < count; i += 1) {
         const sourceIndex = Math.min(sourcePosition.count - 1, Math.floor(random() * sourcePosition.count));
         const sourceDepth = Math.max(-sourcePosition.getZ(sourceIndex), 1.0);
-        const angularX = sourcePosition.getX(sourceIndex) / sourceDepth;
-        const angularY = sourcePosition.getY(sourceIndex) / sourceDepth;
+        const angularX = (sourcePosition.getX(sourceIndex) / sourceDepth) * angularScaleX;
+        const angularY = (sourcePosition.getY(sourceIndex) / sourceDepth) * angularScaleY;
         const jitterX = (random() + random() - 1.0) * options.angularJitter;
         const jitterY = (random() + random() - 1.0) * options.angularJitter * 0.72;
         const depthT = Math.pow(random(), options.depthExponent);
@@ -135,7 +136,7 @@
         brightnessOut[i] = sourceBrightness.getX(sourceIndex) * options.brightness * variation;
         opacityOut[i] = THREE.MathUtils.clamp(
           sourceOpacity.getX(sourceIndex) * options.opacity * (0.80 + random() * 0.30),
-          0.025,
+          0.018,
           1.0,
         );
         scaleOut[i] = sourceScale.getX(sourceIndex) * options.scale * (0.82 + random() * 0.30);
@@ -179,28 +180,66 @@
     }
 
     const microField = originalStarFields.find((object) => object !== brightField) || null;
+
+    // Dense deep shells keep continuity with the original Milky Way structure.
     buildContinuationLayer(brightField, {
-      count: 9000,
+      count: 12000,
       seed: 0x44504545,
-      near: 150,
-      far: 610,
+      near: 145,
+      far: 700,
       depthExponent: 1.12,
-      angularJitter: 0.014,
-      brightness: 0.70,
-      opacity: 0.52,
-      scale: 0.62,
+      angularJitter: 0.028,
+      angularScaleX: 1.08,
+      angularScaleY: 1.05,
+      brightness: 0.68,
+      opacity: 0.50,
+      scale: 0.60,
     });
     if (microField) {
       buildContinuationLayer(microField, {
-        count: 30000,
+        count: 36000,
         seed: 0x554C5452,
-        near: 135,
-        far: 680,
+        near: 130,
+        far: 780,
         depthExponent: 1.22,
-        angularJitter: 0.022,
-        brightness: 0.60,
-        opacity: 0.56,
-        scale: 0.68,
+        angularJitter: 0.042,
+        angularScaleX: 1.12,
+        angularScaleY: 1.08,
+        brightness: 0.58,
+        opacity: 0.54,
+        scale: 0.66,
+      });
+    }
+
+    // Wide peripheral shells are intentionally scaled well beyond the original
+    // angular footprint. They are dimmer and smaller, so they read as enormous
+    // surrounding space rather than a brighter copy of the central galaxy band.
+    buildContinuationLayer(brightField, {
+      count: 12000,
+      seed: 0x42524454,
+      near: 190,
+      far: 860,
+      depthExponent: 1.08,
+      angularJitter: 0.095,
+      angularScaleX: 1.68,
+      angularScaleY: 1.48,
+      brightness: 0.46,
+      opacity: 0.34,
+      scale: 0.50,
+    });
+    if (microField) {
+      buildContinuationLayer(microField, {
+        count: 40000,
+        seed: 0x57494445,
+        near: 165,
+        far: 930,
+        depthExponent: 1.16,
+        angularJitter: 0.135,
+        angularScaleX: 1.88,
+        angularScaleY: 1.64,
+        brightness: 0.42,
+        opacity: 0.40,
+        scale: 0.56,
       });
     }
 
@@ -210,9 +249,8 @@
 
   // The continuum raymarch spans t=6..62 from the home camera, with its far
   // nebula mass centred near t=47. Keep the interactive target inside that
-  // luminous volume instead of selecting it from the deep continuation shells.
-  // The 135..680 continuation layers remain behind it to preserve the larger
-  // universe and visible starfield depth.
+  // luminous volume instead of selecting it from the surrounding deep shells.
+  // The wider 130..930 star volume continues far beyond the visible nebula.
   source = replaceOnce(
     source,
     '          if (depth < 13 || depth > 38) continue;',

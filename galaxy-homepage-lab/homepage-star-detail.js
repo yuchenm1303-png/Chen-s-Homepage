@@ -81,13 +81,12 @@
     const starSlot = shell.querySelector('.star-detail-star-slot');
     const originalBack = document.querySelector('.smirel-star-back');
 
-    // The arrived star remains one physical object in one scene for the whole
-    // transition. Its world position and scale never change in detail mode.
-    // Apparent shrinking comes only from a real camera retreat; screen travel
-    // comes only from a continuously animated asymmetric perspective frustum.
-    const OPEN_MS = reducedMotion ? 1 : 1040;
-    const CLOSE_MS = reducedMotion ? 1 : 820;
-    const DETAIL_REVEAL_AT = 0.30;
+    // One-shot physical camera move. The arrived star never changes world
+    // position, scale, parent, geometry or material. Its apparent shrink and
+    // travel into the header are entirely produced by this same PerspectiveCamera.
+    const OPEN_MS = reducedMotion ? 1 : 1080;
+    const CLOSE_MS = reducedMotion ? 1 : 840;
+    const DETAIL_REVEAL_AT = 0.32;
 
     let phase = 'idle';
     let phaseStartedAt = 0;
@@ -98,14 +97,17 @@
     let closeDuration = CLOSE_MS;
     let starGroup = null;
     let arrivalFov = 47;
-    let arrivalDistance = 3.2;
-    let detailDistance = 20;
+    let arrivalDepth = 3.2;
+    let detailFov = 25;
+    let detailDepth = 38;
 
     const starPosition = new THREE.Vector3();
     const arrivalCameraPosition = new THREE.Vector3();
     const arrivalQuaternion = new THREE.Quaternion();
-    const retreatDirection = new THREE.Vector3();
-    const targetViewOffset = new THREE.Vector2();
+    const cameraBack = new THREE.Vector3();
+    const cameraRight = new THREE.Vector3();
+    const cameraUp = new THREE.Vector3();
+    const targetNdc = new THREE.Vector2();
 
     const baseShouldRenderFrame = typeof controller.shouldRenderFrame === 'function'
       ? controller.shouldRenderFrame.bind(controller)
@@ -142,27 +144,22 @@
       const height = Math.max(window.innerHeight, 1);
       const centreX = rect.left + rect.width * 0.5;
       const centreY = rect.top + rect.height * 0.5;
-      const ndcX = centreX / width * 2 - 1;
-      const ndcY = 1 - centreY / height * 2;
-
-      // PerspectiveCamera.setViewOffset with a full-size sub-view changes only
-      // the projection principal point. A sphere kept on the physical camera axis
-      // therefore moves on screen without becoming an off-axis ellipse.
-      targetViewOffset.set(
-        -ndcX * width * 0.5,
-        ndcY * height * 0.5,
+      targetNdc.set(
+        centreX / width * 2 - 1,
+        1 - centreY / height * 2,
       );
 
-      // Keep the model scale untouched (refined arrival scale is 0.84). Choose a
-      // real viewing distance that makes the photosphere fit the title slot; halo
-      // is intentionally allowed to breathe beyond the slot.
+      // Narrowing the lens while retreating keeps the final star only mildly
+      // off-axis, so the real sphere remains visually round without changing
+      // projection type or introducing a second render layer.
+      detailFov = width <= 620 ? 30 : 25;
       const starScale = starGroup?.scale?.x || 0.84;
-      const focalPixels = height / Math.max(2 * Math.tan(THREE.MathUtils.degToRad(arrivalFov) * 0.5), 1e-5);
-      const desiredCoreRadiusPx = Math.min(rect.width, rect.height) * 0.28;
-      detailDistance = THREE.MathUtils.clamp(
+      const focalPixels = height / Math.max(2 * Math.tan(THREE.MathUtils.degToRad(detailFov) * 0.5), 1e-5);
+      const desiredCoreRadiusPx = Math.min(rect.width, rect.height) * 0.31;
+      detailDepth = THREE.MathUtils.clamp(
         starScale * focalPixels / Math.max(desiredCoreRadiusPx, 1),
-        Math.max(arrivalDistance + 5, 13),
-        34,
+        Math.max(arrivalDepth + 8, 18),
+        42,
       );
       return true;
     }
@@ -171,21 +168,26 @@
       const t = THREE.MathUtils.clamp(blend, 0, 1);
       measureArchiveTarget();
 
-      const distance = THREE.MathUtils.lerp(arrivalDistance, detailDistance, t);
-      camera.position.copy(starPosition).addScaledVector(retreatDirection, distance);
-      camera.quaternion.copy(arrivalQuaternion);
-      camera.fov = arrivalFov;
+      const currentFov = THREE.MathUtils.lerp(arrivalFov, detailFov, t);
+      const forwardDepth = THREE.MathUtils.lerp(arrivalDepth, detailDepth, t);
+      const screenX = targetNdc.x * t;
+      const screenY = targetNdc.y * t;
+      const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(currentFov) * 0.5);
 
-      const width = Math.max(window.innerWidth, 1);
-      const height = Math.max(window.innerHeight, 1);
-      const offsetX = targetViewOffset.x * t;
-      const offsetY = targetViewOffset.y * t;
-      if (Math.abs(offsetX) < 0.01 && Math.abs(offsetY) < 0.01) {
-        camera.clearViewOffset();
-        camera.updateProjectionMatrix();
-      } else {
-        camera.setViewOffset(width, height, offsetX, offsetY, width, height);
-      }
+      // With orientation held exactly at the arrival quaternion, these physical
+      // lateral camera offsets project the fixed star centre to the requested NDC.
+      // The nebula and all point stars therefore see precisely the same camera.
+      const lateralX = screenX * forwardDepth * camera.aspect * tanHalfFov;
+      const lateralY = screenY * forwardDepth * tanHalfFov;
+
+      camera.position.copy(starPosition)
+        .addScaledVector(cameraBack, forwardDepth)
+        .addScaledVector(cameraRight, -lateralX)
+        .addScaledVector(cameraUp, -lateralY);
+      camera.quaternion.copy(arrivalQuaternion);
+      camera.fov = currentFov;
+      camera.clearViewOffset();
+      camera.updateProjectionMatrix();
     }
 
     function showDetail() {
@@ -209,7 +211,7 @@
       phase = 'closing';
       phaseStartedAt = performance.now();
       closeStartBlend = currentBlend;
-      closeDuration = reducedMotion ? 1 : Math.max(340, CLOSE_MS * Math.max(0.48, closeStartBlend));
+      closeDuration = reducedMotion ? 1 : Math.max(360, CLOSE_MS * Math.max(0.50, closeStartBlend));
       document.body.classList.remove('star-detail-open');
       document.body.classList.add('star-detail-closing');
     }
@@ -225,9 +227,9 @@
       beginClose();
     }, true);
 
-    // Arrived mode is normally presentation-throttled. Camera motion during the
-    // detail hand-off must stay frame-synchronous or the physical star/background
-    // relationship appears to jump even if the transform math is continuous.
+    // The refined arrived state normally renders at ~30 Hz and refreshes its
+    // continuum slowly. While this camera is physically moving, both must stay
+    // frame-synchronous or a mathematically continuous path would still look jerky.
     controller.shouldRenderFrame = (now, lastCompositeMs) => {
       if (phase === 'opening' || phase === 'closing') return true;
       return baseShouldRenderFrame ? baseShouldRenderFrame(now, lastCompositeMs) : false;
@@ -255,8 +257,12 @@
           arrivalCameraPosition.copy(camera.position);
           arrivalQuaternion.copy(camera.quaternion);
           arrivalFov = camera.fov;
-          arrivalDistance = Math.max(camera.position.distanceTo(starPosition), 0.001);
-          retreatDirection.subVectors(arrivalCameraPosition, starPosition).normalize();
+          arrivalDepth = Math.max(camera.position.distanceTo(starPosition), 0.001);
+
+          cameraBack.subVectors(arrivalCameraPosition, starPosition).normalize();
+          cameraRight.set(1, 0, 0).applyQuaternion(arrivalQuaternion).normalize();
+          cameraUp.set(0, 1, 0).applyQuaternion(arrivalQuaternion).normalize();
+
           camera.clearViewOffset();
           camera.updateProjectionMatrix();
           currentBlend = 0;
@@ -289,10 +295,10 @@
 
           if (raw >= 1) {
             currentBlend = 0;
-            camera.clearViewOffset();
             camera.position.copy(arrivalCameraPosition);
             camera.quaternion.copy(arrivalQuaternion);
             camera.fov = arrivalFov;
+            camera.clearViewOffset();
             camera.updateProjectionMatrix();
             hideDetail();
             phase = 'handoff';

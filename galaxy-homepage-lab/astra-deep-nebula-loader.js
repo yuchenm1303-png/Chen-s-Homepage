@@ -73,15 +73,30 @@ void main() {
 
   const float designAspect = 2.2;
   const float tNear = 6.0;
-  const float tFar = 62.0;
-  const int steps = 10;
-  float stepSize = (tFar - tNear) / float(steps);
+  const float tLegacyFar = 62.0;
+  const float tVolumeFar = 360.0;
+  const int steps = 16;
+  const float legacyStep = (tLegacyFar - tNear) / 10.0;
 
   vec3 integrated = vec3(0.0);
   float transmission = 1.0;
 
   for (int i = 0; i < steps; i++) {
-    float t = tNear + (float(i) + 0.5) * stepSize;
+    // Preserve the approved 6..62 volume byte-for-byte in sampling density, then
+    // append six sparse logarithmic samples behind it. This adds real distance
+    // without softening or re-tuning the existing near/mid/far composition.
+    float t;
+    float integrationStep;
+    if (i < 10) {
+      t = tNear + (float(i) + 0.5) * legacyStep;
+      integrationStep = legacyStep;
+    } else {
+      float farIndex = float(i) - 10.0;
+      float q = (farIndex + 0.5) / 6.0;
+      t = tLegacyFar + (tVolumeFar - tLegacyFar) * pow(q, 1.45);
+      integrationStep = 13.0;
+    }
+
     vec3 p = uCameraPosition + rayDir * t;
     float depth = max(-p.z, 1.0);
 
@@ -89,9 +104,7 @@ void main() {
     float ny = p.y / max(uTanHalfFov * depth * 1.30, 0.001);
     vec2 sky = vec2(nx, ny);
 
-    // Three coherent depth layers. They share the same ray-space volume but
-    // have different orientations and depth windows, so camera motion exposes
-    // real parallax instead of sliding one flat fog texture around.
+    // Three approved foreground depth layers.
     vec2 farP = rot2(-0.53) * sky;
     farP += vec2((t - 46.0) * 0.0018, (t - 46.0) * -0.0007);
     float farWarp = (fbm2(farP * 2.15 + vec2(7.2, 3.8)) - 0.5) * 0.13;
@@ -106,6 +119,43 @@ void main() {
     float farDensity = farWindow * farBand
       * (0.14 + farMass * 0.92 + farRidge * 0.22)
       * (1.0 - farVoid * 0.72);
+
+    // Deep background structures begin only after the approved volume ends.
+    // Their different rotations, widths and depth centres make the Milky Way
+    // continue behind itself rather than ending as a single translucent sheet.
+    vec2 deepP = rot2(-0.49) * sky;
+    deepP += vec2((t - 122.0) * -0.00072, (t - 122.0) * 0.00038);
+    float deepNoise = fbm2(deepP * 2.20 + vec2(63.0, 21.0));
+    float deepWarp = (deepNoise - 0.5) * 0.12;
+    float deepCentre = 0.035 + 0.075 * sin(deepP.x * 2.15 - 0.32) + deepWarp;
+    float deepBand = ribbon(deepP.y, deepCentre, 0.29 + deepNoise * 0.045);
+    float deepMass = smoothstep(0.34, 0.77, deepNoise);
+    float deepFilament = pow(1.0 - abs(noise2(deepP * 5.2 + vec2(17.0, 71.0)) * 2.0 - 1.0), 3.2);
+    float deepVoid = smoothstep(0.76, 0.93, noise2(deepP * 1.30 + vec2(41.0, 9.0)));
+    float deepGate = smoothstep(68.0, 92.0, t);
+    float deepWindow = gaussianWeight(t, 122.0, 58.0)
+      * gaussianWeight(deepP.x, 0.12, 1.52)
+      * deepGate;
+    float deepDensity = deepWindow * deepBand
+      * (0.08 + deepMass * 0.72 + deepFilament * 0.18)
+      * (1.0 - deepVoid * 0.76);
+
+    vec2 ultraP = rot2(-0.39) * sky;
+    ultraP += vec2((t - 250.0) * 0.00031, (t - 250.0) * -0.00019);
+    float ultraNoise = fbm2(ultraP * 1.58 + vec2(103.0, 37.0));
+    float ultraCentre = -0.025
+      + 0.11 * sin(ultraP.x * 1.55 + 0.84)
+      + (ultraNoise - 0.5) * 0.10;
+    float ultraBand = ribbon(ultraP.y, ultraCentre, 0.40 + ultraNoise * 0.070);
+    float ultraMass = smoothstep(0.38, 0.80, ultraNoise);
+    float ultraVoid = smoothstep(0.74, 0.92, noise2(ultraP * 1.05 + vec2(8.0, 119.0)));
+    float ultraGate = smoothstep(155.0, 205.0, t);
+    float ultraWindow = gaussianWeight(t, 252.0, 108.0)
+      * gaussianWeight(ultraP.x, -0.06, 1.78)
+      * ultraGate;
+    float ultraDensity = ultraWindow * ultraBand
+      * (0.055 + ultraMass * 0.46)
+      * (1.0 - ultraVoid * 0.82);
 
     vec2 midP = rot2(-0.60) * sky;
     midP += vec2((t - 31.0) * -0.0022, (t - 31.0) * 0.0012);
@@ -165,17 +215,21 @@ void main() {
     vec3 midColor = vec3(0.400, 0.405, 0.405);
     vec3 warmColor = vec3(0.590, 0.390, 0.255);
     vec3 roseColor = vec3(0.410, 0.245, 0.305);
+    vec3 deepColor = vec3(0.145, 0.205, 0.300);
+    vec3 ultraColor = vec3(0.085, 0.135, 0.225);
 
     vec3 emission = farColor * farDensity * 0.88
       + mix(midColor, warmColor, 0.34 + midMass * 0.24) * midDensity
       + mix(warmColor, roseColor, 0.22 + nearMass * 0.30) * nearDensity * 0.82;
 
+    emission += deepColor * deepDensity * 0.46;
+    emission += ultraColor * ultraDensity * 0.30;
     emission += warmColor * complexA * 0.95;
     emission += mix(farColor, vec3(0.325, 0.425, 0.520), 0.62) * complexB * 0.72;
     emission += mix(warmColor, roseColor, 0.42) * complexC * 0.58;
 
-    integrated += emission * transmission * stepSize * 0.0049;
-    transmission *= exp(-dust * stepSize * 0.108);
+    integrated += emission * transmission * integrationStep * 0.0049;
+    transmission *= exp(-dust * integrationStep * 0.108);
   }
 
   float reveal = smoothstep(0.0, 0.86, uIntroProgress);

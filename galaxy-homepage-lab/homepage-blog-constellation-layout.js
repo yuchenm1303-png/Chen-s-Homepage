@@ -5,16 +5,16 @@
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
   // The bright field is deterministic (seed 0xA57A2D31), so these are authored
-  // identities rather than runtime search hints. About stays within its own local
-  // territory, but keeps enough horizontal and vertical spread to read as a real
-  // constellation instead of a tight UI cluster. Blog occupies a separate upper-left
-  // territory and uses an open branching spine rather than a compact ring.
+  // identities rather than runtime search hints. About is authored screen-first:
+  // its four companion stars are selected from the user's intended local viewport
+  // territory, then pinned by stable bright-field index. Blog occupies a separate
+  // upper-left territory and uses an open branching spine rather than a compact ring.
   const FIXED_INDICES = Object.freeze({
     about: 8430,
-    'about-identity': 4856,
-    'about-work': 5196,
-    'about-study': 5582,
-    'about-place': 11614,
+    'about-identity': 1949,
+    'about-work': 1692,
+    'about-study': 5196,
+    'about-place': 6991,
 
     blog: 5596,
     'building-homepage': 11667,
@@ -55,12 +55,15 @@
 
   const layouts = Object.freeze({
     about: makeFieldLayout({
-      centre: [-0.12, -0.79],
+      // Neutral-camera NDC positions corresponding to the approved local screen
+      // composition on a 1912x1020 reference viewport. The fixed indices above
+      // remain the source of truth; these values document/fallback the silhouette.
+      centre: [-0.0801, -0.7906],
       offsets: {
-        'about-identity': [-0.12, 0.43],
-        'about-work': [0.37, 0.33],
-        'about-study': [0.39, -0.09],
-        'about-place': [-0.34, -0.08],
+        'about-identity': [0.2244, 0.8195],
+        'about-work': [0.4816, 0.9773],
+        'about-study': [0.4840, 0.3308],
+        'about-place': [0.0966, 0.4859],
       },
       edges: [
         ['about', 'about-identity'],

@@ -52,6 +52,26 @@ const starFlight = window.__SMIREL_STAR_FLIGHT_INSTALL__?.({
   pointer,
   reducedMotion,
 }) || null;
+function normalizeInteractiveStarRenderOrder() {
+  if (!starFlight || starFlight.__renderOrderNormalized) return;
+  let coreFound = false;
+  scene.traverse((object) => {
+    const material = object.material;
+    const fragmentShader = material?.fragmentShader || '';
+    if (fragmentShader.includes('float hot = smoothstep(0.40, 0.86')) {
+      material.transparent = true;
+      material.depthWrite = false;
+      material.depthTest = false;
+      material.blending = THREE.NoBlending;
+      material.needsUpdate = true;
+      object.renderOrder = 30;
+      coreFound = true;
+    } else if (fragmentShader.includes('float fresnel = pow(1.0 - abs(dot')) {
+      object.renderOrder = 29;
+    }
+  });
+  if (coreFound) starFlight.__renderOrderNormalized = true;
+}
 const cameraForward = new THREE.Vector3();\`,
   'Interactive star runtime install',
 );
@@ -60,6 +80,7 @@ source = replaceOnce(
   source,
   /  pointer\\.currentX = damp\\(pointer\\.currentX, pointer\\.targetX, 2\\.7, dt\\);[\\s\\S]*?  const intro =/,
   \`  const starFlightOwnsCamera = starFlight?.update(now, dt, elapsed) === true;
+  normalizeInteractiveStarRenderOrder();
   if (!starFlightOwnsCamera) {
     pointer.currentX = damp(pointer.currentX, pointer.targetX, 2.7, dt);
     pointer.currentY = damp(pointer.currentY, pointer.targetY, 2.7, dt);

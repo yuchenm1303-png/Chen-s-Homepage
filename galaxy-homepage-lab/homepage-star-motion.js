@@ -9,19 +9,38 @@
   const MICRO_TWINKLE = '  float twinkle = 0.97 + 0.03 * sin(twinklePhase + uTime * uTwinkleSpeed * twinkleRate);';
   const VIEW_POSITION = '  vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);';
 
+  // Keep the existing two sine evaluations per vertex, but shape their positive
+  // crest into a short bright spark. The previous revision clamped twinkle at
+  // 1.0, so stars could only dim and recover; they never crossed further into
+  // bloom and therefore did not read as visible scintillation.
   const BRIGHT_TWINKLE_REPLACEMENT = `  float twinklePrimary = sin(twinklePhase + uTime * uTwinkleSpeed * twinkleRate);
   float twinkleFine = sin(
     twinklePhase * 1.731
     + uTime * uTwinkleSpeed * (1.91 + twinkleRate * 0.37)
   );
-  float twinkle = clamp(0.82 + twinklePrimary * 0.14 + twinkleFine * 0.04, 0.62, 1.0);`;
+  float twinkleSignal = twinklePrimary * 0.78 + twinkleFine * 0.22;
+  float twinkleSpark = pow(max(twinkleSignal, 0.0), 6.0);
+  float twinkle = clamp(
+    0.88 + twinklePrimary * 0.10 + twinkleFine * 0.035 + twinkleSpark * 0.42,
+    0.72,
+    1.38
+  );`;
 
+  // The million-scale micro field gets a much smaller asymmetric sparkle. This
+  // keeps the background alive without turning the whole sky into synchronized
+  // brightness noise or adding another expensive trigonometric sample.
   const MICRO_TWINKLE_REPLACEMENT = `  float twinklePrimary = sin(twinklePhase + uTime * uTwinkleSpeed * twinkleRate);
   float twinkleFine = sin(
     twinklePhase * 1.487
     + uTime * uTwinkleSpeed * (1.73 + twinkleRate * 0.31)
   );
-  float twinkle = clamp(0.90 + twinklePrimary * 0.08 + twinkleFine * 0.02, 0.78, 1.0);`;
+  float twinkleSignal = twinklePrimary * 0.82 + twinkleFine * 0.18;
+  float twinkleSpark = pow(max(twinkleSignal, 0.0), 8.0);
+  float twinkle = clamp(
+    0.95 + twinklePrimary * 0.045 + twinkleFine * 0.018 + twinkleSpark * 0.14,
+    0.88,
+    1.16
+  );`;
 
   // Keep the approved star distribution fixed. Motion is a tiny angular offset
   // evaluated in the vertex shader, so every original and depth-continuation

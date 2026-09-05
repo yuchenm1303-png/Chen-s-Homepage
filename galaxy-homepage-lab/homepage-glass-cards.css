@@ -22,14 +22,14 @@
   position: absolute;
   left: clamp(20px, 4.6vw, 76px);
   top: clamp(20px, 5vh, 66px);
-  width: min(430px, calc(100vw - 40px));
+  width: min(410px, calc(100vw - 40px));
 }
 
 .liquid-glass-card {
   position: relative;
-  min-height: 254px;
+  min-height: 226px;
   overflow: hidden;
-  border-radius: 26px;
+  border-radius: 24px;
   pointer-events: auto;
   background: transparent;
   filter: drop-shadow(0 22px 42px rgba(0,0,0,.24));
@@ -58,8 +58,8 @@
 .liquid-glass__content {
   position: relative;
   z-index: 2;
-  min-height: 254px;
-  padding: 24px 26px 23px;
+  min-height: 226px;
+  padding: 22px 24px 20px;
   display: flex;
   flex-direction: column;
 }
@@ -102,42 +102,65 @@
   text-transform: uppercase;
 }
 
+.home-kicker-row {
+  min-height: 14px;
+}
+
 .home-identity {
-  margin-top: 28px;
+  margin-top: 21px;
+}
+
+.home-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .home-title {
   margin: 0;
-  font-size: clamp(36px, 3.6vw, 48px);
-  font-weight: 620;
-  line-height: .98;
-  letter-spacing: -.04em;
+  font-family: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", ui-rounded, sans-serif;
+  font-size: clamp(34px, 3.2vw, 42px);
+  font-weight: 560;
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+
+.home-alias {
+  color: rgba(255,255,255,.45);
+  font-size: 10.5px;
+  font-weight: 560;
+  line-height: 1;
+  letter-spacing: .045em;
 }
 
 .home-role {
-  margin: 13px 0 0;
-  color: rgba(255,255,255,.78);
-  font-size: 12px;
+  margin: 10px 0 0;
+  max-width: 36ch;
+  color: rgba(255,255,255,.74);
+  font-size: 11.5px;
   line-height: 1.45;
-  letter-spacing: .015em;
+  letter-spacing: .012em;
 }
 
 .home-copy {
-  margin: 8px 0 0;
-  max-width: 39ch;
-  color: var(--home-muted);
-  font-size: 13px;
-  line-height: 1.58;
+  margin: 7px 0 0;
+  max-width: 43ch;
+  color: rgba(255,255,255,.57);
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
 .home-profile-meta {
   margin-top: auto;
-  padding-top: 18px;
+  padding-top: 14px;
   border-top: 1px solid rgba(255,255,255,.10);
+  font-size: 9.5px;
+  letter-spacing: .085em;
+  text-transform: none;
 }
 
 .home-profile-meta a {
-  color: rgba(255,255,255,.72);
+  color: rgba(255,255,255,.70);
   text-decoration: none;
   transition: color .2s ease, transform .2s ease;
 }
@@ -415,7 +438,7 @@ body.home-panel-open .home-index {
 
   .liquid-glass-card,
   .liquid-glass__content {
-    min-height: 220px;
+    min-height: 202px;
   }
 
   .liquid-glass-card {
@@ -423,23 +446,34 @@ body.home-panel-open .home-index {
   }
 
   .liquid-glass__content {
-    padding: 20px 21px 19px;
+    padding: 19px 20px 18px;
   }
 
   .home-identity {
-    margin-top: 22px;
+    margin-top: 19px;
   }
 
   .home-title {
-    font-size: 36px;
+    font-size: 34px;
+  }
+
+  .home-alias {
+    font-size: 10px;
   }
 
   .home-role {
-    font-size: 11px;
+    margin-top: 9px;
+    font-size: 10.5px;
   }
 
   .home-copy {
-    font-size: 12px;
+    margin-top: 6px;
+    font-size: 11.5px;
+  }
+
+  .home-profile-meta {
+    padding-top: 12px;
+    font-size: 9px;
   }
 
   .home-index {
@@ -474,7 +508,7 @@ body.home-panel-open .home-index {
 
   .liquid-glass-card,
   .liquid-glass__content {
-    min-height: 190px;
+    min-height: 176px;
   }
 
   .home-copy {
@@ -482,7 +516,7 @@ body.home-panel-open .home-index {
   }
 
   .home-identity {
-    margin-top: 18px;
+    margin-top: 16px;
   }
 
   .home-index-item {

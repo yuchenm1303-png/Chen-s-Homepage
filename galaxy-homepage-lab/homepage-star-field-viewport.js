@@ -9,7 +9,7 @@
     const controller = baseInstall(context);
     if (!controller) return controller;
 
-    const { THREE, camera, reducedMotion, brightField } = context || {};
+    const { THREE, camera, reducedMotion, brightField, canvas } = context || {};
     if (!THREE || !camera) return controller;
 
     const catalog = Array.isArray(controller.catalog)
@@ -23,6 +23,7 @@
     const REFRAME_MS = reducedMotion ? 1 : 520;
     const FIT_FOV_MAX = 62;
     const POINTER_DAMP_SPEED = 2.7;
+    const fallbackViewport = { width: 1, height: 1 };
 
     const state = {
       mode: 'galaxy',
@@ -101,6 +102,14 @@
     `;
     document.head.appendChild(style);
 
+    function projectionViewport() {
+      const shared = controller.getProjectionViewport?.();
+      if (shared?.width > 0 && shared?.height > 0) return shared;
+      fallbackViewport.width = Math.max(1, Math.floor(canvas?.clientWidth || window.innerWidth || 1));
+      fallbackViewport.height = Math.max(1, Math.floor(canvas?.clientHeight || window.innerHeight || 1));
+      return fallbackViewport;
+    }
+
     function smootherstep01(value) {
       const t = THREE.MathUtils.clamp(value, 0, 1);
       return t * t * t * (t * (t * 6 - 15) + 10);
@@ -176,8 +185,9 @@
 
       const vHalf = THREE.MathUtils.degToRad(fov * 0.5);
       const hHalf = Math.atan(Math.tan(vHalf) * Math.max(camera.aspect, 0.25));
-      const safeX = window.innerWidth <= 760 ? 0.62 : 0.72;
-      const safeY = window.innerWidth <= 760 ? 0.60 : 0.68;
+      const viewport = projectionViewport();
+      const safeX = viewport.width <= 760 ? 0.62 : 0.72;
+      const safeY = viewport.width <= 760 ? 0.60 : 0.68;
       const tanH = Math.max(Math.tan(hHalf) * safeX, 0.08);
       const tanV = Math.max(Math.tan(vHalf) * safeY, 0.08);
 
@@ -217,7 +227,8 @@
         state.baseBack.normalize();
       }
 
-      let fieldFov = field.field?.fov || (window.innerWidth <= 620 ? 54 : 46);
+      const viewport = projectionViewport();
+      let fieldFov = field.field?.fov || (viewport.width <= 620 ? 54 : 46);
       let distance = requiredDistance(points, state.centre, state.baseBack, fieldFov);
 
       let depthRadius = 0;
@@ -278,14 +289,14 @@
       camera.updateMatrixWorld(true);
     }
 
-    function projectAnchor(id) {
+    function projectAnchor(id, viewport) {
       const world = anchorWorldPosition(id, scratch.world);
       if (!world) return null;
       scratch.projected.copy(world).project(camera);
       if (scratch.projected.z < -1 || scratch.projected.z > 1) return null;
       return {
-        x: (scratch.projected.x * 0.5 + 0.5) * window.innerWidth,
-        y: (-scratch.projected.y * 0.5 + 0.5) * window.innerHeight,
+        x: (scratch.projected.x * 0.5 + 0.5) * viewport.width,
+        y: (-scratch.projected.y * 0.5 + 0.5) * viewport.height,
       };
     }
 
@@ -294,10 +305,11 @@
       if (!fieldId) return;
 
       camera.updateMatrixWorld(true);
+      const viewport = projectionViewport();
       const points = new Map();
       const pointFor = (id) => {
         if (points.has(id)) return points.get(id);
-        const point = projectAnchor(id);
+        const point = projectAnchor(id, viewport);
         points.set(id, point);
         return point;
       };
@@ -314,7 +326,7 @@
         marker.style.transform = `translate3d(${point.x}px, ${point.y}px, 0)`;
         marker.style.opacity = '';
         marker.style.pointerEvents = '';
-        marker.classList.toggle('is-label-left', point.x > window.innerWidth - 290);
+        marker.classList.toggle('is-label-left', point.x > viewport.width - 290);
       }
 
       const edgeSelector = `.smirel-constellation-edge[data-parent-field="${CSS.escape(fieldId)}"]`;
@@ -409,11 +421,12 @@
 
     window.addEventListener('pointermove', (event) => {
       if (reducedMotion || state.contentHandoff || contentOwnsCamera()) return;
+      const viewport = projectionViewport();
       state.pointerTargetX = shapeAxis(
-        event.clientX / Math.max(window.innerWidth, 1) * 2 - 1,
+        event.clientX / viewport.width * 2 - 1,
       );
       state.pointerTargetY = shapeAxis(
-        -(event.clientY / Math.max(window.innerHeight, 1) * 2 - 1),
+        -(event.clientY / viewport.height * 2 - 1),
       );
       if (state.mode === 'field' || state.mode === 'entering') {
         state.renderUntil = performance.now() + 220;
@@ -431,6 +444,7 @@
     window.addEventListener('blur', resetFieldPointer, { passive: true });
 
     window.addEventListener('resize', () => {
+      controller.syncProjectionViewport?.();
       if (!state.field) return;
       if (state.contentHandoff || contentOwnsCamera()) {
         state.pendingRefit = true;

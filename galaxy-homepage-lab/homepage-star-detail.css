@@ -17,21 +17,40 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  background:
-    radial-gradient(circle at 92% 10%, rgba(0,0,0,0) 0 8%, rgba(0,0,0,.035) 16%, rgba(0,0,0,.11) 30%, rgba(0,0,0,.24) 52%, rgba(0,0,0,.38) 100%),
-    linear-gradient(90deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.10) 28%, rgba(0,0,0,.32) 62%, rgba(0,0,0,.54) 100%);
+  background: transparent;
   transition: opacity .44s cubic-bezier(.22,.61,.36,1), visibility 0s linear .44s;
+}
+
+/*
+ * Keep the stellar subject physically unobscured. The WebGL star lives in the
+ * same canvas as the galaxy, so any full-screen dark scrim also darkens the star
+ * and makes it read as background. Restrict contrast support to the content side
+ * of the page and leave the upper-right stellar aperture completely clear.
+ */
+.star-detail-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,.48) 0%,
+    rgba(0,0,0,.40) 34%,
+    rgba(0,0,0,.24) 54%,
+    rgba(0,0,0,.09) 68%,
+    rgba(0,0,0,0) 80%
+  );
 }
 
 .star-detail-shell::after {
   content: '';
   position: fixed;
   inset: 0;
+  z-index: -1;
   pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,0) 20%),
-    linear-gradient(0deg, rgba(0,0,0,.18), rgba(0,0,0,0) 22%);
-  opacity: .42;
+  background: linear-gradient(0deg, rgba(0,0,0,.22), rgba(0,0,0,0) 30%);
+  opacity: .58;
 }
 
 body.star-detail-open .star-detail-shell {
@@ -88,6 +107,7 @@ body.star-detail-open .star-detail-header {
   grid-row: 1;
   min-width: 0;
   text-align: right;
+  text-shadow: 0 2px 20px rgba(0,0,0,.92), 0 0 42px rgba(0,0,0,.62);
 }
 
 .star-detail-kicker,
@@ -297,10 +317,20 @@ body.star-detail-closing .star-detail-back {
 }
 
 @media (max-width: 620px) {
-  .star-detail-shell {
-    background:
-      radial-gradient(circle at 86% 11%, rgba(0,0,0,0) 0 8%, rgba(0,0,0,.05) 19%, rgba(0,0,0,.23) 45%, rgba(0,0,0,.50) 100%),
-      linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.48));
+  .star-detail-shell::before {
+    background: linear-gradient(
+      180deg,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,0) 21%,
+      rgba(0,0,0,.12) 34%,
+      rgba(0,0,0,.42) 66%,
+      rgba(0,0,0,.58) 100%
+    );
+  }
+
+  .star-detail-shell::after {
+    background: linear-gradient(90deg, rgba(0,0,0,.16), rgba(0,0,0,0) 62%);
+    opacity: .5;
   }
 
   .star-detail-header {

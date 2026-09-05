@@ -5,10 +5,8 @@
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
   // The bright field is deterministic (seed 0xA57A2D31), so these are authored
-  // identities rather than runtime search hints. About is authored screen-first:
-  // its four companion stars are selected from the user's intended local viewport
-  // territory, then pinned by stable bright-field index. Blog is authored the same
-  // way: compose the screen first, then pin the real stars that occupy that space.
+  // identities rather than runtime search hints. About and Blog are composed in
+  // screen space first, then pinned by stable bright-field index.
   const FIXED_INDICES = Object.freeze({
     about: 8430,
     'about-identity': 2782,
@@ -17,14 +15,14 @@
     'about-place': 4139,
 
     blog: 5596,
-    'building-homepage': 518,
-    'opengl-liquid-glass': 11314,
-    'computer-use-design': 3436,
-    'gan-hemt-stability': 13212,
-    'ai-ledger-real-streaming': 13802,
-    'app-performance-optimization': 380,
-    'compose-parent-bubble-rendering': 12462,
-    'ai-listing-research': 13539,
+    'building-homepage': 2630,
+    'opengl-liquid-glass': 11667,
+    'computer-use-design': 1420,
+    'gan-hemt-stability': 13739,
+    'ai-ledger-real-streaming': 3699,
+    'app-performance-optimization': 11690,
+    'compose-parent-bubble-rendering': 9499,
+    'ai-listing-research': 7482,
 
     contact: 11408,
     'contact-github': 9953,
@@ -33,8 +31,6 @@
     'contact-qq': 5849,
   });
 
-  // Targets document the authored silhouette and remain a fallback only if the
-  // underlying deterministic bright-field generator is intentionally replaced.
   const LOCAL_DEPTH = Object.freeze([18, 32]);
 
   function freezePair(pair) {
@@ -75,30 +71,31 @@
     }),
 
     blog: makeFieldLayout({
-      // Screen-first composition measured from the user's 1683x1402 reference
-      // capture. Every companion sits inside the requested x=263..1004,
-      // y=478..1269 visual territory, with the primary low in the composition
-      // and two open branches rising through the available space.
-      centre: [-0.3393, -0.4351],
+      // Screen-first composition on the 1664x918 reference viewport. Blog is a
+      // lower endpoint, not the centre of a ring. The eight companions span the
+      // marked left-side canvas (roughly x=200..675 / y=293..724) in two open
+      // branches, so the constellation uses the available screen instead of
+      // collapsing into a compact cluster.
+      centre: [-0.5868, -0.4530],
       offsets: {
-        'building-homepage': [-0.1925, 0.2154],
-        'opengl-liquid-glass': [-0.2602, 0.5221],
-        'computer-use-design': [-0.0143, 0.6305],
-        'gan-hemt-stability': [0.1604, 0.6091],
-        'ai-ledger-real-streaming': [0.2187, 0.4850],
-        'app-performance-optimization': [0.1830, 0.3081],
-        'compose-parent-bubble-rendering': [0.0487, 0.1740],
-        'ai-listing-research': [-0.0796, 0.1498],
+        'building-homepage': [-0.1709, 0.1828],
+        'opengl-liquid-glass': [-0.1234, 0.3448],
+        'computer-use-design': [-0.1673, 0.7774],
+        'gan-hemt-stability': [0.1081, 0.8141],
+        'ai-ledger-real-streaming': [0.3978, 0.7458],
+        'app-performance-optimization': [0.1890, 0.3788],
+        'compose-parent-bubble-rendering': [0.3111, 0.2099],
+        'ai-listing-research': [0.3874, -0.0592],
       },
       edges: [
-        ['blog', 'ai-listing-research'],
-        ['ai-listing-research', 'building-homepage'],
+        ['blog', 'building-homepage'],
         ['building-homepage', 'opengl-liquid-glass'],
         ['opengl-liquid-glass', 'computer-use-design'],
         ['computer-use-design', 'gan-hemt-stability'],
-        ['blog', 'compose-parent-bubble-rendering'],
-        ['compose-parent-bubble-rendering', 'app-performance-optimization'],
-        ['app-performance-optimization', 'ai-ledger-real-streaming'],
+        ['gan-hemt-stability', 'ai-ledger-real-streaming'],
+        ['opengl-liquid-glass', 'app-performance-optimization'],
+        ['app-performance-optimization', 'compose-parent-bubble-rendering'],
+        ['compose-parent-bubble-rendering', 'ai-listing-research'],
       ],
     }),
 
@@ -169,11 +166,11 @@
        graph direction. This is part of the authored screen composition. */
     .smirel-companion-star[data-parent-field="about"][data-companion-id="about-identity"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="about"][data-companion-id="about-work"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="app-performance-optimization"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label {
+    .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="compose-parent-bubble-rendering"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label {
       left: auto;
       right: 36px;
       align-items: flex-end;
@@ -185,6 +182,8 @@
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="opengl-liquid-glass"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-email"] .smirel-companion-label {
       top: -15px;
@@ -195,7 +194,6 @@
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="building-homepage"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="app-performance-optimization"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="compose-parent-bubble-rendering"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-qq"] .smirel-companion-label {
       top: 19px;

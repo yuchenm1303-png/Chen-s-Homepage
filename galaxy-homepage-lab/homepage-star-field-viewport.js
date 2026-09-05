@@ -9,7 +9,7 @@
     const controller = baseInstall(context);
     if (!controller) return controller;
 
-    const { THREE, camera, pointer, reducedMotion, brightField } = context || {};
+    const { THREE, camera, reducedMotion, brightField } = context || {};
     if (!THREE || !camera) return controller;
 
     const catalog = Array.isArray(controller.catalog)
@@ -19,6 +19,7 @@
 
     const ENTER_MS = reducedMotion ? 1 : 1180;
     const FIT_FOV_MAX = 62;
+    const POINTER_DAMP_SPEED = 2.7;
 
     const state = {
       mode: 'galaxy',
@@ -35,8 +36,10 @@
       up: new THREE.Vector3(0, 1, 0),
       distance: 16,
       fov: camera.fov,
-      lastPointerX: 0,
-      lastPointerY: 0,
+      pointerTargetX: 0,
+      pointerTargetY: 0,
+      pointerCurrentX: 0,
+      pointerCurrentY: 0,
       renderUntil: 0,
     };
 
@@ -68,15 +71,11 @@
     const style = document.createElement('style');
     style.dataset.smirelFieldViewport = 'true';
     style.textContent = `
-      body.star-field-open #galaxyCanvas { cursor: grab; }
       .smirel-companion-star.is-label-left .smirel-companion-label {
         left: auto;
         right: 36px;
         align-items: flex-end;
         text-align: right;
-      }
-      @media (prefers-reduced-motion: reduce) {
-        body.star-field-open #galaxyCanvas { cursor: default; }
       }
     `;
     document.head.appendChild(style);
@@ -84,6 +83,24 @@
     function smootherstep01(value) {
       const t = THREE.MathUtils.clamp(value, 0, 1);
       return t * t * t * (t * (t * 6 - 15) + 10);
+    }
+
+    function shapeAxis(value) {
+      const dead = 0.045;
+      const a = Math.abs(value);
+      if (a <= dead) return 0;
+      const n = Math.min(1, (a - dead) / (1 - dead));
+      return Math.sign(value) * n * n * (3 - 2 * n);
+    }
+
+    function damp(current, target, speed, dt) {
+      return current + (target - current) * (1 - Math.exp(-speed * dt));
+    }
+
+    function advancePointer(dt) {
+      if (reducedMotion || (state.mode !== 'entering' && state.mode !== 'field')) return;
+      state.pointerCurrentX = damp(state.pointerCurrentX, state.pointerTargetX, POINTER_DAMP_SPEED, dt);
+      state.pointerCurrentY = damp(state.pointerCurrentY, state.pointerTargetY, POINTER_DAMP_SPEED, dt);
     }
 
     function anchorWorldPosition(id, target) {
@@ -180,19 +197,24 @@
     }
 
     function pointerMotionActive(now = performance.now()) {
-      if (state.mode !== 'field' || reducedMotion || !pointer) return false;
-      const settling = Math.abs(pointer.targetX - pointer.currentX) > 0.0007
-        || Math.abs(pointer.targetY - pointer.currentY) > 0.0007;
+      if (state.mode !== 'field' || reducedMotion) return false;
+      const settling = Math.abs(state.pointerTargetX - state.pointerCurrentX) > 0.0007
+        || Math.abs(state.pointerTargetY - state.pointerCurrentY) > 0.0007;
       return settling || now < state.renderUntil;
     }
 
     function buildInteractivePose(scale = 1) {
-      const px = reducedMotion || !pointer ? 0 : pointer.currentX * scale;
-      const py = reducedMotion || !pointer ? 0 : pointer.currentY * scale;
-      const positionX = state.distance * 0.012;
-      const positionY = state.distance * 0.008;
-      const lookX = state.distance * 0.046;
-      const lookY = state.distance * 0.030;
+      const px = reducedMotion ? 0 : state.pointerCurrentX * scale;
+      const py = reducedMotion ? 0 : state.pointerCurrentY * scale;
+
+      // Match the homepage's global camera-parallax language, but scale it to
+      // the fitted local-field distance so the motion remains obvious at any
+      // constellation size. The look target moves farther than the camera,
+      // creating a real spatial slide rather than a DOM translation.
+      const positionX = state.distance * 0.016;
+      const positionY = state.distance * 0.010;
+      const lookX = state.distance * 0.072;
+      const lookY = state.distance * 0.046;
 
       scratch.targetPosition.copy(state.basePosition)
         .addScaledVector(state.right, px * positionX)
@@ -210,6 +232,7 @@
       camera.quaternion.copy(scratch.targetQuaternion);
       camera.fov = state.fov;
       camera.updateProjectionMatrix();
+      camera.updateMatrixWorld(true);
     }
 
     function projectAnchor(id) {
@@ -227,6 +250,7 @@
       const fieldId = state.field?.id || document.body.dataset.starField;
       if (!fieldId) return;
 
+      camera.updateMatrixWorld(true);
       const points = new Map();
       const pointFor = (id) => {
         if (points.has(id)) return points.get(id);
@@ -267,10 +291,22 @@
       }
     }
 
-    window.addEventListener('pointermove', () => {
-      if (state.mode !== 'field') return;
-      state.renderUntil = performance.now() + 180;
+    window.addEventListener('pointermove', (event) => {
+      if (reducedMotion) return;
+      state.pointerTargetX = shapeAxis(event.clientX / Math.max(window.innerWidth, 1) * 2 - 1);
+      state.pointerTargetY = shapeAxis(-(event.clientY / Math.max(window.innerHeight, 1) * 2 - 1));
+      if (state.mode === 'field' || state.mode === 'entering') {
+        state.renderUntil = performance.now() + 220;
+      }
     }, { passive: true });
+
+    function resetFieldPointer() {
+      state.pointerTargetX = 0;
+      state.pointerTargetY = 0;
+      if (state.mode === 'field') state.renderUntil = performance.now() + 220;
+    }
+    window.addEventListener('pointerleave', resetFieldPointer, { passive: true });
+    window.addEventListener('blur', resetFieldPointer, { passive: true });
 
     window.addEventListener('resize', () => {
       if (!state.field || (state.mode !== 'field' && state.mode !== 'entering')) return;
@@ -289,6 +325,8 @@
         state.startPosition.copy(camera.position);
         state.startQuaternion.copy(camera.quaternion);
         state.startFov = camera.fov;
+        state.pointerCurrentX = 0;
+        state.pointerCurrentY = 0;
         computeFit(field, false);
         state.renderUntil = performance.now() + ENTER_MS + 220;
         return;
@@ -309,6 +347,8 @@
       if (phase === 'galaxy') {
         state.mode = 'galaxy';
         state.field = null;
+        state.pointerCurrentX = 0;
+        state.pointerCurrentY = 0;
       }
     });
 
@@ -334,6 +374,7 @@
     );
 
     controller.update = (now, dt, elapsed) => {
+      advancePointer(dt);
       const baseOwnsCamera = baseUpdate(now, dt, elapsed);
       const contentFlightActive = document.body.classList.contains('star-flight-active')
         || document.body.classList.contains('star-detail-open');
@@ -347,18 +388,12 @@
         camera.quaternion.slerpQuaternions(state.startQuaternion, scratch.targetQuaternion, t);
         camera.fov = THREE.MathUtils.lerp(state.startFov, state.fov, t);
         camera.updateProjectionMatrix();
+        camera.updateMatrixWorld(true);
         refreshVisibleConstellation();
         return true;
       }
 
       if (state.mode === 'field' && state.field) {
-        if (pointer) {
-          const dx = Math.abs(pointer.currentX - state.lastPointerX);
-          const dy = Math.abs(pointer.currentY - state.lastPointerY);
-          if (dx + dy > 0.00025) state.renderUntil = now + 120;
-          state.lastPointerX = pointer.currentX;
-          state.lastPointerY = pointer.currentY;
-        }
         applyStablePose(1);
         refreshVisibleConstellation();
         return true;

@@ -30,11 +30,12 @@ source = replaceOnce(
 // The liquid-glass adapter must read the WebGL canvas while its default
 // framebuffer is still valid. Inject one callback immediately after the existing
 // EffectComposer render instead of enabling preserveDrawingBuffer globally.
+// Keep the callback isolated so a glass failure can never stop the galaxy loop.
 const capturePatch = `
 source = replaceOnce(
   source,
   /    composer\\.render\\(dt\\);\\n    lastCompositeMs = now;/,
-  \`    composer.render(dt);\n    window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n    lastCompositeMs = now;\`,
+  \`    composer.render(dt);\n    try {\n      window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n    } catch (error) {\n      console.warn('[homepage-liquid-glass] frame handoff failed', error);\n    }\n    lastCompositeMs = now;\`,
   'Synchronized homepage glass framebuffer handoff',
 );
 `;
@@ -53,12 +54,16 @@ source = replaceOnce(
 );
 `;
 
-source = replaceOnce(
-  source,
-  stableModuleMarker,
-  `${bridgeInjection}\n\n${stableModuleMarker}`,
-  'Homepage capture bridge insertion point',
-);
+// stableModuleMarker also appears earlier as the string value assigned to
+// moduleMarker. A normal String.replace() would patch that quoted occurrence and
+// corrupt the loader itself. Insert only before the final executable statement.
+const stableModuleIndex = source.lastIndexOf(stableModuleMarker);
+if (stableModuleIndex < 0) {
+  throw new Error('Homepage capture bridge insertion point not found; refusing to patch an unknown renderer revision.');
+}
+source = source.slice(0, stableModuleIndex)
+  + bridgeInjection + '\n\n'
+  + source.slice(stableModuleIndex);
 
 const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
 try {

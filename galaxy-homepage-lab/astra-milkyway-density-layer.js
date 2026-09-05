@@ -4,12 +4,12 @@ const canvas = document.getElementById('galaxyDensityCanvas');
 if (!canvas) throw new Error('Milky Way density canvas is required.');
 
 const CONFIG = Object.freeze({
-  starCount: 26000,
+  starCount: 76000,
   fov: 55,
   near: 0.1,
-  far: 56,
-  intensity: 0.92,
-  twinkleSpeed: 0.48,
+  far: 58,
+  intensity: 1.08,
+  twinkleSpeed: 0.42,
 });
 
 const PALETTE = [
@@ -55,17 +55,18 @@ ${ASTRA_FILTERED_CORE_GLSL}
 void main() {
   vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
   float cameraDepth = max(-viewPosition.z, 0.2);
-  float depthScale = clamp(7.6 / cameraDepth, 0.24, 1.28);
-  float twinkle = 0.90 + 0.10 * sin(twinklePhase + uTime * uTwinkleSpeed * twinkleRate);
+  float depthScale = clamp(7.2 / cameraDepth, 0.20, 1.18);
+  float twinkle = 0.92 + 0.08 * sin(twinklePhase + uTime * uTwinkleSpeed * twinkleRate);
 
   vBrightness = uIntensity * starBrightness * twinkle;
   vColor = starColor;
-  vOpacity = starOpacity * (0.94 + twinkle * 0.06);
+  vOpacity = starOpacity * (0.96 + twinkle * 0.04);
 
   gl_PointSize = uPixelRatio
-    * (0.26 + starScale * 3.1)
+    * (0.20 + starScale * 2.8)
     * depthScale
-    * (0.98 + twinkle * 0.02);
+    * (0.99 + twinkle * 0.01);
+
   vParticleDiameter = gl_PointSize;
   gl_PointSize = max(gl_PointSize, 4.0);
   gl_Position = projectionMatrix * viewPosition;
@@ -81,7 +82,7 @@ ${ASTRA_FILTERED_CORE_GLSL}
 void main() {
   vec2 pixel = (gl_PointCoord - vec2(0.5)) * max(vParticleDiameter, 4.0);
   float alpha = astraFilteredCore(pixel, 0.150904) * vOpacity;
-  if (alpha <= 0.00001) discard;
+  if (alpha <= 0.000008) discard;
   gl_FragColor = vec4(vColor * vBrightness, alpha);
 }
 `;
@@ -104,11 +105,19 @@ function gaussian() {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(Math.PI * 2 * v);
 }
 
+function gaussianWeight(value, centre, width) {
+  return Math.exp(-Math.pow((value - centre) / width, 2));
+}
+
 function pickColor(centreWeight) {
   let seed = random();
-  if (centreWeight > 0 && random() < centreWeight * 0.38) {
-    seed = 0.60 + random() * 0.40;
+
+  if (random() < 0.32 + centreWeight * 0.26) {
+    seed = 0.72 + random() * 0.28;
+  } else if (centreWeight > 0.15 && random() < centreWeight * 0.22) {
+    seed = 0.52 + random() * 0.22;
   }
+
   if (seed < 0.34) return PALETTE[0];
   if (seed < 0.50) return PALETTE[1];
   if (seed < 0.60) return PALETTE[2];
@@ -118,72 +127,129 @@ function pickColor(centreWeight) {
 
 function sampleDepth() {
   const shell = random();
-  if (shell < 0.035) return 5.0 + Math.pow(random(), 0.74) * 6.0;
-  if (shell < 0.30) return 9.0 + Math.pow(random(), 0.80) * 13.0;
-  return 17.0 + Math.pow(random(), 0.90) * 33.0;
+  if (shell < 0.018) return 5.5 + Math.pow(random(), 0.78) * 6.5;
+  if (shell < 0.18) return 11.0 + Math.pow(random(), 0.84) * 13.0;
+  return 21.0 + Math.pow(random(), 0.92) * 33.0;
 }
 
 function sampleAlong() {
   const mode = random();
-  if (mode < 0.10) return -0.94 + gaussian() * 0.13;
-  if (mode < 0.22) return -0.62 + gaussian() * 0.15;
-  if (mode < 0.36) return -0.27 + gaussian() * 0.14;
-  if (mode < 0.55) return 0.10 + gaussian() * 0.16;
-  if (mode < 0.73) return 0.38 + gaussian() * 0.15;
-  if (mode < 0.86) return 0.70 + gaussian() * 0.14;
-  return random() * 2.82 - 1.41;
+
+  if (mode < 0.11) return -1.05 + gaussian() * 0.12;
+  if (mode < 0.24) return -0.72 + gaussian() * 0.14;
+  if (mode < 0.38) return -0.36 + gaussian() * 0.14;
+  if (mode < 0.58) return 0.02 + gaussian() * 0.16;
+  if (mode < 0.77) return 0.31 + gaussian() * 0.14;
+  if (mode < 0.90) return 0.66 + gaussian() * 0.15;
+  return random() * 3.02 - 1.51;
 }
 
 function sampleMilkyWayDirection() {
-  for (let guard = 0; guard < 64; guard++) {
-    const along = THREE.MathUtils.clamp(sampleAlong(), -1.46, 1.46);
-    const centreWeight = Math.exp(-Math.pow((along - 0.18) / 0.34, 2));
-    const midWeight = Math.exp(-Math.pow(along / 0.88, 2));
+  for (let guard = 0; guard < 96; guard++) {
+    const along = THREE.MathUtils.clamp(sampleAlong(), -1.54, 1.54);
+    const centreWeight = gaussianWeight(along, 0.20, 0.36);
+    const broadWeight = gaussianWeight(along, 0.03, 1.10);
 
-    const centreLine = 0.028 * Math.sin(along * 2.35 + 0.38)
-      + 0.013 * Math.sin(along * 6.1 - 0.62);
+    const centreLine =
+      0.026 * Math.sin(along * 2.15 + 0.30)
+      + 0.015 * Math.sin(along * 5.7 - 0.55);
 
-    const baseWidth = 0.092
-      + midWeight * 0.034
-      + centreWeight * 0.060;
+    const baseWidth =
+      0.122
+      + broadWeight * 0.052
+      + centreWeight * 0.110;
 
-    const halo = random() < 0.22;
-    const width = baseWidth * (halo ? 1.72 : 0.92);
-    const ridgeOffset = 0.018 * Math.sin(along * 3.1 - 0.4)
-      + 0.010 * Math.sin(along * 8.4 + 1.2);
-    let across = centreLine + ridgeOffset + gaussian() * width;
+    const populationRoll = random();
+    let population = 0;
+    let widthScale = 0.70;
+    if (populationRoll > 0.70 && populationRoll <= 0.93) {
+      population = 1;
+      widthScale = 1.20;
+    } else if (populationRoll > 0.93) {
+      population = 2;
+      widthScale = 1.95;
+    }
 
-    const mainRift = centreLine
-      + 0.010 * Math.sin(along * 5.9 + 0.55)
-      - 0.013 * Math.sin(along * 11.8 - 0.3);
-    const mainRiftWidth = 0.018 + centreWeight * 0.020 + midWeight * 0.006;
+    const bulge = centreWeight > 0.10 && random() < centreWeight * 0.38;
+    if (bulge) widthScale *= 1.34;
+
+    const ridgeOffset =
+      0.020 * Math.sin(along * 3.0 - 0.38)
+      + 0.011 * Math.sin(along * 8.0 + 1.15);
+
+    let across =
+      centreLine
+      + ridgeOffset
+      + gaussian() * baseWidth * widthScale;
+
+    const mainRift =
+      centreLine
+      + 0.014 * Math.sin(along * 5.4 + 0.58)
+      - 0.016 * Math.sin(along * 11.0 - 0.24);
+
+    const mainRiftWidth =
+      0.024
+      + broadWeight * 0.008
+      + centreWeight * 0.034;
+
     if (Math.abs(across - mainRift) < mainRiftWidth) {
-      const reject = 0.74 + centreWeight * 0.18;
+      const rejectBase = population === 0 ? 0.94 : population === 1 ? 0.80 : 0.48;
+      const reject = Math.min(0.985, rejectBase + centreWeight * 0.04);
       if (random() < reject) continue;
     }
 
-    const secondaryWindow = Math.exp(-Math.pow((along - 0.24) / 0.58, 2));
-    const secondaryRift = centreLine - 0.060
-      + 0.013 * Math.sin(along * 9.2 + 1.1);
-    if (Math.abs(across - secondaryRift) < 0.014 + secondaryWindow * 0.010) {
-      if (random() < 0.30 + secondaryWindow * 0.34) continue;
+    const branchWindow = gaussianWeight(along, 0.25, 0.62);
+    const branchRift =
+      centreLine
+      - 0.082
+      + 0.016 * Math.sin(along * 8.7 + 1.0);
+
+    if (
+      Math.abs(across - branchRift)
+      < 0.016 + branchWindow * 0.015
+    ) {
+      const reject = (population === 0 ? 0.62 : 0.34) * branchWindow;
+      if (random() < reject) continue;
     }
 
-    // Break the Gaussian edges into stellar cloud complexes instead of a clean ribbon.
-    const cloudModulation = 0.76
-      + 0.15 * Math.sin(along * 10.7 + across * 25.0)
-      + 0.12 * Math.sin(along * 19.1 - across * 17.0);
-    if (random() > THREE.MathUtils.clamp(cloudModulation, 0.42, 1.0)) continue;
+    const complexA = gaussianWeight(along, -0.82, 0.20);
+    const complexB = gaussianWeight(along, -0.26, 0.18);
+    const complexC = gaussianWeight(along, 0.16, 0.21);
+    const complexD = gaussianWeight(along, 0.58, 0.20);
+    const complexPeak = Math.max(complexA, complexB, complexC, complexD);
 
-    across += gaussian() * 0.007 * (1.0 + Math.abs(along) * 0.35);
-    return { along, across, centreWeight, halo };
+    const granular =
+      0.72
+      + 0.11 * Math.sin(along * 12.4 + across * 18.0)
+      + 0.09 * Math.sin(along * 21.8 - across * 27.0);
+
+    const survival = THREE.MathUtils.clamp(
+      granular + complexPeak * 0.24 + centreWeight * 0.10,
+      population === 2 ? 0.36 : 0.52,
+      1.0,
+    );
+
+    if (random() > survival) continue;
+
+    across += gaussian() * 0.009 * (1.0 + Math.abs(along) * 0.30);
+
+    return {
+      along,
+      across,
+      centreWeight,
+      population,
+      bulge,
+      complexPeak,
+    };
   }
 
   return {
-    along: random() * 2.6 - 1.3,
-    across: gaussian() * 0.14,
+    along: random() * 2.8 - 1.4,
+    across: gaussian() * 0.20,
     centreWeight: 0,
-    halo: true,
+    population: 2,
+    bulge: false,
+    complexPeak: 0,
   };
 }
 
@@ -215,26 +281,51 @@ function buildDensityField() {
     let x = nx * halfWidth * 0.83;
     let y = ny * halfHeight * 1.04;
 
-    // A real depth thickness keeps the dense lane volumetric during camera motion.
-    const depthThickness = (band.halo ? 0.030 : 0.014)
-      + (1 - band.centreWeight) * 0.010;
+    const populationThickness =
+      band.population === 0 ? 0.012
+      : band.population === 1 ? 0.020
+      : 0.034;
+
+    const depthThickness =
+      populationThickness
+      + (1 - band.centreWeight) * 0.008
+      + (band.bulge ? 0.012 : 0.0);
+
     x += gaussian() * depth * depthThickness;
-    y += gaussian() * depth * depthThickness * 0.54;
+    y += gaussian() * depth * depthThickness * 0.58;
 
     const o = i * 3;
     positions[o] = x;
     positions[o + 1] = y;
     positions[o + 2] = -depth;
 
-    const centreBoost = 0.82 + band.centreWeight * 0.34;
-    const haloQuiet = band.halo ? 0.70 : 1.0;
-    const depthQuiet = THREE.MathUtils.clamp(1.08 - depth / 92, 0.60, 1.0);
+    const centreBoost = 0.86 + band.centreWeight * 0.42;
+    const complexBoost = 0.90 + band.complexPeak * 0.18;
+    const populationQuiet =
+      band.population === 0 ? 1.0
+      : band.population === 1 ? 0.78
+      : 0.56;
 
-    brightness[i] = (0.48 + random() * 0.70) * centreBoost * haloQuiet * depthQuiet;
-    opacity[i] = (0.16 + random() * 0.46) * centreBoost * haloQuiet;
-    scale[i] = 0.055 + Math.pow(random(), 2.45) * 0.28;
+    const depthQuiet = THREE.MathUtils.clamp(1.12 - depth / 105, 0.62, 1.0);
+
+    brightness[i] =
+      (0.52 + random() * 0.70)
+      * centreBoost
+      * complexBoost
+      * populationQuiet
+      * depthQuiet;
+
+    opacity[i] =
+      (0.21 + random() * 0.48)
+      * (0.90 + band.centreWeight * 0.18)
+      * populationQuiet;
+
+    scale[i] =
+      0.040
+      + Math.pow(random(), 2.70) * (band.population === 0 ? 0.24 : 0.18);
+
     phase[i] = random() * Math.PI * 2;
-    rate[i] = 0.66 + random() * 0.62;
+    rate[i] = 0.68 + random() * 0.56;
 
     const color = pickColor(band.centreWeight);
     colors[o] = color.r;
@@ -317,8 +408,10 @@ function resize() {
   width = w;
   height = h;
   pixelRatio = nextDpr;
+
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(width, height, false);
+
   camera.aspect = width / Math.max(height, 1);
   camera.updateProjectionMatrix();
   field.material.uniforms.uPixelRatio.value = pixelRatio;
@@ -342,6 +435,7 @@ function resetPointer() {
   pointer.targetX = 0;
   pointer.targetY = 0;
 }
+
 window.addEventListener('pointerleave', resetPointer, { passive: true });
 window.addEventListener('blur', resetPointer, { passive: true });
 
@@ -355,6 +449,7 @@ const lookTarget = new THREE.Vector3();
 
 function frame(now) {
   resize();
+
   const dt = Math.min(0.05, Math.max(0.001, (now - previous) / 1000));
   previous = now;
   const elapsed = (now - started) / 1000;

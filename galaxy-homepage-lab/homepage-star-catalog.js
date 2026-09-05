@@ -1,0 +1,213 @@
+(() => {
+  'use strict';
+
+  const items = [
+    {
+      id: 'loom',
+      kind: 'project',
+      order: '01',
+      title: 'Loom',
+      subtitle: 'General-purpose agent · 2026 — present',
+      lede: 'A general-purpose agent for tools, planning and execution.',
+      meta: ['Python', 'Agents', 'Tool use', 'Browser interaction'],
+      overview: 'Loom is an experimental general-purpose agent focused on reliable planning, tool orchestration and practical execution. The project explores how a small agent runtime can move between reasoning, browser interaction and external tools without collapsing into a single-purpose workflow.',
+      systems: ['Planning & execution', 'Tool orchestration', 'Browser interaction', 'Session runtime'],
+      links: [{ label: 'Repository', href: 'https://github.com/yuchenm1303-png/Loom' }],
+      star: {
+        target: [0.12, 0.46],
+        depth: [15, 34],
+        minBrightness: 2.55,
+        tint: '#d8efff',
+        radius: 1.00,
+        activity: 1.00,
+        corona: 1.00,
+        halo: 1.00,
+        classLabel: 'A0 · Blue-white primary',
+      },
+    },
+    {
+      id: 'termrelay',
+      kind: 'project',
+      order: '02',
+      title: 'TermRelay',
+      subtitle: 'AI gateway & infrastructure · 2026 — present',
+      lede: 'Routing, accounts and upstream services behind a practical AI gateway.',
+      meta: ['Go', 'Gateway', 'Routing', 'Infrastructure'],
+      overview: 'TermRelay is an AI API gateway for routing requests across upstream accounts and providers while keeping scheduling, availability and operational controls explicit.',
+      systems: ['Account scheduling', 'Provider routing', 'Gateway runtime', 'Operational console'],
+      links: [{ label: 'Repository', href: 'https://github.com/yuchenm1303-png/termrelay' }],
+      star: {
+        target: [0.53, 0.22],
+        depth: [18, 38],
+        minBrightness: 2.25,
+        tint: '#ffe7c5',
+        radius: 0.94,
+        activity: 0.78,
+        corona: 0.74,
+        halo: 0.86,
+        classLabel: 'F2 · White-gold stable',
+      },
+    },
+    {
+      id: 'ai-ledger',
+      kind: 'project',
+      order: '03',
+      title: 'AI Ledger',
+      subtitle: 'Android AI assistant & visual agent',
+      lede: 'An interface experiment around mobile AI, visual interaction and fluid glass.',
+      meta: ['Android', 'AI', 'Interface', 'OpenGL'],
+      overview: 'AI Ledger explores a mobile assistant interface where model interaction, visual hierarchy and realtime graphics are treated as one system rather than separate layers.',
+      systems: ['Mobile agent UI', 'Realtime graphics', 'Visual interaction', 'Prompt workflow'],
+      links: [],
+      star: {
+        target: [-0.14, -0.34],
+        depth: [14, 32],
+        minBrightness: 2.15,
+        tint: '#bfe2ff',
+        radius: 0.90,
+        activity: 0.86,
+        corona: 0.90,
+        halo: 0.82,
+        classLabel: 'B9 · Ice-blue active',
+      },
+    },
+    {
+      id: 'listing-studio',
+      kind: 'project',
+      order: '04',
+      title: 'Listing Studio',
+      subtitle: 'AI commerce automation',
+      lede: 'A practical workflow for turning source products into structured marketplace listings.',
+      meta: ['Automation', 'Commerce', 'AI', 'Workflow'],
+      overview: 'Listing Studio focuses on the repetitive operational layer of commerce: product intake, structured listing data, image workflows and marketplace-oriented automation.',
+      systems: ['Product intake', 'Listing generation', 'Image workflow', 'Marketplace automation'],
+      links: [{ label: 'Repository', href: 'https://github.com/yuchenm1303-png/ecommerce-agent' }],
+      star: {
+        target: [0.28, -0.42],
+        depth: [16, 36],
+        minBrightness: 1.95,
+        tint: '#ffd2a3',
+        radius: 0.96,
+        activity: 0.66,
+        corona: 0.62,
+        halo: 0.96,
+        classLabel: 'G0 · Warm-white broad halo',
+      },
+    },
+    {
+      id: 'building-homepage',
+      kind: 'note',
+      order: '01',
+      title: 'Building a Homepage From Zero',
+      subtitle: 'Build log · 2026.08.01',
+      date: '2026.08.01',
+      lede: 'A build log on turning an experimental WebGL scene into a personal homepage.',
+      meta: ['WebGL', 'Interaction', 'Design systems'],
+      overview: 'Notes on the decisions behind this site: preserving the galaxy as a spatial backbone, treating content as objects in that space, and keeping visual experiments from turning into disconnected effects.',
+      body: [
+        'The useful constraint was to stop thinking of the galaxy as a background. Once it became the navigation space, every transition and content surface had to respect that spatial model.',
+        'The harder part was not adding effects, but deciding which effects were structurally necessary and which ones only made the page busier.'
+      ],
+      star: {
+        target: [-0.10, 0.18],
+        depth: [14, 31],
+        minBrightness: 1.85,
+        tint: '#fff0d2',
+        radius: 0.86,
+        activity: 0.48,
+        corona: 0.42,
+        halo: 0.76,
+        classLabel: 'F8 · Warm-white journal star',
+      },
+    },
+    {
+      id: 'numerical-stability',
+      kind: 'note',
+      order: '02',
+      title: 'Numerical Stability in Engineering Simulation',
+      subtitle: 'Research note · 2026.07.25',
+      date: '2026.07.25',
+      lede: 'A compact note on numerical behavior that quietly decides whether an engineering model is trustworthy.',
+      meta: ['Simulation', 'Numerics', 'Engineering'],
+      overview: 'A working note about convergence, conditioning and the small numerical choices that can dominate a simulation result even when the physical model looks correct.',
+      body: [
+        'Most numerical failures do not announce themselves as dramatic crashes. They appear as plausible curves, unstable sweeps or results that change too much when the mesh, step size or solver tolerance is touched.',
+        'The practical goal is to make sensitivity visible early enough that the model remains an engineering tool rather than a black box.'
+      ],
+      star: {
+        target: [0.24, 0.34],
+        depth: [17, 35],
+        minBrightness: 2.05,
+        tint: '#ddeaff',
+        radius: 0.82,
+        activity: 0.38,
+        corona: 0.34,
+        halo: 0.62,
+        classLabel: 'A7 · Cool-white quiet',
+      },
+    },
+    {
+      id: 'visual-agent-interaction',
+      kind: 'note',
+      order: '03',
+      title: 'Visual Interaction Design for AI Agents',
+      subtitle: 'Design note · 2026.07.12',
+      date: '2026.07.12',
+      lede: 'Notes on making agent state, tools and action feel legible without turning the interface into a dashboard.',
+      meta: ['AI agents', 'UI', 'Interaction'],
+      overview: 'A design note about communicating agent intent, execution and uncertainty through interaction rather than through an ever-growing collection of status panels.',
+      body: [
+        'Agent interfaces need to expose enough state to remain trustworthy, but every additional status surface competes with the task itself.',
+        'The most useful visual language often comes from motion, hierarchy and timing instead of more chrome.'
+      ],
+      star: {
+        target: [-0.36, -0.22],
+        depth: [13, 30],
+        minBrightness: 1.75,
+        tint: '#ded9ff',
+        radius: 0.84,
+        activity: 0.58,
+        corona: 0.56,
+        halo: 0.70,
+        classLabel: 'A3 · Violet-white responsive',
+      },
+    },
+    {
+      id: 'gan-hemt-sweep',
+      kind: 'note',
+      order: '04',
+      title: 'GaN HEMT Temperature & Heavy-Ion Sweep',
+      subtitle: 'Engineering note · 2026.07.10',
+      date: '2026.07.10',
+      lede: 'An engineering record of coupled parameter sweeps and the patterns worth keeping visible.',
+      meta: ['GaN HEMT', 'Temperature', 'Heavy ion', 'Sweep'],
+      overview: 'A research note organized around repeatable parameter sweeps, comparison discipline and the visual signatures that help separate physical behavior from numerical artifacts.',
+      body: [
+        'The sweep itself is only useful when every run remains comparable. Geometry, solver settings and extraction rules have to stay stable while the physical variables move.',
+        'The archive is therefore as much about experiment structure as it is about individual plots.'
+      ],
+      star: {
+        target: [0.54, -0.10],
+        depth: [18, 38],
+        minBrightness: 2.20,
+        tint: '#c8e5ff',
+        radius: 0.88,
+        activity: 0.72,
+        corona: 0.70,
+        halo: 0.74,
+        classLabel: 'B8 · Hot blue research star',
+      },
+    },
+  ];
+
+  for (const item of items) {
+    Object.freeze(item.star);
+    Object.freeze(item.meta);
+    if (item.systems) Object.freeze(item.systems);
+    if (item.links) Object.freeze(item.links);
+    if (item.body) Object.freeze(item.body);
+    Object.freeze(item);
+  }
+
+  window.__SMIREL_STELLAR_CATALOG__ = Object.freeze(items);
+})();

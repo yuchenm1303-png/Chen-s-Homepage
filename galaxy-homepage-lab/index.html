@@ -21,6 +21,8 @@
 
   <main class="home-overlay" aria-label="Smirel homepage preview">
     <section class="home-intro liquid-glass-card" data-liquid-glass="v29.5" aria-labelledby="home-title">
+      <canvas class="liquid-glass__backdrop" aria-hidden="true"></canvas>
+      <canvas class="liquid-glass__optics" aria-hidden="true"></canvas>
       <div class="liquid-glass__content">
         <p class="home-kicker">Smirel / 2026</p>
         <div class="home-identity">
@@ -48,9 +50,7 @@
     </section>
   </main>
 
-  <!-- Pinned original V29.5 optical shader. The homepage adapter now runs it as
-       the final EffectComposer pass in the galaxy renderer's existing GPU chain. -->
-  <script src="https://raw.githack.com/yuchenm1303-png/yuchen1303.github.io/48b489c08dd226444d8f40be97ea03eb1c7ac714/ai-ledger-android/opengl-glass-edge-mini-v24-shader.js"></script>
-  <script type="module" src="./astra-homepage-glass-sync-loader.js"></script>
+  <script type="module" src="./astra-deep-nebula-mid-variants-loader.js"></script>
+  <script defer src="./homepage-liquid-glass-v29.js"></script>
 </body>
 </html>

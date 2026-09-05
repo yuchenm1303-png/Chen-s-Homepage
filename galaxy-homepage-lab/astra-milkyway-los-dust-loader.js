@@ -12,13 +12,20 @@ function replaceOnce(input, search, replacement, label) {
   return input.replace(search, replacement);
 }
 
-// This loader itself executes from a blob URL. Pin the centre-contrast loader's
-// world-space dependency back to the real experiment directory.
+// This loader itself executes from a real module URL, but the fetched centre-
+// contrast loader will execute from a blob URL. Pin every relative base that
+// centre-contrast derives from import.meta.url before creating that blob.
 source = replaceOnce(
   source,
   "new URL('./astra-milkyway-worldspace-loader.js', import.meta.url)",
   `new URL('./astra-milkyway-worldspace-loader.js', ${JSON.stringify(directoryUrl)})`,
   'Centre-contrast upstream URL',
+);
+source = replaceOnce(
+  source,
+  "const directoryUrl = new URL('./', import.meta.url).href;",
+  `const directoryUrl = ${JSON.stringify(directoryUrl)};`,
+  'Centre-contrast directory URL',
 );
 
 const dustReturnSearch = `  const dust = dustVertical * dustClump * (0.18 + dustArm * 1.08);

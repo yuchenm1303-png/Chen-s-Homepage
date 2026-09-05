@@ -1,0 +1,210 @@
+:root {
+  --home-fg: rgba(248, 250, 255, 0.96);
+  --home-muted: rgba(226, 232, 244, 0.68);
+  --home-dim: rgba(215, 222, 238, 0.48);
+  --glass-radius: 24px;
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-border-strong: rgba(255, 255, 255, 0.24);
+  --glass-bg: rgba(8, 11, 18, 0.34);
+}
+
+.home-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  color: var(--home-fg);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.home-intro {
+  position: absolute;
+  top: clamp(24px, 6.5vh, 78px);
+  left: clamp(20px, 5.5vw, 88px);
+  width: min(390px, calc(100vw - 40px));
+}
+
+.home-projects {
+  position: absolute;
+  right: clamp(20px, 5vw, 80px);
+  bottom: clamp(22px, 6vh, 72px);
+  display: grid;
+  gap: 12px;
+  width: min(330px, calc(100vw - 40px));
+}
+
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.018) 44%, rgba(255, 255, 255, 0.035)),
+    var(--glass-bg);
+  box-shadow:
+    0 18px 54px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.025);
+  -webkit-backdrop-filter: blur(12px) saturate(0.92) brightness(0.86);
+  backdrop-filter: blur(12px) saturate(0.92) brightness(0.86);
+  contain: layout paint;
+  transform: translateZ(0);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255, 255, 255, 0.13), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 26%);
+  opacity: 0.76;
+}
+
+.glass-card::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  pointer-events: none;
+  border-radius: calc(var(--glass-radius) - 1px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.glass-card:hover {
+  transform: translate3d(0, -3px, 0);
+  border-color: var(--glass-border-strong);
+}
+
+.glass-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.glass-card--intro {
+  padding: 24px 25px 23px;
+}
+
+.glass-card--project {
+  padding: 18px 20px 17px;
+}
+
+.home-kicker,
+.project-index {
+  margin: 0 0 10px;
+  color: var(--home-dim);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.home-title,
+.project-title {
+  margin: 0;
+  font-weight: 560;
+  letter-spacing: -0.03em;
+}
+
+.home-title {
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1.02;
+}
+
+.home-copy {
+  margin: 15px 0 0;
+  max-width: 31ch;
+  color: var(--home-muted);
+  font-size: 14px;
+  line-height: 1.62;
+}
+
+.project-title {
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.project-copy {
+  margin: 8px 0 0;
+  color: var(--home-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.project-meta {
+  display: flex;
+  gap: 7px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.project-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(236, 241, 250, 0.58);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 760px) {
+  .home-intro {
+    top: 16px;
+    left: 16px;
+    width: calc(100vw - 32px);
+  }
+
+  .home-projects {
+    right: 16px;
+    bottom: 16px;
+    width: calc(100vw - 32px);
+    gap: 9px;
+  }
+
+  .glass-card {
+    --glass-radius: 20px;
+    -webkit-backdrop-filter: blur(9px) saturate(0.9) brightness(0.86);
+    backdrop-filter: blur(9px) saturate(0.9) brightness(0.86);
+  }
+
+  .glass-card--intro {
+    padding: 18px 19px 17px;
+  }
+
+  .glass-card--project {
+    padding: 14px 16px 13px;
+  }
+
+  .home-copy {
+    margin-top: 10px;
+    font-size: 12.5px;
+  }
+
+  .project-meta {
+    margin-top: 10px;
+  }
+}
+
+@media (max-height: 640px) {
+  .home-copy,
+  .project-copy,
+  .project-meta {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-card {
+    transition: none;
+  }
+}

@@ -5,16 +5,16 @@
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
   // The bright field is deterministic (seed 0xA57A2D31), so these are authored
-  // identities rather than runtime search hints. About stays deliberately local
-  // to its primary: four nearby nodes form a compact personal-field constellation
-  // instead of stretching across the viewport. Blog occupies a separate upper-left
+  // identities rather than runtime search hints. About stays within its own local
+  // territory, but keeps enough horizontal and vertical spread to read as a real
+  // constellation instead of a tight UI cluster. Blog occupies a separate upper-left
   // territory and uses an open branching spine rather than a compact ring.
   const FIXED_INDICES = Object.freeze({
     about: 8430,
-    'about-identity': 13906,
-    'about-work': 3010,
-    'about-study': 12329,
-    'about-place': 5869,
+    'about-identity': 4856,
+    'about-work': 5196,
+    'about-study': 5582,
+    'about-place': 11614,
 
     blog: 5596,
     'building-homepage': 11667,
@@ -57,10 +57,10 @@
     about: makeFieldLayout({
       centre: [-0.12, -0.79],
       offsets: {
-        'about-identity': [-0.11, 0.10],
-        'about-work': [0.27, 0.09],
-        'about-study': [0.16, 0.03],
-        'about-place': [-0.16, -0.03],
+        'about-identity': [-0.12, 0.43],
+        'about-work': [0.37, 0.33],
+        'about-study': [0.39, -0.09],
+        'about-place': [-0.34, -0.08],
       },
       edges: [
         ['about', 'about-identity'],

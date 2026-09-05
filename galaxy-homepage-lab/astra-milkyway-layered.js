@@ -559,7 +559,7 @@ function buildMicroField() {
   const data = makePointData(CONFIG.microStarCount);
   for (let i = 0; i < CONFIG.microStarCount; i++) {
     const shell = random();
-    const depth = shell < 0.18 ? 12 + Math.pow(random(), 0.82) * 16 : 24 + Math.pow(random(), 0.92) * 34;
+    const depth = shell < 0.18 ? 12 + Math.pow(random(), 0.82) * 16 : 15 + Math.pow(random(), 0.88) * 19;
     const band = sampleMilkyWayBand(random);
     const thickness = 0.016 + (1 - band.centreWeight) * 0.010;
     const p = toWorld(band, depth, thickness, random);

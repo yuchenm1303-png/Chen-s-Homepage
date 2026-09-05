@@ -18,16 +18,17 @@
 
   let source = baseInstall.toString();
 
-  // Preserve the approved near-field composition, but expand the star volume in
-  // both depth and angular breadth. The wide continuation shells intentionally
-  // extend beyond the home frustum so camera travel reveals a much larger world
-  // instead of a compact patch of stars around the original Milky Way band.
+  // Preserve the approved near-field composition, then add two different kinds
+  // of scale: coherent Milky Way continuation and a genuinely broad 3D ambient
+  // star volume. The latter is sampled independently of the Milky Way band so
+  // the home view itself gains visible breadth instead of merely pushing stars
+  // outside the camera frustum.
   source = replaceOnce(
     source,
     '    const FLIGHT_DURATION_MS = reducedMotion ? 1100 : 4200;',
     `    const DEPTH_START = 12.0;
     const DEPTH_STRETCH = 4.4;
-    const DEPTH_FAR = 980;
+    const DEPTH_FAR = 1100;
 
     function deepenPoints(pointsObject) {
       const geometry = pointsObject?.geometry;
@@ -62,13 +63,13 @@
       if (vertex.includes('clamp(8.5 / cameraDepth, 0.28, 2.05)')) {
         vertex = vertex.replace(
           'clamp(8.5 / cameraDepth, 0.28, 2.05)',
-          'clamp(9.0 / cameraDepth, 0.035, 2.05)',
+          'clamp(9.0 / cameraDepth, 0.032, 2.05)',
         );
       }
       if (vertex.includes('clamp(9.0 / cameraDepth, 0.26, 1.12)')) {
         vertex = vertex.replace(
           'clamp(9.0 / cameraDepth, 0.26, 1.12)',
-          'clamp(9.0 / cameraDepth, 0.028, 1.12)',
+          'clamp(9.0 / cameraDepth, 0.026, 1.12)',
         );
       }
       if (vertex.includes('max(opticalDiameter, uPixelRatio * 0.58)')) {
@@ -164,6 +165,74 @@
       return points;
     }
 
+    function buildAmbientVolumeLayer(sourcePoints, options) {
+      const sourceGeometry = sourcePoints?.geometry;
+      const sourceBrightness = sourceGeometry?.getAttribute?.('starBrightness');
+      const sourceColor = sourceGeometry?.getAttribute?.('starColor');
+      const sourceOpacity = sourceGeometry?.getAttribute?.('starOpacity');
+      const sourceScale = sourceGeometry?.getAttribute?.('starScale');
+      const sourcePhase = sourceGeometry?.getAttribute?.('twinklePhase');
+      const sourceRate = sourceGeometry?.getAttribute?.('twinkleRate');
+      if (!sourceBrightness || !sourceColor || !sourceOpacity || !sourceScale
+          || !sourcePhase || !sourceRate || !sourcePoints.material) return null;
+
+      const count = options.count;
+      const random = seededDepthRandom(options.seed);
+      const geometry = new THREE.BufferGeometry();
+      const positionsOut = new Float32Array(count * 3);
+      const brightnessOut = new Float32Array(count);
+      const colorsOut = new Float32Array(count * 3);
+      const opacityOut = new Float32Array(count);
+      const scaleOut = new Float32Array(count);
+      const phaseOut = new Float32Array(count);
+      const rateOut = new Float32Array(count);
+
+      for (let i = 0; i < count; i += 1) {
+        const sourceIndex = Math.min(sourceBrightness.count - 1, Math.floor(random() * sourceBrightness.count));
+        const depthT = Math.pow(random(), options.depthExponent);
+        const depth = THREE.MathUtils.lerp(options.near, options.far, depthT);
+        const angularX = (random() * 2.0 - 1.0) * options.angularHalfX;
+        const angularY = (random() * 2.0 - 1.0) * options.angularHalfY;
+        const p = i * 3;
+
+        positionsOut[p] = angularX * depth;
+        positionsOut[p + 1] = angularY * depth;
+        positionsOut[p + 2] = -depth;
+
+        const sourceB = Math.min(sourceBrightness.getX(sourceIndex), options.maxSourceBrightness);
+        const sourceS = Math.min(sourceScale.getX(sourceIndex), options.maxSourceScale);
+        const variation = 0.82 + random() * 0.34;
+        brightnessOut[i] = sourceB * options.brightness * variation;
+        opacityOut[i] = THREE.MathUtils.clamp(
+          sourceOpacity.getX(sourceIndex) * options.opacity * (0.78 + random() * 0.34),
+          0.016,
+          1.0,
+        );
+        scaleOut[i] = sourceS * options.scale * (0.78 + random() * 0.34);
+        phaseOut[i] = sourcePhase.getX(sourceIndex) + random() * 6.28318530718;
+        rateOut[i] = sourceRate.getX(sourceIndex) * (0.76 + random() * 0.46);
+        colorsOut[p] = sourceColor.getX(sourceIndex);
+        colorsOut[p + 1] = sourceColor.getY(sourceIndex);
+        colorsOut[p + 2] = sourceColor.getZ(sourceIndex);
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positionsOut, 3));
+      geometry.setAttribute('starBrightness', new THREE.BufferAttribute(brightnessOut, 1));
+      geometry.setAttribute('starColor', new THREE.BufferAttribute(colorsOut, 3));
+      geometry.setAttribute('starOpacity', new THREE.BufferAttribute(opacityOut, 1));
+      geometry.setAttribute('starScale', new THREE.BufferAttribute(scaleOut, 1));
+      geometry.setAttribute('twinklePhase', new THREE.BufferAttribute(phaseOut, 1));
+      geometry.setAttribute('twinkleRate', new THREE.BufferAttribute(rateOut, 1));
+      geometry.computeBoundingSphere();
+
+      const points = new THREE.Points(geometry, sourcePoints.material);
+      points.frustumCulled = false;
+      points.renderOrder = sourcePoints.renderOrder;
+      points.userData.smirelAmbientVolume = true;
+      scene.add(points);
+      return points;
+    }
+
     camera.far = Math.max(camera.far, DEPTH_FAR);
     camera.updateProjectionMatrix();
 
@@ -181,7 +250,7 @@
 
     const microField = originalStarFields.find((object) => object !== brightField) || null;
 
-    // Dense deep shells keep continuity with the original Milky Way structure.
+    // Coherent deep shells retain the original Milky Way identity.
     buildContinuationLayer(brightField, {
       count: 12000,
       seed: 0x44504545,
@@ -211,9 +280,8 @@
       });
     }
 
-    // Wide peripheral shells are intentionally scaled well beyond the original
-    // angular footprint. They are dimmer and smaller, so they read as enormous
-    // surrounding space rather than a brighter copy of the central galaxy band.
+    // Peripheral copies keep the Milky Way structure alive outside the home
+    // framing and become visible as the camera travels through the scene.
     buildContinuationLayer(brightField, {
       count: 12000,
       seed: 0x42524454,
@@ -243,6 +311,41 @@
       });
     }
 
+    // True wide-field background volume. Unlike the layers above, these stars
+    // are not sampled from the narrow Milky Way angular distribution. Roughly a
+    // third to a half of them are inside the home frustum immediately, while the
+    // rest surround it and appear through parallax during flight.
+    buildAmbientVolumeLayer(brightField, {
+      count: 16000,
+      seed: 0x414D4242,
+      near: 95,
+      far: 880,
+      depthExponent: 1.24,
+      angularHalfX: 1.48,
+      angularHalfY: 0.86,
+      maxSourceBrightness: 2.2,
+      maxSourceScale: 1.55,
+      brightness: 0.52,
+      opacity: 0.38,
+      scale: 0.56,
+    });
+    if (microField) {
+      buildAmbientVolumeLayer(microField, {
+        count: 80000,
+        seed: 0x414D424D,
+        near: 82,
+        far: 1040,
+        depthExponent: 1.34,
+        angularHalfX: 1.55,
+        angularHalfY: 0.92,
+        maxSourceBrightness: 1.25,
+        maxSourceScale: 0.28,
+        brightness: 0.58,
+        opacity: 0.52,
+        scale: 0.78,
+      });
+    }
+
     const FLIGHT_DURATION_MS = reducedMotion ? 1100 : 4200;`,
     'Depth expansion insertion',
   );
@@ -250,7 +353,7 @@
   // The continuum raymarch spans t=6..62 from the home camera, with its far
   // nebula mass centred near t=47. Keep the interactive target inside that
   // luminous volume instead of selecting it from the surrounding deep shells.
-  // The wider 130..930 star volume continues far beyond the visible nebula.
+  // The independent background volume now extends to roughly 1040 world units.
   source = replaceOnce(
     source,
     '          if (depth < 13 || depth > 38) continue;',

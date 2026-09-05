@@ -52,38 +52,84 @@
       varying vec3 vWorldPosition;
       varying vec3 vWorldNormal;
       ${noiseLibrary}
-      void main() {
-        float phaseTime = uTime * mix(0.72, 1.28, clamp(uActivity, 0.0, 1.0));
-        vec3 p = normalize(vLocalPosition);
-        float convection = noise3(p * 4.2 + vec3(phaseTime * 0.030, -phaseTime * 0.019, phaseTime * 0.013));
-        float cells = noise3(p * 13.5 + vec3(-phaseTime * 0.058, phaseTime * 0.026, phaseTime * 0.021));
-        float granules = noise3(p * 27.0 + vec3(phaseTime * 0.082, phaseTime * 0.021, -phaseTime * 0.044));
 
-        float cellEdge = 1.0 - abs(cells * 2.0 - 1.0);
-        float lanes = smoothstep(0.70, 0.94, cellEdge);
-        float brightGranules = smoothstep(0.56, 0.88, granules);
-        float latitudeFlow = 0.5 + 0.5 * sin((p.y + convection * 0.11) * 15.0 + phaseTime * 0.16);
-        float broadSpot = smoothstep(0.70, 0.88, convection)
-          * (1.0 - smoothstep(0.48, 0.66, cells));
+      float fbmSurface(vec3 p) {
+        float value = noise3(p) * 0.57;
+        p = p * 2.03 + vec3(17.1, 7.2, 11.8);
+        value += noise3(p) * 0.27;
+        p = p * 2.07 + vec3(5.4, 19.6, 3.7);
+        value += noise3(p) * 0.11;
+        return value / 0.95;
+      }
+
+      void main() {
+        float activity = clamp(uActivity, 0.0, 1.0);
+        float phaseTime = uTime * mix(0.48, 0.92, activity);
+        vec3 p = normalize(vLocalPosition);
+
+        // A slow, three-dimensional convection field advects the finer plasma
+        // detail across the sphere instead of simply scrolling one noise layer.
+        vec3 flow = vec3(
+          noise3(p * 1.75 + vec3(phaseTime * 0.018, 4.7, 1.3)),
+          noise3(p * 1.75 + vec3(9.2, phaseTime * 0.014, 6.4)),
+          noise3(p * 1.75 + vec3(2.8, 12.6, -phaseTime * 0.017))
+        ) - 0.5;
+        vec3 q = normalize(p + flow * (0.14 + activity * 0.045));
+
+        float macro = fbmSurface(q * 2.55 + vec3(phaseTime * 0.016, -phaseTime * 0.010, 0.0));
+        float cells = fbmSurface(q * 8.4 + vec3(-phaseTime * 0.034, phaseTime * 0.018, phaseTime * 0.012));
+        float subCells = fbmSurface(q * 17.5 + vec3(phaseTime * 0.046, -phaseTime * 0.022, phaseTime * 0.017));
+        float granules = noise3(q * 37.0 + vec3(-phaseTime * 0.074, phaseTime * 0.031, phaseTime * 0.052));
+
+        // Narrow ridges through the cellular fields become the cooler seams
+        // between convection cells. A second scale prevents the surface from
+        // reading as one smooth marble texture at close range.
+        float cellContour = 1.0 - abs(cells * 2.0 - 1.0);
+        float subContour = 1.0 - abs(subCells * 2.0 - 1.0);
+        float primaryLanes = smoothstep(0.885, 0.970, cellContour);
+        float secondaryLanes = smoothstep(0.915, 0.985, subContour);
+        float lanes = max(primaryLanes, secondaryLanes * 0.52);
+
+        float hotGranules = smoothstep(0.60, 0.86, cells * 0.54 + granules * 0.46);
+        float moltenThreads = smoothstep(0.82, 0.965, subContour)
+          * smoothstep(0.56, 0.82, granules)
+          * (0.45 + activity * 0.55);
+        float coolPocket = smoothstep(0.70, 0.88, macro)
+          * (1.0 - smoothstep(0.44, 0.66, cells));
 
         vec3 viewDir = normalize(cameraPosition - vWorldPosition);
         float facing = max(dot(normalize(vWorldNormal), viewDir), 0.0);
-        float limb = pow(facing, 0.42);
+        float limb = pow(facing, 0.36);
+        float ignitionRim = pow(1.0 - facing, 4.2);
 
-        vec3 deep = uBaseColor * vec3(0.50, 0.56, 0.68);
-        vec3 photosphere = uBaseColor * vec3(0.92, 0.96, 1.00);
-        vec3 granuleColor = mix(uBaseColor, vec3(1.0, 0.91, 0.74), 0.30);
+        vec3 deepColor = uBaseColor * vec3(0.30, 0.35, 0.44);
+        vec3 midColor = mix(uBaseColor * vec3(0.84, 0.90, 0.98), vec3(1.0), 0.08);
+        vec3 hotColor = mix(uBaseColor, vec3(1.0), 0.52) * 1.18;
 
-        float surface = 0.72 + convection * 0.20 + latitudeFlow * 0.08 + brightGranules * 0.14;
-        surface *= 1.0 - lanes * (0.08 + 0.08 * uActivity);
-        surface *= 1.0 - broadSpot * (0.24 + 0.22 * uActivity);
+        float thermal = 0.46
+          + macro * 0.18
+          + cells * 0.23
+          + subCells * 0.08
+          + hotGranules * 0.22
+          + granules * 0.08;
+        thermal *= 1.0 - lanes * (0.18 + activity * 0.10);
+        thermal *= 1.0 - coolPocket * (0.27 + activity * 0.16);
 
-        vec3 body = mix(deep, photosphere, clamp(surface, 0.0, 1.0));
-        body = mix(body, granuleColor, brightGranules * (0.16 + 0.10 * uActivity));
-        body *= mix(0.55, 1.02, limb);
+        vec3 body = mix(deepColor, midColor, smoothstep(0.38, 0.78, thermal));
+        body = mix(body, hotColor, hotGranules * (0.30 + activity * 0.18));
+        body = mix(body, hotColor * 1.08, moltenThreads * 0.24);
+        body *= 1.0 - lanes * (0.10 + activity * 0.08);
+        body *= mix(0.52, 1.02, limb);
 
-        float emission = 0.78 + brightGranules * 0.22 + convection * 0.10;
-        emission *= 0.988 + (0.008 + 0.010 * uActivity) * sin(phaseTime * 1.1);
+        // The photosphere itself owns a thin incandescent edge; the existing
+        // chromosphere and corona remain responsible for the larger atmosphere.
+        body += hotColor * ignitionRim * (0.13 + activity * 0.10);
+
+        float emission = 0.80
+          + thermal * 0.18
+          + hotGranules * 0.18
+          + moltenThreads * 0.12;
+        emission *= 0.994 + (0.004 + 0.006 * activity) * sin(phaseTime * 1.08);
         gl_FragColor = vec4(body * emission, 1.0);
       }
     `;

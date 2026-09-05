@@ -6,8 +6,10 @@
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      .smirel-companion-star[hidden],
-      .smirel-constellation-edge[data-marker-hidden="true"] {
+      /* Hard-hide only the DOM companion marker (dot/ring/label). SVG
+         constellation edges remain owned by homepage-star-constellation.js so
+         their opacity + stroke-dashoffset growth animation stays intact. */
+      .smirel-companion-star[hidden] {
         display: none !important;
       }
     `;
@@ -67,16 +69,6 @@
         marker.style.opacity = '';
         marker.style.pointerEvents = '';
       }
-    }
-
-    for (const edge of document.querySelectorAll('.smirel-constellation-edge')) {
-      const belongsToActiveField = Boolean(fieldId)
-        && edge.dataset.parentField === fieldId;
-      const shouldExist = !suppress
-        && belongsToActiveField
-        && edge.classList.contains('is-open');
-      edge.dataset.markerHidden = shouldExist ? 'false' : 'true';
-      if (!shouldExist) edge.style.opacity = '';
     }
   }
 

@@ -8,6 +8,7 @@
   <title>邹羽宸 · Smirel</title>
   <link rel="stylesheet" href="./astra-official-port.css" />
   <link rel="stylesheet" href="./homepage-glass-cards.css" />
+  <link rel="stylesheet" href="./homepage-profile-card.css" />
   <link rel="stylesheet" href="./homepage-star-index.css" />
   <link rel="stylesheet" href="./homepage-star-detail.css" />
   <script type="importmap">
@@ -23,7 +24,7 @@
   <canvas id="galaxyCanvas" aria-hidden="true"></canvas>
 
   <main class="home-overlay" aria-label="邹羽宸的个人主页">
-    <section class="home-intro liquid-glass-card" data-liquid-glass="v29.5" aria-labelledby="home-title">
+    <section class="home-intro liquid-glass-card home-profile-card" data-liquid-glass="v29.5" aria-labelledby="home-title">
       <canvas class="liquid-glass__backdrop" aria-hidden="true"></canvas>
       <canvas class="liquid-glass__optics" aria-hidden="true"></canvas>
       <div class="liquid-glass__content">
@@ -33,16 +34,19 @@
         </div>
 
         <div class="home-identity">
-          <div class="home-name-row">
-            <h1 class="home-title" id="home-title">邹羽宸</h1>
-            <span class="home-alias">Jack</span>
+          <div class="home-profile-main">
+            <img class="home-avatar" src="/assets/avatar.svg" alt="邹羽宸" />
+            <div class="home-profile-primary">
+              <h1 class="home-title" id="home-title">邹羽宸</h1>
+              <p class="home-role">Electrical Engineering &amp; Automation</p>
+              <p class="home-role-secondary">Independent developer · Chengdu</p>
+            </div>
           </div>
-          <p class="home-role">Electrical Engineering &amp; Automation · Independent developer</p>
-          <p class="home-copy">Building AI systems, engineering tools and interfaces from Chengdu.</p>
+          <p class="home-copy">Building AI systems, engineering tools and interfaces.</p>
         </div>
 
         <div class="home-profile-meta">
-          <span>Chengdu · 22 · He/Him</span>
+          <span>22 · He/Him</span>
           <a href="https://github.com/yuchenm1303-png" target="_blank" rel="noreferrer">GitHub ↗</a>
         </div>
       </div>

@@ -53,33 +53,10 @@
   <script src="./homepage-project-tilt.js"></script>
 
   <!-- Keep the original V29.5 optical shader byte-for-byte. The homepage adapter
-       now receives each galaxy frame synchronously while the framebuffer is valid. -->
+       receives each galaxy frame immediately after render; heavy Canvas2D glass
+       processing is moved off the main thread without changing the visual model. -->
   <script src="https://raw.githack.com/yuchenm1303-png/yuchen1303.github.io/48b489c08dd226444d8f40be97ea03eb1c7ac714/ai-ledger-android/opengl-glass-edge-mini-v24-shader.js"></script>
-  <script src="./homepage-liquid-glass-v29-sync.js"></script>
-  <script>
-    (() => {
-      const capture = window.__SMIREL_HOMEPAGE_GLASS_SYNC__;
-      if (typeof capture !== 'function') return;
-
-      // V29.5 capture crosses WebGL -> 2D canvas -> WebGL and is intentionally
-      // held off the latency-sensitive home-camera interaction path. The last
-      // valid glass frame remains visible while the pointer is moving; once the
-      // damped camera has had time to settle, normal synchronized capture resumes.
-      let resumeCaptureAfter = -Infinity;
-      const suspendCapture = () => {
-        resumeCaptureAfter = performance.now() + 700;
-      };
-
-      window.addEventListener('pointermove', suspendCapture, { passive: true });
-      window.addEventListener('pointerleave', suspendCapture, { passive: true });
-      window.addEventListener('blur', suspendCapture, { passive: true });
-
-      window.__SMIREL_HOMEPAGE_GLASS_SYNC__ = (now = performance.now()) => {
-        if (now < resumeCaptureAfter) return;
-        capture(now);
-      };
-    })();
-  </script>
+  <script src="./homepage-liquid-glass-v29-async.js"></script>
   <script src="./homepage-star-flight.js"></script>
   <script src="./homepage-star-depth.js"></script>
   <script src="./homepage-star-density.js"></script>

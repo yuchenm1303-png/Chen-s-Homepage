@@ -4,6 +4,7 @@
   const source = config.releaseSource ?? {};
   const versionRe = /^v\d+\.\d+\.\d+(?:[.-][0-9A-Za-z.-]+)?$/;
   let sourceReady = false;
+  let metadataReady = false;
 
   const $ = (id) => document.getElementById(id);
   const downloadButton = $("downloadButton");
@@ -27,7 +28,7 @@
 
   function formatDate(value) {
     const date = new Date(value || "");
-    if (Number.isNaN(date.getTime())) return release.publishedAt || "待发布";
+    if (Number.isNaN(date.getTime())) return "";
     const yyyy = date.getUTCFullYear();
     const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
     const dd = String(date.getUTCDate()).padStart(2, "0");
@@ -46,6 +47,7 @@
   const packagedNotes = normalizeNoteList(release.notes);
   const extraNotes = normalizeNoteList(release.notesExtra);
   release.notes = [...packagedNotes, ...extraNotes];
+  release.metadataReady = false;
 
   function renderRelease() {
     const versionNumber = $("versionNumber");
@@ -54,9 +56,13 @@
     const accountStateText = $("accountStateText");
     const downloadButtonHint = $("downloadButtonHint");
 
-    if (versionNumber) versionNumber.textContent = release.version || "—";
-    if (publishedAt) publishedAt.textContent = `${release.publishedAt || "待发布"} 发布`;
-    if (fileSizeText) fileSizeText.textContent = release.fileSize || "—";
+    if (versionNumber) versionNumber.textContent = metadataReady ? release.version : "最新版";
+    if (publishedAt) {
+      publishedAt.textContent = metadataReady && release.publishedAt
+        ? `${release.publishedAt} 发布`
+        : "版本信息暂不可用";
+    }
+    if (fileSizeText) fileSizeText.textContent = metadataReady ? (release.fileSize || "—") : "—";
 
     if (
       downloadButton &&
@@ -64,13 +70,13 @@
       accountStateText?.textContent === "已授权" &&
       downloadButtonHint
     ) {
-      downloadButtonHint.textContent = release.version || "最新版";
+      downloadButtonHint.textContent = metadataReady ? release.version : "最新版";
     }
   }
 
   async function refreshFromStableMetadataBridge() {
     const metadataUrl = String(source.metadataUrl || "").trim();
-    if (!metadataUrl) return;
+    if (!metadataUrl) throw new Error("release_metadata_url_missing");
 
     const response = await fetch(metadataUrl, {
       method: "GET",
@@ -87,9 +93,11 @@
     const remoteNotes = normalizeNoteList(payload.notes);
     release.version = String(payload.version);
     release.publishedAt = formatDate(payload.publishedAt);
-    release.fileSize = String(payload.fileSize || release.fileSize || "—");
+    release.fileSize = String(payload.fileSize || "—");
     release.downloadUrl = "";
     release.notes = [...(remoteNotes.length ? remoteNotes : packagedNotes), ...extraNotes];
+    release.metadataReady = true;
+    metadataReady = true;
 
     document.documentElement.dataset.releaseSource = "stable-metadata-bridge";
     renderRelease();
@@ -98,12 +106,22 @@
   Promise.resolve()
     .then(refreshFromStableMetadataBridge)
     .catch((error) => {
-      console.warn("stable release metadata lookup failed; using packaged fallback metadata", error);
+      console.warn("stable release metadata lookup failed; latest version display withheld", error);
+      metadataReady = false;
+      release.metadataReady = false;
+      release.version = "";
+      release.publishedAt = "";
+      release.fileSize = "";
+      release.downloadUrl = "";
+      document.documentElement.dataset.releaseSource = "stable-metadata-unavailable";
       renderRelease();
     })
     .finally(() => {
       sourceReady = true;
       window.PORTAL_RELEASE_SOURCE_READY = true;
-      window.dispatchEvent(new CustomEvent("portal-release-ready", { detail: { ...release } }));
+      window.PORTAL_RELEASE_METADATA_READY = metadataReady;
+      window.dispatchEvent(new CustomEvent("portal-release-ready", {
+        detail: { ...release, metadataReady }
+      }));
     });
 })();

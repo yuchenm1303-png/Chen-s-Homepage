@@ -90,7 +90,7 @@ source = replaceOnce(
   \`continuumTarget.texture.colorSpace = THREE.NoColorSpace;
 const continuumMotionTarget = continuumTarget.clone();
 continuumMotionTarget.texture.colorSpace = THREE.NoColorSpace;
-continuumMotionTarget.userData.prewarmed = false;
+let continuumMotionPrewarmed = false;
 const continuumComposite = buildContinuumComposite(continuumTarget.texture);\`,
   'Preallocate motion continuum target',
 );
@@ -119,13 +119,13 @@ source = replaceOnce(
   if (continuumMotionTarget.width !== desiredMotionWidth
       || continuumMotionTarget.height !== desiredMotionHeight) {
     continuumMotionTarget.setSize(desiredMotionWidth, desiredMotionHeight);
-    continuumMotionTarget.userData.prewarmed = false;
+    continuumMotionPrewarmed = false;
   }
-  if (!continuumMotionTarget.userData.prewarmed && !starFlightMoving && intro > 0.9999) {
+  if (!continuumMotionPrewarmed && !starFlightMoving && intro > 0.9999) {
     renderer.setRenderTarget(continuumMotionTarget);
     renderer.clear();
     renderer.setRenderTarget(null);
-    continuumMotionTarget.userData.prewarmed = true;
+    continuumMotionPrewarmed = true;
   }
   const activeContinuumTarget = starFlightMoving ? continuumMotionTarget : continuumTarget;
   continuumComposite.material.uniforms.uContinuumTexture.value = activeContinuumTarget.texture;

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="description" content="邹羽宸的个人主页：电气工程及其自动化、独立开发与个人项目。" />
+  <meta name="description" content="邹羽宸的个人主页：电气工程及其自动化、独立开发、AI 应用、工程仿真与研究记录。" />
   <title>邹羽宸 · Smirel</title>
   <link rel="stylesheet" href="./astra-official-port.css" />
   <link rel="stylesheet" href="./homepage-glass-cards.css" />
@@ -21,38 +21,114 @@
 <body>
   <canvas id="galaxyCanvas" aria-hidden="true"></canvas>
 
-  <main class="home-overlay" aria-label="Smirel homepage preview">
+  <main class="home-overlay" aria-label="邹羽宸的个人主页">
     <section class="home-intro liquid-glass-card" data-liquid-glass="v29.5" aria-labelledby="home-title">
       <canvas class="liquid-glass__backdrop" aria-hidden="true"></canvas>
       <canvas class="liquid-glass__optics" aria-hidden="true"></canvas>
       <div class="liquid-glass__content">
-        <p class="home-kicker">Smirel / Chengdu</p>
+        <div class="home-kicker-row">
+          <p class="home-kicker">Smirel / Personal index</p>
+          <p class="home-year">2026</p>
+        </div>
+
         <div class="home-identity">
           <h1 class="home-title" id="home-title">邹羽宸</h1>
-          <p class="home-copy">Jack · Electrical Engineering &amp; Automation student · Independent developer.</p>
+          <p class="home-role">Jack · Electrical Engineering &amp; Automation</p>
+          <p class="home-copy">Independent developer from Chengdu. I build AI applications, engineering simulations and research data workflows.</p>
         </div>
-        <p class="home-status">22 · He/Him · Power &amp; Code</p>
+
+        <div class="home-profile-meta">
+          <span>22 · He/Him</span>
+          <a href="https://github.com/yuchenm1303-png" target="_blank" rel="noreferrer">GitHub ↗</a>
+        </div>
       </div>
     </section>
 
-    <section class="home-projects" aria-label="Selected work">
-      <article class="cards home-project-card">
-        <p class="project-index">01 / Agent</p>
-        <h2 class="project-title">Loom</h2>
-        <p class="project-copy">A general-purpose agent for tools, planning and execution.</p>
-        <div class="project-footer"><span>Agent · Python</span><span class="project-arrow">→</span></div>
-      </article>
+    <nav class="home-index" aria-label="Site index">
+      <div class="home-index-heading">
+        <p>Explore</p>
+        <span>01 — 04</span>
+      </div>
 
-      <article class="cards home-project-card">
-        <p class="project-index">02 / Infrastructure</p>
-        <h2 class="project-title">TermRelay</h2>
-        <p class="project-copy">AI gateway for routing, accounts and upstream services.</p>
-        <div class="project-footer"><span>Gateway · Go</span><span class="project-arrow">→</span></div>
-      </article>
-    </section>
+      <button class="home-index-item" type="button" data-home-panel="projects">
+        <span class="home-index-number">01</span>
+        <span class="home-index-copy"><strong>Projects</strong><small>Selected work in the galaxy</small></span>
+        <span class="home-index-arrow">↗</span>
+      </button>
+      <button class="home-index-item" type="button" data-home-panel="about">
+        <span class="home-index-number">02</span>
+        <span class="home-index-copy"><strong>About</strong><small>Background &amp; interests</small></span>
+        <span class="home-index-arrow">↗</span>
+      </button>
+      <button class="home-index-item" type="button" data-home-panel="notes">
+        <span class="home-index-number">03</span>
+        <span class="home-index-copy"><strong>Notes</strong><small>Build logs &amp; research</small></span>
+        <span class="home-index-arrow">↗</span>
+      </button>
+      <button class="home-index-item" type="button" data-home-panel="contact">
+        <span class="home-index-number">04</span>
+        <span class="home-index-copy"><strong>Contact</strong><small>GitHub &amp; links</small></span>
+        <span class="home-index-arrow">↗</span>
+      </button>
+
+      <p class="home-index-hint"><span aria-hidden="true">◎</span> Marked stars are interactive project objects.</p>
+    </nav>
+
+    <aside class="home-panel" aria-hidden="true" aria-label="Homepage section">
+      <button class="home-panel-close" type="button" aria-label="Close section">Close <span>×</span></button>
+
+      <section class="home-panel-view" data-home-panel-view="projects" hidden>
+        <p class="home-panel-kicker">01 / Projects</p>
+        <h2>Selected work</h2>
+        <p class="home-panel-lede">Projects live as objects in this galaxy. Select a marked anchor star to travel into its full project archive.</p>
+        <div class="home-project-index">
+          <div><span>Loom</span><small>General-purpose agent</small></div>
+          <div><span>TermRelay</span><small>AI gateway &amp; infrastructure</small></div>
+          <div><span>AI Ledger</span><small>Android AI assistant &amp; visual agent</small></div>
+          <div><span>Listing Studio</span><small>AI commerce automation</small></div>
+        </div>
+        <p class="home-panel-note">The bright ring in the star field marks an interactive project entry.</p>
+      </section>
+
+      <section class="home-panel-view" data-home-panel-view="about" hidden>
+        <p class="home-panel-kicker">02 / About</p>
+        <h2>Power, code &amp; systems.</h2>
+        <p class="home-panel-lede">I am an Electrical Engineering &amp; Automation student from Chengdu and an independent developer.</p>
+        <p class="home-panel-body">This site is where I keep the systems I build and the things I am learning: AI agents, interface and graphics work, engineering simulation, and research-data workflows.</p>
+        <dl class="home-facts">
+          <div><dt>Based in</dt><dd>Chengdu</dd></div>
+          <div><dt>Study</dt><dd>Electrical Engineering &amp; Automation</dd></div>
+          <div><dt>Work</dt><dd>Independent development</dd></div>
+          <div><dt>Focus</dt><dd>AI · Engineering · Interfaces</dd></div>
+        </dl>
+      </section>
+
+      <section class="home-panel-view" data-home-panel-view="notes" hidden>
+        <p class="home-panel-kicker">03 / Notes</p>
+        <h2>Build logs &amp; research.</h2>
+        <p class="home-panel-lede">A growing archive of technical notes, project decisions and engineering experiments.</p>
+        <div class="home-note-list">
+          <div><span>Building a Homepage From Zero</span><time datetime="2026-08-01">2026.08.01</time></div>
+          <div><span>Numerical Stability in Engineering Simulation</span><time datetime="2026-07-25">2026.07.25</time></div>
+          <div><span>Visual Interaction Design for AI Agents</span><time datetime="2026-07-12">2026.07.12</time></div>
+          <div><span>GaN HEMT Temperature &amp; Heavy-Ion Sweep</span><time datetime="2026-07-10">2026.07.10</time></div>
+        </div>
+      </section>
+
+      <section class="home-panel-view" data-home-panel-view="contact" hidden>
+        <p class="home-panel-kicker">04 / Contact</p>
+        <h2>Find me online.</h2>
+        <p class="home-panel-lede">The public links I currently keep attached to this homepage.</p>
+        <div class="home-contact-links">
+          <a href="https://github.com/yuchenm1303-png" target="_blank" rel="noreferrer"><span>GitHub</span><small>github.com/yuchenm1303-png</small><b>↗</b></a>
+          <a href="https://smirel.com" target="_blank" rel="noreferrer"><span>Smirel</span><small>smirel.com</small><b>↗</b></a>
+        </div>
+      </section>
+    </aside>
   </main>
 
   <script src="./homepage-project-tilt.js"></script>
+  <script src="./homepage-shell.js"></script>
 
   <!-- Keep the original V29.5 optical shader byte-for-byte. The homepage adapter
        now receives each galaxy frame synchronously while the framebuffer is valid. -->

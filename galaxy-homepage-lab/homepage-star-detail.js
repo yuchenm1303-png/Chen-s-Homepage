@@ -8,14 +8,13 @@
   function createDetailShell() {
     const shell = document.createElement('section');
     shell.className = 'star-detail-shell';
-    shell.setAttribute('aria-label', 'Loom project detail');
     shell.setAttribute('aria-hidden', 'true');
     shell.innerHTML = `
       <header class="star-detail-header">
         <div class="star-detail-heading">
-          <p class="star-detail-kicker">Project / 01</p>
-          <h1 class="star-detail-title">Loom</h1>
-          <p class="star-detail-subtitle">General-purpose agent · 2026 — present</p>
+          <p class="star-detail-kicker"></p>
+          <h1 class="star-detail-title"></h1>
+          <p class="star-detail-subtitle"></p>
         </div>
         <span class="star-detail-star-slot" aria-hidden="true"></span>
       </header>
@@ -24,49 +23,54 @@
         Esc · Back to galaxy
       </button>
 
-      <main class="star-detail-main">
-        <p class="star-detail-lede">A general-purpose agent for tools, planning and execution.</p>
-        <p class="star-detail-meta">
-          <span>Python</span>
-          <span>Agents</span>
-          <span>Tool use</span>
-          <span>Browser interaction</span>
-        </p>
-
-        <div class="star-detail-divider"></div>
-
-        <section class="star-detail-grid" aria-labelledby="loom-overview-label">
-          <p class="star-detail-section-label" id="loom-overview-label">Overview</p>
-          <div>
-            <p class="star-detail-copy">
-              Loom is an experimental general-purpose agent focused on reliable planning,
-              tool orchestration and practical execution. The project explores how a small
-              agent runtime can move between reasoning, browser interaction and external
-              tools without becoming a single-purpose workflow.
-            </p>
-            <div class="star-detail-links">
-              <a class="star-detail-link" href="https://github.com/yuchenm1303-png/Loom" target="_blank" rel="noreferrer">Repository ↗</a>
-            </div>
-          </div>
-        </section>
-
-        <div class="star-detail-divider"></div>
-
-        <section class="star-detail-grid" aria-labelledby="loom-systems-label">
-          <p class="star-detail-section-label" id="loom-systems-label">Selected systems</p>
-          <ul class="star-detail-systems">
-            <li>Planning &amp; execution</li>
-            <li>Tool orchestration</li>
-            <li>Browser interaction</li>
-            <li>Session runtime</li>
-          </ul>
-        </section>
-
-        <p class="star-detail-object">Object 01 · Blue-white stellar archive</p>
-      </main>
+      <main class="star-detail-main"></main>
     `;
     document.body.appendChild(shell);
     return shell;
+  }
+
+  function projectMarkup(object) {
+    const meta = (object.meta || []).map((item) => `<span>${item}</span>`).join('');
+    const systems = (object.systems || []).map((item) => `<li>${item}</li>`).join('');
+    const links = (object.links || []).map((link) => (
+      `<a class="star-detail-link" href="${link.href}" target="_blank" rel="noreferrer">${link.label} ↗</a>`
+    )).join('');
+
+    return `
+      <p class="star-detail-lede">${object.lede || ''}</p>
+      <p class="star-detail-meta">${meta}</p>
+      <div class="star-detail-divider"></div>
+      <section class="star-detail-grid" aria-label="Overview">
+        <p class="star-detail-section-label">Overview</p>
+        <div>
+          <p class="star-detail-copy">${object.overview || ''}</p>
+          ${links ? `<div class="star-detail-links">${links}</div>` : ''}
+        </div>
+      </section>
+      <div class="star-detail-divider"></div>
+      <section class="star-detail-grid" aria-label="Selected systems">
+        <p class="star-detail-section-label">Selected systems</p>
+        <ul class="star-detail-systems">${systems}</ul>
+      </section>
+      <p class="star-detail-object">Object ${object.order} · ${object.star?.classLabel || 'Stellar archive'}</p>
+    `;
+  }
+
+  function noteMarkup(object) {
+    const meta = (object.meta || []).map((item) => `<span>${item}</span>`).join('');
+    const paragraphs = (object.body || []).map((paragraph) => `<p>${paragraph}</p>`).join('');
+
+    return `
+      <article class="star-detail-article">
+        <p class="star-detail-note-date">${object.date || 'Archive note'}</p>
+        <h2 class="star-detail-note-lede">${object.lede || ''}</h2>
+        <p class="star-detail-meta">${meta}</p>
+        <div class="star-detail-divider"></div>
+        <p class="star-detail-note-intro">${object.overview || ''}</p>
+        <div class="star-detail-note-body">${paragraphs}</div>
+        <p class="star-detail-object">Observation ${object.order} · ${object.star?.classLabel || 'Journal star'}</p>
+      </article>
+    `;
   }
 
   const detailedInstall = function installStarDetail(context) {
@@ -77,18 +81,19 @@
     if (!THREE || !scene || !camera) return controller;
 
     const shell = createDetailShell();
+    const starHeader = shell.querySelector('.star-detail-header');
+    const heading = shell.querySelector('.star-detail-heading');
+    const kicker = shell.querySelector('.star-detail-kicker');
+    const title = shell.querySelector('.star-detail-title');
+    const subtitle = shell.querySelector('.star-detail-subtitle');
+    const detailMain = shell.querySelector('.star-detail-main');
     const detailBack = shell.querySelector('.star-detail-back');
     const starSlot = shell.querySelector('.star-detail-star-slot');
-    const starHeader = shell.querySelector('.star-detail-header');
     const originalBack = document.querySelector('.smirel-star-back');
 
-    // The visual path is unchanged: the same PerspectiveCamera performs the
-    // arrived -> archive move. Performance work below only removes redundant
-    // layout and prevents the expensive volume pass from jumping to full quality
-    // while that camera is still moving.
     const OPEN_MS = reducedMotion ? 1 : 1080;
     const CLOSE_MS = reducedMotion ? 1 : 840;
-    const DETAIL_REVEAL_AT = 0.32;
+    const DETAIL_REVEAL_AT = 0.28;
     const FULL_QUALITY_SETTLE_MS = reducedMotion ? 0 : 140;
 
     let phase = 'idle';
@@ -99,10 +104,11 @@
     let closeStartBlend = 1;
     let closeDuration = CLOSE_MS;
     let starGroup = null;
+    let activeObject = null;
     let arrivalFov = 47;
     let arrivalDepth = 3.2;
-    let detailFov = 25;
-    let detailDepth = 38;
+    let detailFov = 26;
+    let detailDepth = 34;
     let layoutDirty = true;
     let targetReady = false;
     let measuredWidth = 0;
@@ -126,6 +132,21 @@
       return t * t * t * (t * (t * 6 - 15) + 10);
     }
 
+    function renderObject(object) {
+      if (!object) return false;
+      activeObject = object;
+      shell.dataset.starKind = object.kind;
+      shell.dataset.starId = object.id;
+      shell.setAttribute('aria-label', `${object.title} ${object.kind === 'note' ? 'note' : 'project'} detail`);
+      kicker.textContent = `${object.kind === 'note' ? 'Note' : 'Project'} / ${object.order}`;
+      title.textContent = object.title;
+      subtitle.textContent = object.subtitle || '';
+      detailMain.innerHTML = object.kind === 'note' ? noteMarkup(object) : projectMarkup(object);
+      targetReady = false;
+      layoutDirty = true;
+      return true;
+    }
+
     function locateStarGroup() {
       if (starGroup?.parent) return starGroup;
 
@@ -145,11 +166,10 @@
     function markLayoutDirty() {
       layoutDirty = true;
     }
-
     window.addEventListener('resize', markLayoutDirty, { passive: true });
 
     function measureArchiveTarget(force = false) {
-      if (!starSlot) return false;
+      if (!starSlot || !activeObject) return false;
 
       const width = Math.max(window.innerWidth, 1);
       const height = Math.max(window.innerHeight, 1);
@@ -158,15 +178,9 @@
         return true;
       }
 
-      // This is intentionally the only synchronous layout read in the camera
-      // path. The previous implementation read this rectangle every frame while
-      // CSS transforms were animating, forcing style/layout flushes at 60+ Hz.
       const rect = starSlot.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return false;
 
-      // getBoundingClientRect includes the header's entrance transform. Remove
-      // that compositor-only translation once here so the cached target is the
-      // exact final resting position, not a target that chases the DOM animation.
       let transformX = 0;
       let transformY = 0;
       if (starHeader) {
@@ -177,8 +191,7 @@
             transformX = matrix.m41;
             transformY = matrix.m42;
           } catch (_) {
-            // A missing matrix parser only affects the one-time 10px entrance
-            // offset; it must never break the 3D transition.
+            // The transition remains valid without removing the tiny compositor offset.
           }
         }
       }
@@ -190,17 +203,23 @@
         1 - centreY / height * 2,
       );
 
-      detailFov = width <= 620 ? 30 : 25;
+      if (width <= 620) {
+        detailFov = 32;
+      } else {
+        detailFov = activeObject.kind === 'note' ? 28 : 26;
+      }
+
       const starScale = starGroup?.scale?.x || 0.84;
       const focalPixels = height / Math.max(
         2 * Math.tan(THREE.MathUtils.degToRad(detailFov) * 0.5),
         1e-5,
       );
-      const desiredCoreRadiusPx = Math.min(rect.width, rect.height) * 0.31;
+      const coreRatio = activeObject.kind === 'note' ? 0.35 : 0.37;
+      const desiredCoreRadiusPx = Math.min(rect.width, rect.height) * coreRatio;
       detailDepth = THREE.MathUtils.clamp(
         starScale * focalPixels / Math.max(desiredCoreRadiusPx, 1),
-        Math.max(arrivalDepth + 8, 18),
-        42,
+        Math.max(arrivalDepth + 7, 16),
+        38,
       );
 
       measuredWidth = width;
@@ -259,7 +278,6 @@
     }
 
     detailBack?.addEventListener('click', beginClose);
-
     window.addEventListener('keydown', (event) => {
       if (event.key !== 'Escape') return;
       if (phase !== 'opening' && phase !== 'open') return;
@@ -269,10 +287,6 @@
       beginClose();
     }, true);
 
-    // The outer renderer asks these hooks what work is actually necessary. The
-    // scene must still present every browser frame while the camera is moving,
-    // but the expensive continuum can remain on the same motion budget already
-    // used by the smooth 4.2s flight. Once motion stops it restores full quality.
     controller.shouldRenderFrame = (now, lastCompositeMs) => {
       if (phase === 'opening' || phase === 'closing') return true;
       return baseShouldRenderFrame ? baseShouldRenderFrame(now, lastCompositeMs) : false;
@@ -290,8 +304,9 @@
       const arrived = document.body.classList.contains('star-flight-arrived');
 
       if (arrived && !previousArrived) {
+        const object = controller.activeObject;
         const group = locateStarGroup();
-        if (group) {
+        if (object && group && renderObject(object)) {
           starPosition.copy(group.position);
           arrivalCameraPosition.copy(camera.position);
           arrivalQuaternion.copy(camera.quaternion);
@@ -302,24 +317,17 @@
           cameraRight.set(1, 0, 0).applyQuaternion(arrivalQuaternion).normalize();
           cameraUp.set(0, 1, 0).applyQuaternion(arrivalQuaternion).normalize();
 
-          camera.clearViewOffset();
-          camera.updateProjectionMatrix();
           currentBlend = 0;
           detailShown = false;
-          targetReady = false;
-          layoutDirty = true;
           fullQualityAfterMs = 0;
           hideDetail();
           phase = 'opening';
           phaseStartedAt = now;
-
-          // Pay the single layout read before animation work begins. Every
-          // following transition frame is pure math + GPU work.
           measureArchiveTarget(true);
         }
       }
 
-      if (arrived && starGroup) {
+      if (arrived && starGroup && activeObject) {
         if (phase === 'opening') {
           const raw = THREE.MathUtils.clamp((now - phaseStartedAt) / OPEN_MS, 0, 1);
           currentBlend = smootherstep01(raw);
@@ -334,10 +342,6 @@
           }
         } else if (phase === 'open') {
           currentBlend = 1;
-          // The base arrived runtime currently reapplies its arrival camera each
-          // presented frame, so restore the exact cached archive camera without
-          // touching DOM layout. If that base runtime later exposes camera
-          // ownership directly, this becomes a no-op optimization point.
           applyCameraBlend(1);
         } else if (phase === 'closing') {
           const raw = THREE.MathUtils.clamp((now - phaseStartedAt) / closeDuration, 0, 1);
@@ -349,7 +353,6 @@
             camera.position.copy(arrivalCameraPosition);
             camera.quaternion.copy(arrivalQuaternion);
             camera.fov = arrivalFov;
-            camera.clearViewOffset();
             camera.updateProjectionMatrix();
             hideDetail();
             fullQualityAfterMs = 0;
@@ -358,11 +361,11 @@
           }
         }
       } else if (previousArrived) {
-        camera.clearViewOffset();
-        camera.updateProjectionMatrix();
         hideDetail();
         currentBlend = 0;
         fullQualityAfterMs = 0;
+        activeObject = null;
+        targetReady = false;
         phase = 'idle';
       }
 

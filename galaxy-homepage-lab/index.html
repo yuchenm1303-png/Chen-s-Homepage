@@ -50,7 +50,10 @@
     </section>
   </main>
 
-  <script type="module" src="./astra-deep-nebula-mid-variants-loader.js"></script>
-  <script defer src="./homepage-liquid-glass-v29.js"></script>
+  <!-- Keep the original V29.5 optical shader byte-for-byte. The homepage adapter
+       now receives each galaxy frame synchronously while the framebuffer is valid. -->
+  <script src="https://raw.githack.com/yuchenm1303-png/yuchen1303.github.io/48b489c08dd226444d8f40be97ea03eb1c7ac714/ai-ledger-android/opengl-glass-edge-mini-v24-shader.js"></script>
+  <script src="./homepage-liquid-glass-v29-sync.js"></script>
+  <script type="module" src="./astra-homepage-glass-capture-loader.js"></script>
 </body>
 </html>

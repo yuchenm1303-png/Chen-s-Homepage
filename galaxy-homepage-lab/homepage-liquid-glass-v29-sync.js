@@ -1,21 +1,29 @@
 (() => {
   'use strict';
 
-  const card = document.querySelector('[data-liquid-glass="v29.5"]');
+  const primaryCard = document.querySelector('[data-liquid-glass="v29.5"]');
+  const panelCard = document.querySelector('.home-panel');
   const sourceCanvas = document.getElementById('galaxyCanvas');
   const shaders = window.OpenGLV24Shaders;
-  if (!card || !(sourceCanvas instanceof HTMLCanvasElement) || !shaders?.vs || !shaders?.fs) {
-    card?.classList.add('liquid-glass--fallback');
+  if (!primaryCard || !(sourceCanvas instanceof HTMLCanvasElement) || !shaders?.vs || !shaders?.fs) {
+    primaryCard?.classList.add('liquid-glass--fallback');
+    panelCard?.classList.add('liquid-glass--fallback');
     console.warn('[homepage-liquid-glass] V29.5 prerequisites unavailable; using CSS fallback');
     return;
   }
 
-  const backdropCanvas = card.querySelector('.liquid-glass__backdrop');
-  const opticsCanvas = card.querySelector('.liquid-glass__optics');
-  if (!(backdropCanvas instanceof HTMLCanvasElement) || !(opticsCanvas instanceof HTMLCanvasElement)) {
-    card.classList.add('liquid-glass--fallback');
+  const primaryBackdropCanvas = primaryCard.querySelector('.liquid-glass__backdrop');
+  const panelBackdropCanvas = panelCard?.querySelector('.liquid-glass__backdrop');
+  const opticsCanvas = primaryCard.querySelector('.liquid-glass__optics');
+  if (!(primaryBackdropCanvas instanceof HTMLCanvasElement) || !(opticsCanvas instanceof HTMLCanvasElement)) {
+    primaryCard.classList.add('liquid-glass--fallback');
+    panelCard?.classList.add('liquid-glass--fallback');
     return;
   }
+
+  let card = primaryCard;
+  let backdropCanvas = primaryBackdropCanvas;
+  let backdropCtx = backdropCanvas.getContext('2d', { alpha: true });
 
   const params = Object.freeze({
     radius: 22,
@@ -47,9 +55,10 @@
     shoulderCaptureWidthPx: 96,
   });
 
-  // Keep the approved V29.5 sampling domain around the card. The performance
-  // problem was not this margin; it was the duplicate 24 Hz throttle plus the
-  // 36 full-surface manual blur copies performed for every captured frame.
+  // Keep the approved V29.5 sampling domain around the active glass surface.
+  // Only one surface is optically rendered per galaxy frame; when the section
+  // panel opens, the existing optics canvas moves there instead of creating a
+  // second WebGL -> Canvas2D -> WebGL pipeline.
   const SAMPLE_MARGIN_CSS_PX = 128;
   const MAX_CAPTURE_DPR = 1.25;
 
@@ -58,7 +67,6 @@
   // V29.5 blur in one raster pass, which removes dozens of full-canvas copies.
   const prefilterCanvas = document.createElement('canvas');
   const prefilterCtx = prefilterCanvas.getContext('2d', { alpha: false });
-  const backdropCtx = backdropCanvas.getContext('2d', { alpha: true });
 
   let gl;
   let program;
@@ -67,9 +75,28 @@
   let blurTexture;
   let textureWidth = 0;
   let textureHeight = 0;
-  let visible = true;
   let failed = false;
   let captureState = null;
+
+  function switchActiveSurface() {
+    const panelReady = panelCard instanceof HTMLElement
+      && panelBackdropCanvas instanceof HTMLCanvasElement;
+    const usePanel = panelReady && document.body.classList.contains('home-panel-open');
+    const nextCard = usePanel ? panelCard : primaryCard;
+    const nextBackdrop = usePanel ? panelBackdropCanvas : primaryBackdropCanvas;
+
+    if (card === nextCard
+        && backdropCanvas === nextBackdrop
+        && opticsCanvas.parentElement === nextCard) {
+      return;
+    }
+
+    card = nextCard;
+    backdropCanvas = nextBackdrop;
+    backdropCtx = backdropCanvas.getContext('2d', { alpha: true });
+    card.prepend(opticsCanvas);
+    captureState = null;
+  }
 
   function setCanvasSize(canvas, width, height) {
     const w = Math.max(1, Math.round(width));
@@ -319,13 +346,14 @@
   }
 
   function syncFromGalaxyFrame() {
-    if (failed || !visible || document.hidden) return;
+    if (failed || document.hidden) return;
+    switchActiveSurface();
 
     // Do not add a second frame-rate gate here. The galaxy renderer already
     // decides which frames are presented (24 Hz when truly idle, browser cadence
     // while the camera is moving) and calls this hook immediately after each one.
-    // Following that cadence keeps the glass background spatially locked to the
-    // visible galaxy instead of replaying it at a separate 24 Hz.
+    // Following that cadence keeps the active glass surface spatially locked to
+    // the visible galaxy without rendering a second optics pipeline.
     try {
       if (captureBackdrop()) {
         renderOptics();
@@ -340,10 +368,6 @@
 
   try {
     initGl();
-    const observer = new IntersectionObserver((entries) => {
-      visible = entries.some((entry) => entry.isIntersecting);
-    }, { root: null, threshold: 0.01 });
-    observer.observe(card);
 
     // The galaxy renderer calls this immediately after composer.render(). At
     // that point preserveDrawingBuffer=false is still safe because the displayed
@@ -351,7 +375,8 @@
     window.__SMIREL_HOMEPAGE_GLASS_SYNC__ = syncFromGalaxyFrame;
   } catch (error) {
     failed = true;
-    card.classList.add('liquid-glass--fallback');
+    primaryCard.classList.add('liquid-glass--fallback');
+    panelCard?.classList.add('liquid-glass--fallback');
     console.warn('[homepage-liquid-glass] unavailable; using CSS fallback', error);
   }
 })();

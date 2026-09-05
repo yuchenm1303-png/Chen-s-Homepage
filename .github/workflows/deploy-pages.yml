@@ -45,12 +45,13 @@ jobs:
           set -euo pipefail
           mkdir -p published
           rsync -a --exclude='.git' production/ published/
-          rm -rf published/stellar-homepage
-          mkdir -p published/stellar-homepage
-          rsync -a --delete galaxy-release/galaxy-homepage-lab/ published/stellar-homepage/
-          test -s published/stellar-homepage/index.html
-          test -s published/stellar-homepage/homepage-star-activity.js
-          grep -q '<base href="/stellar-homepage/"' published/index.html
+          rsync -a galaxy-release/galaxy-homepage-lab/ published/
+          test -s published/index.html
+          test -s published/homepage-star-activity.js
+          if grep -q 'stellar-homepage' published/index.html; then
+            echo 'Unexpected stellar-homepage path in production root index' >&2
+            exit 1
+          fi
           test "$(tr -d '\r\n' < published/CNAME)" = "smirel.com"
 
       - name: Configure Pages

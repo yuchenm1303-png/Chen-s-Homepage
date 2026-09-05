@@ -64,7 +64,8 @@
   flex-direction: column;
 }
 
-.liquid-glass-card.liquid-glass--fallback {
+.liquid-glass-card.liquid-glass--fallback,
+.home-panel.liquid-glass--fallback {
   background-color: rgba(5,7,10,.76);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
@@ -274,16 +275,25 @@
   right: clamp(20px, 4.8vw, 76px);
   width: min(440px, calc(100vw - 40px));
   max-height: calc(100vh - 150px);
-  overflow: auto;
+  overflow: hidden;
   padding: 24px 26px 27px;
   border: 1px solid rgba(255,255,255,.13);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(8,11,15,.88), rgba(2,4,7,.82));
+  background: transparent;
   box-shadow: 0 28px 70px rgba(0,0,0,.38);
+  isolation: isolate;
   pointer-events: none;
   opacity: 0;
   transform: translateY(8px);
   transition: opacity .22s ease, transform .22s ease;
+}
+
+.home-panel__scroll {
+  position: relative;
+  z-index: 2;
+  max-height: inherit;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .home-panel.is-open {

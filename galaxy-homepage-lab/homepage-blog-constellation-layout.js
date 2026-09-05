@@ -11,7 +11,7 @@
     about: 8430,
     'about-identity': 2782,
     'about-work': 5342,
-    'about-study': 3717,
+    'about-study': 8421,
     'about-place': 4139,
 
     blog: 5596,
@@ -52,13 +52,13 @@
   const layouts = Object.freeze({
     about: makeFieldLayout({
       // Screen-first composition measured from the user's latest marked capture.
-      // On the neutral 2040x1115 canvas viewport all four companions stay inside
-      // the requested local About territory around the existing primary star.
+      // The study node is intentionally the lower-right corner of the local
+      // silhouette; the other authored stars remain unchanged.
       centre: [-0.0820, -0.7906],
       offsets: {
         'about-identity': [-0.0078, 0.3921],
         'about-work': [0.1951, 0.4043],
-        'about-study': [0.1112, 0.1861],
+        'about-study': [0.4986, 0.1406],
         'about-place': [-0.0845, 0.1639],
       },
       edges: [

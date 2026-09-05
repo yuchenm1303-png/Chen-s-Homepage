@@ -4,11 +4,12 @@ window.DOWNLOAD_PORTAL_CONFIG = {
     domain: "Downloads"
   },
   release: {
-    version: "v0.1.2",
-    publishedAt: "2026.08.13",
+    version: "",
+    publishedAt: "",
     platform: "Windows 10 / 11 · x64",
-    fileSize: "156 MB",
+    fileSize: "",
     downloadUrl: "",
+    metadataReady: false,
     notes: [
       "修复上架流程与界面稳定性问题。"
     ],

@@ -89,6 +89,7 @@ async function startMonitor() {
     import("./usage-admin-v2.js?v=20260902-queued-1"),
     import("./usage-ops-v1.js?v=20260830-0910")
   ]);
+  document.getElementById("accountsSection")?.remove();
 }
 
 async function handleLogin(event) {

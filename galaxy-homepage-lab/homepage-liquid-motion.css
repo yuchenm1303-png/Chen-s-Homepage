@@ -1,0 +1,321 @@
+:root {
+  --glass-motion-open: 640ms;
+  --glass-motion-close: 440ms;
+  --glass-motion-swap-out: 150ms;
+  --glass-motion-swap-in: 300ms;
+  --glass-ease-fluid: cubic-bezier(.16, 1, .30, 1);
+  --glass-ease-tension: cubic-bezier(.20, .86, .20, 1.12);
+  --glass-ease-collapse: cubic-bezier(.42, 0, .58, 1);
+}
+
+/*
+ * Liquid-glass motion language
+ * ----------------------------
+ * Surfaces do not simply fade. They gather, stretch, overshoot and settle.
+ * The expensive V29.5 capture keeps its final geometry; motion is compositor-
+ * only so opening a large panel does not resize the capture texture every frame.
+ */
+.home-panel {
+  transform-origin: 82% 12%;
+  opacity: 0;
+  transform: translate3d(18px, 18px, 0) scale3d(.94, .89, 1);
+  border-radius: 34px;
+  pointer-events: none;
+  will-change: transform, opacity, border-radius;
+  backface-visibility: hidden;
+  transition:
+    opacity var(--glass-motion-close) var(--glass-ease-collapse),
+    transform var(--glass-motion-close) var(--glass-ease-collapse),
+    border-radius var(--glass-motion-close) var(--glass-ease-collapse);
+}
+
+.home-panel.is-open {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  border-radius: 18px;
+  pointer-events: auto;
+}
+
+.home-panel.is-opening {
+  animation: glass-surface-open var(--glass-motion-open) var(--glass-ease-fluid) both;
+}
+
+.home-panel.is-closing {
+  pointer-events: none;
+  animation: glass-surface-close var(--glass-motion-close) var(--glass-ease-collapse) both;
+}
+
+.home-panel.is-switching {
+  animation: glass-surface-switch 440ms var(--glass-ease-fluid) both;
+}
+
+@keyframes glass-surface-open {
+  0% {
+    opacity: 0;
+    transform: translate3d(20px, 22px, 0) scale3d(.92, .84, 1);
+    border-radius: 42px;
+  }
+  48% {
+    opacity: 1;
+    transform: translate3d(-2px, -1px, 0) scale3d(1.018, .985, 1);
+    border-radius: 15px;
+  }
+  70% {
+    transform: translate3d(1px, 0, 0) scale3d(.996, 1.010, 1);
+    border-radius: 20px;
+  }
+  84% {
+    transform: translate3d(0, 0, 0) scale3d(1.004, .997, 1);
+    border-radius: 17px;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+    border-radius: 18px;
+  }
+}
+
+@keyframes glass-surface-close {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+    border-radius: 18px;
+  }
+  28% {
+    opacity: .96;
+    transform: translate3d(1px, 2px, 0) scale3d(1.008, .985, 1);
+    border-radius: 20px;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(18px, 18px, 0) scale3d(.94, .89, 1);
+    border-radius: 34px;
+  }
+}
+
+@keyframes glass-surface-switch {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+    border-radius: 18px;
+  }
+  32% {
+    transform: translate3d(0, 1px, 0) scale3d(1.006, .986, 1);
+    border-radius: 21px;
+  }
+  62% {
+    transform: translate3d(0, -1px, 0) scale3d(.997, 1.006, 1);
+    border-radius: 17px;
+  }
+}
+
+/* The optical layer itself participates in the material motion. */
+.home-panel > .liquid-glass__backdrop {
+  opacity: .72;
+  transform: scale3d(1.025, 1.025, 1);
+  transition:
+    opacity 360ms ease,
+    transform 620ms var(--glass-ease-fluid);
+}
+
+.home-panel > .liquid-glass__optics {
+  opacity: .12;
+  transform: scale3d(1.045, 1.045, 1);
+  filter: brightness(1.18) saturate(1.12);
+  transition:
+    opacity 420ms ease,
+    transform 620ms var(--glass-ease-fluid),
+    filter 620ms var(--glass-ease-fluid);
+}
+
+.home-panel.is-open > .liquid-glass__backdrop {
+  opacity: 1;
+  transform: scale3d(1, 1, 1);
+}
+
+.home-panel.is-open > .liquid-glass__optics {
+  opacity: .42;
+  transform: scale3d(1, 1, 1);
+  filter: brightness(1) saturate(1);
+}
+
+.home-panel.is-opening > .liquid-glass__optics {
+  animation: glass-optics-bloom var(--glass-motion-open) var(--glass-ease-fluid) both;
+}
+
+.home-panel.is-switching > .liquid-glass__optics {
+  animation: glass-optics-switch 440ms var(--glass-ease-fluid) both;
+}
+
+@keyframes glass-optics-bloom {
+  0% { opacity: .08; filter: brightness(1.28) saturate(1.24); }
+  42% { opacity: .62; filter: brightness(1.13) saturate(1.10); }
+  72% { opacity: .36; filter: brightness(.98) saturate(1.02); }
+  100% { opacity: .42; filter: brightness(1) saturate(1); }
+}
+
+@keyframes glass-optics-switch {
+  0%, 100% { opacity: .42; filter: brightness(1) saturate(1); }
+  42% { opacity: .56; filter: brightness(1.10) saturate(1.08); }
+}
+
+/* A short specular wave makes the surface read as one elastic material. */
+.home-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 78% 2%, rgba(255,255,255,.22), rgba(255,255,255,.055) 18%, transparent 46%),
+    linear-gradient(112deg, transparent 12%, rgba(255,255,255,.055) 47%, transparent 66%);
+  mix-blend-mode: screen;
+}
+
+.home-panel.is-opening::after {
+  animation: glass-specular-open var(--glass-motion-open) ease-out both;
+}
+
+.home-panel.is-switching::after {
+  animation: glass-specular-switch 440ms ease-out both;
+}
+
+@keyframes glass-specular-open {
+  0%, 100% { opacity: 0; transform: translate3d(8%, 0, 0); }
+  38% { opacity: .66; }
+  72% { opacity: .16; transform: translate3d(-4%, 0, 0); }
+}
+
+@keyframes glass-specular-switch {
+  0%, 100% { opacity: 0; }
+  46% { opacity: .34; }
+}
+
+/* Content moves after the material, never at exactly the same phase. */
+.home-panel__scroll {
+  opacity: 0;
+  transform: translate3d(0, 12px, 0) scale(.992);
+  filter: blur(5px);
+  transform-origin: 50% 12%;
+  will-change: transform, opacity, filter;
+  transition:
+    opacity 270ms ease,
+    transform 460ms var(--glass-ease-fluid),
+    filter 360ms ease;
+}
+
+.home-panel.is-open .home-panel__scroll {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
+}
+
+.home-panel.is-opening .home-panel__scroll {
+  animation: glass-content-open 510ms var(--glass-ease-fluid) 70ms both;
+}
+
+.home-panel.is-closing .home-panel__scroll {
+  animation: glass-content-close 230ms ease both;
+}
+
+@keyframes glass-content-open {
+  0% { opacity: 0; transform: translate3d(0, 13px, 0) scale(.988); filter: blur(6px); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+}
+
+@keyframes glass-content-close {
+  0% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: translate3d(0, -7px, 0) scale(.994); filter: blur(5px); }
+}
+
+/* View replacement is a two-phase fluid exchange: old layer drains, new rises. */
+.home-panel-view {
+  transform-origin: 50% 14%;
+}
+
+.home-panel-view.is-view-entering {
+  opacity: 0;
+  transform: translate3d(0, 12px, 0) scale(.987);
+  filter: blur(7px);
+}
+
+.home-panel-view.is-view-entering.is-view-active {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
+  transition:
+    opacity var(--glass-motion-swap-in) ease,
+    transform 420ms var(--glass-ease-fluid),
+    filter 340ms ease;
+}
+
+.home-panel-view.is-view-leaving {
+  opacity: 0;
+  transform: translate3d(0, -8px, 0) scale(1.008);
+  filter: blur(6px);
+  transition:
+    opacity var(--glass-motion-swap-out) ease,
+    transform var(--glass-motion-swap-out) ease,
+    filter var(--glass-motion-swap-out) ease;
+}
+
+.home-panel-close span {
+  transform-origin: 50% 50%;
+  transition: transform 360ms var(--glass-ease-fluid), opacity 220ms ease;
+}
+
+.home-panel.is-opening .home-panel-close span {
+  animation: glass-close-glyph-in 520ms var(--glass-ease-fluid) 90ms both;
+}
+
+.home-panel.is-closing .home-panel-close span {
+  transform: rotate(-18deg) scale(.72);
+  opacity: .3;
+}
+
+@keyframes glass-close-glyph-in {
+  0% { opacity: 0; transform: rotate(24deg) scale(.62); }
+  70% { opacity: 1; transform: rotate(-4deg) scale(1.08); }
+  100% { opacity: 1; transform: rotate(0) scale(1); }
+}
+
+/* The index recedes as the liquid surface comes forward. */
+.home-index {
+  transition:
+    opacity 360ms ease,
+    filter 420ms ease;
+}
+
+body.home-panel-open .home-index {
+  opacity: .24;
+  filter: saturate(.70) brightness(.78);
+}
+
+@media (max-width: 760px) {
+  .home-panel {
+    transform-origin: 82% 88%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --glass-motion-open: 1ms;
+    --glass-motion-close: 1ms;
+    --glass-motion-swap-out: 1ms;
+    --glass-motion-swap-in: 1ms;
+  }
+
+  .home-panel,
+  .home-panel::after,
+  .home-panel > .liquid-glass__backdrop,
+  .home-panel > .liquid-glass__optics,
+  .home-panel__scroll,
+  .home-panel-view,
+  .home-panel-close span,
+  .home-index {
+    animation: none !important;
+    transition-duration: 1ms !important;
+    filter: none !important;
+  }
+}

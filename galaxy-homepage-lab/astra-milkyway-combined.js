@@ -137,6 +137,7 @@ uniform float uTwinkleSpeed;
 varying float vBrightness;
 varying vec3 vColor;
 varying float vOpacity;
+varying float vFluxCompensation;
 ${FILTERED_CORE}
 void main() {
   vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
@@ -148,6 +149,16 @@ void main() {
   vOpacity = starOpacity * (0.97 + twinkle * 0.03) * smoothstep(0.0, 0.55, uIntroProgress);
   float opticalDiameter = uPixelRatio * (0.30 + starScale * 3.4) * depthScale * (0.995 + twinkle * 0.005);
   vParticleDiameter = max(opticalDiameter, uPixelRatio * 0.82);
+
+  // Preserve integrated radiance for unresolved stars. The Astra filtered core
+  // intentionally scales coverage with diameter^2; that is ideal for resolved
+  // particles, but it made subpixel Milky Way populations lose almost all flux.
+  // Compensate only below a small reference footprint, without changing sprite
+  // size, geometry, star count, or the bright-star optical pipeline.
+  float referenceDiameter = uPixelRatio * 2.15;
+  float fluxRatio = referenceDiameter / max(vParticleDiameter, 0.0001);
+  vFluxCompensation = clamp(fluxRatio * fluxRatio, 1.0, 6.0);
+
   gl_PointSize = max(vParticleDiameter, 4.0);
   gl_Position = projectionMatrix * viewPosition;
 }`;
@@ -156,10 +167,11 @@ const DENSITY_FRAGMENT = `
 varying float vBrightness;
 varying vec3 vColor;
 varying float vOpacity;
+varying float vFluxCompensation;
 ${FILTERED_CORE}
 void main() {
   vec2 pixel = (gl_PointCoord - vec2(0.5)) * max(vParticleDiameter, 4.0);
-  float alpha = astraFilteredCore(pixel, 0.205) * vOpacity;
+  float alpha = astraFilteredCore(pixel, 0.205) * vOpacity * vFluxCompensation;
   if (alpha <= 0.000006) discard;
   gl_FragColor = vec4(vColor * vBrightness, alpha);
 }`;

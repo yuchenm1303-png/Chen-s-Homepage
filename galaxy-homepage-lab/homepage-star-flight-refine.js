@@ -39,14 +39,6 @@
         p += dot(p, p.yzx + 31.32);
         return fract((p.x + p.y) * p.z);
       }
-      vec3 hash33(vec3 p) {
-        p = vec3(
-          dot(p, vec3(127.1, 311.7, 74.7)),
-          dot(p, vec3(269.5, 183.3, 246.1)),
-          dot(p, vec3(113.5, 271.9, 124.6))
-        );
-        return fract(sin(p) * 43758.5453123);
-      }
       float noise3(vec3 p) {
         vec3 i = floor(p);
         vec3 f = fract(p);
@@ -65,33 +57,13 @@
         float nx11 = mix(n011, n111, f.x);
         return mix(mix(nx00, nx10, f.y), mix(nx01, nx11, f.y), f.z);
       }
-      void cellular3(vec3 p, out float nearestDistance, out float borderDistance, out float cellSeed) {
-        vec3 base = floor(p);
-        vec3 local = fract(p);
-        float d1 = 10.0;
-        float d2 = 10.0;
-        float seed = 0.0;
-        for (int z = 0; z < 3; z++) {
-          for (int y = 0; y < 3; y++) {
-            for (int x = 0; x < 3; x++) {
-              vec3 offset = vec3(float(x) - 1.0, float(y) - 1.0, float(z) - 1.0);
-              vec3 lattice = base + offset;
-              vec3 feature = hash33(lattice);
-              vec3 delta = offset + feature - local;
-              float d = dot(delta, delta);
-              if (d < d1) {
-                d2 = d1;
-                d1 = d;
-                seed = hash31(lattice + vec3(19.17, 7.31, 11.83));
-              } else if (d < d2) {
-                d2 = d;
-              }
-            }
-          }
-        }
-        nearestDistance = sqrt(d1);
-        borderDistance = sqrt(d2) - sqrt(d1);
-        cellSeed = seed;
+      float fbm3(vec3 p) {
+        float value = noise3(p) * 0.55;
+        p = p * 2.07 + vec3(13.1, 7.7, 3.9);
+        value += noise3(p) * 0.28;
+        p = p * 2.11 + vec3(5.3, 17.2, 11.6);
+        value += noise3(p) * 0.12;
+        return value / 0.95;
       }
     `;
 
@@ -106,72 +78,75 @@
 
       void main() {
         float activity = clamp(uActivity, 0.0, 1.0);
-        float phaseTime = uTime * mix(0.55, 1.0, activity);
+        float phaseTime = uTime * mix(0.62, 1.02, activity);
         vec3 p = normalize(vLocalPosition);
 
+        // Stellaris-style surface construction: the large-scale field stays
+        // continuous. Several smooth noise octaves are phase-animated into a
+        // molten mask; no Voronoi borders are exposed to the image.
         vec3 flow = vec3(
-          noise3(p * 1.65 + vec3(phaseTime * 0.020, 3.1, 9.4)),
-          noise3(p * 1.65 + vec3(7.7, -phaseTime * 0.016, 2.5)),
-          noise3(p * 1.65 + vec3(4.2, 12.3, phaseTime * 0.018))
+          noise3(p * 1.35 + vec3(phaseTime * 0.011, 5.2, 1.7)),
+          noise3(p * 1.35 + vec3(8.4, -phaseTime * 0.009, 3.6)),
+          noise3(p * 1.35 + vec3(2.9, 11.1, phaseTime * 0.010))
         ) - 0.5;
-        vec3 q = normalize(p + flow * (0.18 + activity * 0.05));
+        vec3 q = normalize(p + flow * (0.105 + activity * 0.035));
 
-        float cellDistance;
-        float borderDistance;
-        float cellSeed;
-        vec3 cellularPosition = q * 6.4 + vec3(
-          phaseTime * 0.022,
-          -phaseTime * 0.013,
-          phaseTime * 0.017
-        );
-        cellular3(cellularPosition, cellDistance, borderDistance, cellSeed);
+        float noise1 = noise3(q * 2.2 + vec3(phaseTime * 0.006, 0.0, 3.4)) - 0.5;
+        float noise2 = noise3(q * 8.8 + vec3(-phaseTime * 0.018, phaseTime * 0.012, 9.1)) - 0.5;
+        float noise3Fine = noise3(q * 17.6 + vec3(4.7, -phaseTime * 0.029, phaseTime * 0.021)) - 0.5;
+        float field = noise1 + noise2 * 0.72 + noise3Fine * 0.38;
 
-        float lane = 1.0 - smoothstep(0.035, 0.145, borderDistance);
-        float cellInterior = smoothstep(0.045, 0.19, borderDistance);
-        float centreHeat = 1.0 - smoothstep(0.14, 0.72, cellDistance);
-        float macro = noise3(q * 2.35 + vec3(phaseTime * 0.010, 6.7, -phaseTime * 0.008));
-        float plasma = noise3(q * 14.0 + vec3(-phaseTime * 0.040, phaseTime * 0.026, phaseTime * 0.018));
-        float granules = noise3(q * 36.0 + vec3(phaseTime * 0.083, -phaseTime * 0.047, phaseTime * 0.031));
-        float cellVariation = mix(0.78, 1.18, cellSeed);
-        float hotGranules = smoothstep(0.62, 0.88, granules * 0.62 + plasma * 0.38);
-        float flareThread = smoothstep(0.80, 0.96, plasma)
-          * smoothstep(0.42, 0.82, centreHeat)
-          * (0.25 + activity * 0.75);
-        float coolPatch = smoothstep(0.72, 0.91, macro)
-          * (1.0 - centreHeat)
-          * (0.30 + activity * 0.70);
+        float animatedNoise = sin((field + phaseTime * 0.064) * 9.6);
+        float invertedHeat = clamp((1.0 - animatedNoise) * 0.5, 0.0, 1.0);
+        float lavaMask = pow(max(-animatedNoise, 0.0), 2.0);
 
-        float heat = 0.18
-          + centreHeat * 0.38
-          + cellInterior * 0.15
-          + macro * 0.10
-          + plasma * 0.10
-          + hotGranules * 0.20;
-        heat *= cellVariation;
-        heat *= 1.0 - lane * (0.58 + activity * 0.16);
-        heat *= 1.0 - coolPatch * (0.22 + activity * 0.12);
+        // Emulate Stellaris' separate lava / heated-stone textures with two
+        // procedural detail bands. The fine band breaks up the broad plasma
+        // field without turning it into a visible geometric cell network.
+        float broadThermal = fbm3(q * 3.0 + vec3(phaseTime * 0.008, 7.3, -phaseTime * 0.006));
+        float stoneA = noise3(q * 24.0 + vec3(-phaseTime * 0.038, phaseTime * 0.022, 13.0));
+        float stoneB = noise3(q * 49.0 + vec3(phaseTime * 0.074, -phaseTime * 0.051, phaseTime * 0.033));
+        float stoneTexture = 0.66 + stoneA * 0.21 + stoneB * 0.13;
+        float lavaTexture = 0.72 + noise3(q * 31.0 + vec3(phaseTime * 0.052, 3.2, -phaseTime * 0.041)) * 0.28;
 
-        vec3 deepColor = uBaseColor * vec3(0.10, 0.13, 0.18);
-        vec3 lowColor = uBaseColor * vec3(0.34, 0.42, 0.56);
-        vec3 bodyColor = mix(uBaseColor * 0.72, uBaseColor, 0.45);
-        vec3 hotColor = mix(uBaseColor, vec3(1.0, 0.91, 0.72), 0.28) * 1.08;
-        vec3 whiteHot = mix(uBaseColor, vec3(1.0), 0.76) * 1.34;
+        float stoneHeat = smoothstep(0.10, 0.92, invertedHeat * 0.82 + broadThermal * 0.18);
+        float hotIslands = smoothstep(0.38, 0.88, lavaMask * (0.72 + stoneA * 0.28));
+        float whiteHotIslands = smoothstep(0.70, 0.98, lavaMask * (0.66 + stoneB * 0.34));
+        float coolVeil = smoothstep(0.70, 0.93, broadThermal)
+          * smoothstep(0.10, 0.82, animatedNoise * 0.5 + 0.5);
 
-        vec3 body = mix(deepColor, lowColor, smoothstep(0.06, 0.30, heat));
-        body = mix(body, bodyColor, smoothstep(0.24, 0.56, heat));
-        body = mix(body, hotColor, smoothstep(0.52, 0.82, heat));
-        body = mix(body, whiteHot, hotGranules * (0.18 + activity * 0.22));
-        body = mix(body, whiteHot * 1.08, flareThread * 0.30);
-        body *= 1.0 - lane * (0.34 + activity * 0.12);
+        vec3 coldColor = uBaseColor * vec3(0.12, 0.16, 0.24);
+        vec3 hotStoneColor = uBaseColor * vec3(0.54, 0.66, 0.84);
+        vec3 brightColor = mix(uBaseColor, vec3(1.0, 0.89, 0.70), 0.22) * 1.18;
+        vec3 whiteHotColor = mix(uBaseColor, vec3(1.0), 0.70) * 1.38;
+
+        vec3 heatedStone = mix(coldColor, hotStoneColor, stoneHeat);
+        heatedStone *= stoneTexture;
+        heatedStone += hotStoneColor * pow(invertedHeat, 2.2) * (0.10 + activity * 0.06);
+
+        vec3 lava = brightColor
+          * lavaTexture
+          * pow(lavaMask, 0.62)
+          * (0.66 + activity * 0.28);
+
+        vec3 body = heatedStone + lava;
+        body = mix(body, whiteHotColor, hotIslands * (0.10 + activity * 0.12));
+        body += whiteHotColor * whiteHotIslands * (0.08 + activity * 0.10);
+        body *= 1.0 - coolVeil * (0.10 + activity * 0.06);
+
+        // Fine granulation remains subordinate to the molten field, so the
+        // surface reads as turbulent plasma rather than cracked polygons.
+        float microGranulation = noise3(q * 72.0 + vec3(-phaseTime * 0.11, phaseTime * 0.067, 5.9));
+        body *= 0.94 + microGranulation * (0.07 + activity * 0.025);
 
         vec3 viewDir = normalize(cameraPosition - vWorldPosition);
         float facing = max(dot(normalize(vWorldNormal), viewDir), 0.0);
         float limb = pow(facing, 0.30);
         float incandescentRim = pow(1.0 - facing, 6.0);
-        body *= mix(0.42, 1.0, limb);
-        body += hotColor * incandescentRim * (0.055 + activity * 0.035);
+        body *= mix(0.44, 1.0, limb);
+        body += brightColor * incandescentRim * (0.045 + activity * 0.030);
 
-        float pulse = 0.996 + (0.003 + activity * 0.004) * sin(phaseTime * 0.92);
+        float pulse = 0.996 + (0.003 + activity * 0.004) * sin(phaseTime * 0.88);
         gl_FragColor = vec4(body * pulse, 1.0);
       }
     `;

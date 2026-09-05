@@ -147,6 +147,70 @@ for (const [search, replacement, label] of worldSpaceDepthReplacements) {
   source = replaceOnce(source, search, replacement, label);
 }
 
+// Preserve the approved 6..62 front volume exactly and add a second, cheaper
+// raymarch behind it. This increases actual world extent rather than stretching
+// the existing layers, so their local parallax and density remain unchanged.
+const deepVolumeMarker = '  float reveal = smoothstep(0.0, 0.86, uIntroProgress);';
+const deepVolumeContinuation = `  const float deepNear = 62.0;
+  const float deepFar = 230.0;
+  const int deepSteps = 7;
+  float deepStepSize = (deepFar - deepNear) / float(deepSteps);
+
+  for (int j = 0; j < deepSteps; j++) {
+    float deepT = deepNear + (float(j) + 0.5) * deepStepSize;
+    vec3 deepWorld = uCameraPosition + rayDir * deepT;
+    float deepDepth = max(-deepWorld.z, 1.0);
+
+    float deepNx = deepWorld.x / max(uTanHalfFov * deepDepth * 1.30 * designAspect, 0.001);
+    float deepNy = deepWorld.y / max(uTanHalfFov * deepDepth * 1.30, 0.001);
+    vec2 deepSky = vec2(deepNx, deepNy);
+
+    // The rear field deliberately continues the far-layer orientation, but its
+    // density is generated independently so it is new space rather than a
+    // scaled copy of the approved foreground volume.
+    vec2 deepP = rot2(-0.55) * deepSky;
+    deepP += vec2((deepDepth - 112.0) * 0.00082, (deepDepth - 112.0) * -0.00034);
+    float deepNoise = fbm2(deepP * 1.92 + vec2(63.7, 27.4));
+    float deepWarp = (deepNoise - 0.5) * 0.105;
+    float deepCentre = 0.035
+      + 0.070 * sin(deepP.x * 2.35 + 0.62)
+      + deepWarp;
+    float deepBand = ribbon(deepP.y, deepCentre, 0.205 + deepNoise * 0.030);
+    float deepMass = smoothstep(0.36, 0.77, deepNoise);
+    float deepFilament = pow(
+      1.0 - abs(noise2(deepP * 5.2 + vec2(18.0, 71.0)) * 2.0 - 1.0),
+      3.0
+    );
+    float deepVoid = smoothstep(0.74, 0.91, noise2(deepP * 1.18 + vec2(44.0, 9.0)));
+
+    // Two overlapping absolute-Z shells provide visible continuation well past
+    // the original far layer. Their centres do not move with the camera.
+    float rearA = gaussianWeight(deepDepth, 96.0, 31.0) * 0.78;
+    float rearB = gaussianWeight(deepDepth, 166.0, 52.0) * 0.64;
+    float deepWindow = (rearA + rearB)
+      * gaussianWeight(deepP.x, 0.16, 1.46);
+    float deepDensity = deepWindow * deepBand
+      * (0.10 + deepMass * 0.78 + deepFilament * 0.20)
+      * (1.0 - deepVoid * 0.66);
+
+    vec3 deepBlue = vec3(0.155, 0.215, 0.315);
+    vec3 deepNeutral = vec3(0.315, 0.305, 0.300);
+    vec3 deepEmission = mix(deepBlue, deepNeutral, 0.14 + deepMass * 0.16)
+      * deepDensity;
+
+    // Foreground dust transmission still attenuates the rear field, tying the
+    // new volume into the existing composition instead of painting over it.
+    integrated += deepEmission * transmission * deepStepSize * 0.00155;
+  }
+
+  float reveal = smoothstep(0.0, 0.86, uIntroProgress);`;
+source = replaceOnce(
+  source,
+  deepVolumeMarker,
+  deepVolumeContinuation,
+  'Deep world-space continuation volume',
+);
+
 // Inject performance-only patches after the upstream loader has built the final
 // renderer source. C / Split math, star counts, colors and bloom parameters stay
 // unchanged. The optimizations remove work that cannot affect the displayed
@@ -170,8 +234,8 @@ source = replaceOnce(
 );
 
 // uIntroProgress only multiplied the finished continuum result. Move that
-// multiplication to the cheap composite pass so the 10-step raymarch no longer
-// has to be recomputed every intro frame.
+// multiplication to the cheap composite pass so the 10-step front raymarch and
+// rear continuation no longer have to be recomputed every intro frame.
 source = replaceOnce(
   source,
   /  float reveal = smoothstep\\(0\\.0, 0\\.86, uIntroProgress\\);\\n  vec3 color = integrated \\* uIntensity \\* reveal;/,

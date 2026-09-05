@@ -5,19 +5,19 @@
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
   // The bright field is deterministic (seed 0xA57A2D31), so these are authored
-  // identities rather than runtime search hints. The indices below were selected
-  // once from the real 14,800-star geometry and verified as compact silhouettes
-  // around their own field primaries on the desktop reference viewport.
+  // identities rather than runtime search hints. Blog deliberately uses an open,
+  // branched silhouette: one rising spine plus two short lower branches. It must
+  // never collapse back into a closed ring around the primary.
   const FIXED_INDICES = Object.freeze({
     blog: 5596,
-    'ai-ledger-real-streaming': 6518,
-    'building-homepage': 204,
-    'opengl-liquid-glass': 3066,
-    'computer-use-design': 14552,
-    'app-performance-optimization': 8268,
-    'compose-parent-bubble-rendering': 8605,
-    'gan-hemt-stability': 4398,
-    'ai-listing-research': 13626,
+    'building-homepage': 156,
+    'opengl-liquid-glass': 1918,
+    'computer-use-design': 8450,
+    'gan-hemt-stability': 3710,
+    'ai-ledger-real-streaming': 2955,
+    'app-performance-optimization': 9518,
+    'compose-parent-bubble-rendering': 7866,
+    'ai-listing-research': 10991,
 
     contact: 11408,
     'contact-github': 9953,
@@ -50,25 +50,24 @@
     blog: makeFieldLayout({
       centre: [-0.70, -0.45],
       offsets: {
-        'ai-ledger-real-streaming': [-0.14, 0.18],
-        'building-homepage': [0.04, 0.22],
-        'opengl-liquid-glass': [0.22, 0.15],
-        'computer-use-design': [0.27, -0.01],
-        'app-performance-optimization': [0.21, -0.19],
-        'compose-parent-bubble-rendering': [0.03, -0.24],
-        'gan-hemt-stability': [-0.12, -0.20],
-        'ai-listing-research': [-0.15, -0.03],
+        'building-homepage': [0.05, 0.10],
+        'opengl-liquid-glass': [0.13, 0.18],
+        'computer-use-design': [0.24, 0.14],
+        'gan-hemt-stability': [0.32, 0.00],
+        'ai-ledger-real-streaming': [0.13, 0.01],
+        'app-performance-optimization': [0.22, -0.10],
+        'compose-parent-bubble-rendering': [0.08, -0.18],
+        'ai-listing-research': [-0.06, -0.13],
       },
       edges: [
-        ['blog', 'ai-ledger-real-streaming'],
-        ['ai-ledger-real-streaming', 'building-homepage'],
+        ['blog', 'building-homepage'],
         ['building-homepage', 'opengl-liquid-glass'],
         ['opengl-liquid-glass', 'computer-use-design'],
-        ['computer-use-design', 'app-performance-optimization'],
-        ['app-performance-optimization', 'compose-parent-bubble-rendering'],
-        ['compose-parent-bubble-rendering', 'gan-hemt-stability'],
-        ['gan-hemt-stability', 'ai-listing-research'],
-        ['ai-listing-research', 'blog'],
+        ['computer-use-design', 'gan-hemt-stability'],
+        ['building-homepage', 'ai-ledger-real-streaming'],
+        ['ai-ledger-real-streaming', 'app-performance-optimization'],
+        ['ai-ledger-real-streaming', 'compose-parent-bubble-rendering'],
+        ['compose-parent-bubble-rendering', 'ai-listing-research'],
       ],
     }),
 
@@ -137,7 +136,6 @@
   style.textContent = `
     /* Labels point away from each constellation's centre so the silhouette and
        connector lines remain readable in both hover preview and local-field view. */
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
@@ -148,9 +146,10 @@
       text-align: right;
     }
 
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="building-homepage"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="opengl-liquid-glass"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-email"] .smirel-companion-label {
       top: -15px;
@@ -159,6 +158,7 @@
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="app-performance-optimization"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="compose-parent-bubble-rendering"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-qq"] .smirel-companion-label {
       top: 19px;

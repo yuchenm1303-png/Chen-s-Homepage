@@ -27,8 +27,8 @@
     source,
     '    const FLIGHT_DURATION_MS = reducedMotion ? 1100 : 4200;',
     `    const DEPTH_START = 12.0;
-    const DEPTH_STRETCH = 3.6;
-    const DEPTH_FAR = 480;
+    const DEPTH_STRETCH = 4.4;
+    const DEPTH_FAR = 720;
 
     function deepenPoints(pointsObject) {
       const geometry = pointsObject?.geometry;
@@ -180,27 +180,27 @@
 
     const microField = originalStarFields.find((object) => object !== brightField) || null;
     buildContinuationLayer(brightField, {
-      count: 5200,
+      count: 9000,
       seed: 0x44504545,
-      near: 165,
-      far: 350,
-      depthExponent: 1.08,
-      angularJitter: 0.012,
-      brightness: 0.74,
-      opacity: 0.56,
-      scale: 0.64,
+      near: 150,
+      far: 610,
+      depthExponent: 1.12,
+      angularJitter: 0.014,
+      brightness: 0.70,
+      opacity: 0.52,
+      scale: 0.62,
     });
     if (microField) {
       buildContinuationLayer(microField, {
-        count: 16800,
+        count: 30000,
         seed: 0x554C5452,
-        near: 150,
-        far: 455,
-        depthExponent: 1.16,
-        angularJitter: 0.018,
-        brightness: 0.66,
-        opacity: 0.62,
-        scale: 0.72,
+        near: 135,
+        far: 680,
+        depthExponent: 1.22,
+        angularJitter: 0.022,
+        brightness: 0.60,
+        opacity: 0.56,
+        scale: 0.68,
       });
     }
 
@@ -211,7 +211,7 @@
   // The continuum raymarch spans t=6..62 from the home camera, with its far
   // nebula mass centred near t=47. Keep the interactive target inside that
   // luminous volume instead of selecting it from the deep continuation shells.
-  // The 150..455 continuation layers remain behind it to preserve the larger
+  // The 135..680 continuation layers remain behind it to preserve the larger
   // universe and visible starfield depth.
   source = replaceOnce(
     source,

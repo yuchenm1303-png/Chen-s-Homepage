@@ -69,22 +69,112 @@ const splitMid = `    vec2 midP = rot2(-0.60) * sky;
 
 source = replaceOnce(source, baselineMid, splitMid, 'C / Split mid-nebula topology');
 
-// Inject a cache into the final renderer after the upstream low-resolution
-// continuum pass has been installed. The volumetric shader has no time input,
-// so re-running it at 60 Hz while the camera is unchanged is pure duplicate
-// work. During interaction it is capped near 33 Hz; stars/twinkle remain at the
-// browser frame rate. Intro, resize and projection changes always redraw.
+// Inject performance-only patches after the upstream loader has built the final
+// renderer source. C / Split math, star counts, colors and bloom parameters stay
+// unchanged. The optimizations remove work that cannot affect the displayed
+// image: redundant MSAA, duplicate volume raymarches, and surplus idle frames.
 const moduleMarker = "const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));";
-const performancePatch = `source = replaceOnce(
+const performancePatch = `
+// The scene contains analytically anti-aliased point sprites plus full-screen
+// triangles. Hardware MSAA cannot improve those edges, but it still costs HDR
+// render-target bandwidth and resolve work every frame.
+source = replaceOnce(
+  source,
+  /antialias: true,/,
+  'antialias: false,',
+  'Disable redundant default framebuffer MSAA',
+);
+source = replaceOnce(
+  source,
+  /multisampling: 2,/,
+  'multisampling: 0,',
+  'Disable redundant composer MSAA',
+);
+
+// uIntroProgress only multiplied the finished continuum result. Move that
+// multiplication to the cheap composite pass so the 10-step raymarch no longer
+// has to be recomputed every intro frame.
+source = replaceOnce(
+  source,
+  /  float reveal = smoothstep\\(0\\.0, 0\\.86, uIntroProgress\\);\\n  vec3 color = integrated \\* uIntensity \\* reveal;/,
+  '  vec3 color = integrated * uIntensity;',
+  'Move continuum intro reveal out of raymarch',
+);
+source = replaceOnce(
+  source,
+  /uniform sampler2D uContinuumTexture;\\nvarying vec2 vUv;\\nvoid main\\(\\) \\{\\n  gl_FragColor = texture2D\\(uContinuumTexture, vUv\\);\\n\\}/,
+  \`uniform sampler2D uContinuumTexture;
+uniform float uIntroProgress;
+varying vec2 vUv;
+void main() {
+  float reveal = smoothstep(0.0, 0.86, uIntroProgress);
+  vec4 continuum = texture2D(uContinuumTexture, vUv);
+  gl_FragColor = vec4(continuum.rgb * reveal, 1.0);
+}\`,
+  'Continuum composite intro reveal',
+);
+source = replaceOnce(
+  source,
+  /uniforms: \\{ uContinuumTexture: \\{ value: texture \\} \\},/,
+  'uniforms: { uContinuumTexture: { value: texture }, uIntroProgress: { value: 0 } },',
+  'Continuum composite reveal uniform',
+);
+
+// Track output invalidation separately from requestAnimationFrame. Bright-star
+// twinkle is a very slow sinusoid, so 24 Hz idle presentation is visually
+// continuous while cutting the expensive composer/bloom workload by ~60%.
+// Camera motion and the intro still render at the browser refresh rate.
+source = replaceOnce(
+  source,
+  /const started = performance\\.now\\(\\);\\nlet previous = started;/,
+  \`const started = performance.now();
+let previous = started;
+let lastCompositeMs = -1e9;
+let frameDirty = true;
+let pageVisible = !document.hidden;
+const IDLE_FRAME_INTERVAL_MS = 1000 / 24;
+document.addEventListener('visibilitychange', () => {
+  pageVisible = !document.hidden;
+  previous = performance.now();
+  frameDirty = true;
+}, { passive: true });\`,
+  'Idle frame scheduler state',
+);
+source = replaceOnce(
+  source,
+  /pixelRatio = dpr;\\n  renderer\\.setDrawingBufferSize/,
+  \`pixelRatio = dpr;
+  frameDirty = true;
+  renderer.setDrawingBufferSize\`,
+  'Resize invalidation',
+);
+source = replaceOnce(
+  source,
+  /function frame\\(now\\) \\{\\n  resize\\(\\);/,
+  \`function frame(now) {
+  resize();
+  if (!pageVisible) {
+    previous = now;
+    requestAnimationFrame(frame);
+    return;
+  }\`,
+  'Hidden-page render suspension',
+);
+
+// Cache the volumetric texture. The field has no time input; only meaningful
+// camera/projection changes can alter it. Thresholds are tied to its low-res
+// pixel footprint so the asymptotic camera damping tail does not keep the
+// raymarch alive for invisible subpixel changes.
+source = replaceOnce(
   source,
   /updateContinuumCameraUniforms\\(intro\\);\\n  renderer\\.setRenderTarget\\(continuumTarget\\);\\n  renderer\\.clear\\(\\);\\n  renderer\\.render\\(continuumScene, continuumCamera\\);\\n  renderer\\.setRenderTarget\\(null\\);\\n  composer\\.render\\(dt\\);/,
   \`updateContinuumCameraUniforms(intro);
+  continuumComposite.material.uniforms.uIntroProgress.value = intro;
   const continuumCache = continuumField.mesh.userData.continuumCache
     || (continuumField.mesh.userData.continuumCache = {
       valid: false,
       px: 0, py: 0, pz: 0,
       fx: 0, fy: 0, fz: -1,
-      intro: -1,
       aspect: -1,
       width: 0,
       height: 0,
@@ -104,13 +194,11 @@ const performancePatch = `source = replaceOnce(
   const targetChanged = continuumCache.width !== continuumTarget.width
     || continuumCache.height !== continuumTarget.height;
   const projectionChanged = Math.abs(continuumCache.aspect - continuumUniforms.uAspect.value) > 1e-6;
-  const revealChanged = Math.abs(continuumCache.intro - intro) > 1e-4;
-  const cameraChanged = positionDeltaSq > 1e-6 || directionDeltaSq > 2.5e-8;
+  const cameraChanged = positionDeltaSq > 2.5e-5 || directionDeltaSq > 2.5e-6;
   const interactionBudgetReady = now - continuumCache.lastRenderMs >= 30.0;
   const shouldRenderContinuum = !continuumCache.valid
     || targetChanged
     || projectionChanged
-    || revealChanged
     || (cameraChanged && interactionBudgetReady);
 
   if (shouldRenderContinuum) {
@@ -125,14 +213,29 @@ const performancePatch = `source = replaceOnce(
     continuumCache.fx = cachedForward.x;
     continuumCache.fy = cachedForward.y;
     continuumCache.fz = cachedForward.z;
-    continuumCache.intro = intro;
     continuumCache.aspect = continuumUniforms.uAspect.value;
     continuumCache.width = continuumTarget.width;
     continuumCache.height = continuumTarget.height;
     continuumCache.lastRenderMs = now;
   }
-  composer.render(dt);\`,
-  'Continuum dirty-cache render scheduling',
+
+  const cameraSettling =
+      Math.abs(pointer.currentX - pointer.targetX) > 0.00045
+    || Math.abs(pointer.currentY - pointer.targetY) > 0.00045;
+  const introActive = intro < 0.9999;
+  const idleTwinkleDue = !reducedMotion && now - lastCompositeMs >= IDLE_FRAME_INTERVAL_MS;
+  const shouldRenderScene = frameDirty
+    || introActive
+    || cameraSettling
+    || shouldRenderContinuum
+    || idleTwinkleDue;
+
+  if (shouldRenderScene) {
+    composer.render(dt);
+    lastCompositeMs = now;
+    frameDirty = false;
+  }\`,
+  'Continuum cache and idle composer scheduling',
 );`;
 
 source = replaceOnce(

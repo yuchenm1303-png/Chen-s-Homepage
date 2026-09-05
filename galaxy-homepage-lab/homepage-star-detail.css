@@ -18,9 +18,9 @@
   visibility: hidden;
   pointer-events: none;
   background:
-    radial-gradient(circle at 6.5% 9%, rgba(0,0,0,0) 0 7%, rgba(0,0,0,.04) 14%, rgba(0,0,0,.12) 27%, rgba(0,0,0,.22) 45%, rgba(0,0,0,.34) 72%, rgba(0,0,0,.42) 100%),
-    linear-gradient(90deg, rgba(0,0,0,.06) 0%, rgba(0,0,0,.12) 28%, rgba(0,0,0,.34) 62%, rgba(0,0,0,.56) 100%);
-  transition: opacity .72s cubic-bezier(.22,.61,.36,1), visibility 0s linear .72s;
+    radial-gradient(circle at 6.2% 10%, rgba(0,0,0,0) 0 8%, rgba(0,0,0,.035) 16%, rgba(0,0,0,.11) 30%, rgba(0,0,0,.24) 52%, rgba(0,0,0,.38) 100%),
+    linear-gradient(90deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.10) 28%, rgba(0,0,0,.32) 62%, rgba(0,0,0,.54) 100%);
+  transition: opacity .44s cubic-bezier(.22,.61,.36,1), visibility 0s linear .44s;
 }
 
 .star-detail-shell::after {
@@ -29,20 +29,23 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,0) 18%),
-    linear-gradient(0deg, rgba(0,0,0,.22), rgba(0,0,0,0) 22%);
-  opacity: .58;
-}
-
-body.star-detail-open .star-detail-shell,
-body.star-detail-closing .star-detail-shell {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: 0s;
+    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,0) 20%),
+    linear-gradient(0deg, rgba(0,0,0,.18), rgba(0,0,0,0) 22%);
+  opacity: .42;
 }
 
 body.star-detail-open .star-detail-shell {
+  opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  transition-delay: 0s;
+}
+
+body.star-detail-closing .star-detail-shell {
+  opacity: 0;
+  visibility: visible;
+  pointer-events: none;
+  transition-delay: 0s;
 }
 
 body.star-detail-open .smirel-star-back,
@@ -54,17 +57,32 @@ body.star-detail-closing .smirel-star-back {
 .star-detail-header {
   position: fixed;
   z-index: 2;
-  left: clamp(132px, 10.4vw, 174px);
-  top: clamp(34px, 6.2vh, 62px);
-  max-width: min(520px, calc(100vw - 260px));
+  left: clamp(24px, 4vw, 64px);
+  top: clamp(26px, 4.8vh, 48px);
+  display: grid;
+  grid-template-columns: clamp(78px, 6.2vw, 96px) minmax(0, 1fr);
+  gap: clamp(14px, 1.45vw, 22px);
+  align-items: center;
+  width: min(650px, calc(100vw - 180px));
   opacity: 0;
-  transform: translate3d(18px, 0, 0);
-  transition: opacity .65s ease .18s, transform .9s cubic-bezier(.16,1,.3,1) .12s;
+  transform: translate3d(0, 10px, 0);
+  transition: opacity .30s ease .06s, transform .48s cubic-bezier(.16,1,.3,1) .04s;
 }
 
 body.star-detail-open .star-detail-header {
   opacity: 1;
   transform: translate3d(0,0,0);
+}
+
+.star-detail-star-slot {
+  display: block;
+  width: clamp(78px, 6.2vw, 96px);
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+
+.star-detail-heading {
+  min-width: 0;
 }
 
 .star-detail-kicker,
@@ -83,15 +101,15 @@ body.star-detail-open .star-detail-header {
 }
 
 .star-detail-title {
-  margin: 8px 0 0;
-  font-size: clamp(34px, 4.2vw, 58px);
+  margin: 5px 0 0;
+  font-size: clamp(36px, 3.6vw, 54px);
   line-height: .95;
   font-weight: 560;
   letter-spacing: -.045em;
 }
 
 .star-detail-subtitle {
-  margin: 9px 0 0;
+  margin: 8px 0 0;
   color: var(--star-detail-muted);
   font-size: 12px;
   line-height: 1.45;
@@ -115,8 +133,8 @@ body.star-detail-open .star-detail-header {
   text-transform: uppercase;
   cursor: pointer;
   opacity: 0;
-  transform: translateY(-7px);
-  transition: opacity .4s ease .28s, transform .55s cubic-bezier(.16,1,.3,1) .22s, border-color .2s ease, color .2s ease;
+  transform: translateY(-5px);
+  transition: opacity .26s ease .10s, transform .38s cubic-bezier(.16,1,.3,1) .08s, border-color .2s ease, color .2s ease;
 }
 
 body.star-detail-open .star-detail-back {
@@ -136,10 +154,10 @@ body.star-detail-open .star-detail-back {
   z-index: 1;
   width: min(760px, calc(100vw - 44px));
   margin-left: clamp(28vw, 34vw, 560px);
-  padding: clamp(188px, 23vh, 248px) 0 92px;
+  padding: clamp(176px, 21vh, 226px) 0 92px;
   opacity: 0;
-  transform: translate3d(0, 24px, 0);
-  transition: opacity .72s ease .42s, transform 1s cubic-bezier(.16,1,.3,1) .34s;
+  transform: translate3d(0, 18px, 0);
+  transition: opacity .40s ease .14s, transform .60s cubic-bezier(.16,1,.3,1) .10s;
 }
 
 body.star-detail-open .star-detail-main {
@@ -262,28 +280,34 @@ body.star-detail-closing .star-detail-back {
 
 @media (max-width: 900px) {
   .star-detail-header {
-    left: 126px;
-    max-width: calc(100vw - 240px);
+    left: 20px;
+    width: min(620px, calc(100vw - 128px));
   }
 
   .star-detail-main {
     width: min(680px, calc(100vw - 40px));
     margin-left: 20px;
-    padding-top: 210px;
+    padding-top: 190px;
   }
 }
 
 @media (max-width: 620px) {
   .star-detail-shell {
     background:
-      radial-gradient(circle at 12% 8%, rgba(0,0,0,0) 0 7%, rgba(0,0,0,.06) 18%, rgba(0,0,0,.24) 44%, rgba(0,0,0,.52) 100%),
-      linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.50));
+      radial-gradient(circle at 12% 8%, rgba(0,0,0,0) 0 8%, rgba(0,0,0,.05) 19%, rgba(0,0,0,.23) 45%, rgba(0,0,0,.50) 100%),
+      linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.48));
   }
 
   .star-detail-header {
-    left: 108px;
-    top: 27px;
-    max-width: calc(100vw - 132px);
+    left: 14px;
+    top: 18px;
+    width: calc(100vw - 104px);
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .star-detail-star-slot {
+    width: 68px;
   }
 
   .star-detail-title {
@@ -302,7 +326,7 @@ body.star-detail-closing .star-detail-back {
   .star-detail-main {
     width: calc(100vw - 28px);
     margin-left: 14px;
-    padding: 168px 0 54px;
+    padding: 142px 0 54px;
   }
 
   .star-detail-lede {

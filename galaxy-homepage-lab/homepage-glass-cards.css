@@ -80,7 +80,10 @@
 }
 
 .liquid-glass__backdrop { z-index: 0; }
-.liquid-glass__optics { z-index: 1; }
+.liquid-glass__optics {
+  z-index: 1;
+  opacity: .42;
+}
 
 .liquid-glass__content {
   position: relative;

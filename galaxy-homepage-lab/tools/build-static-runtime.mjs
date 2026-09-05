@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, unlink } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -6,12 +6,18 @@ import { createHash } from 'node:crypto';
 const targetDir = resolve(process.argv[2] || '.');
 const buildVersion = process.argv[3] || String(Date.now());
 const terminalPattern = /const moduleUrl = URL\.createObjectURL\(new Blob\(\[source\], \{ type: 'text\/javascript' \}\)\);\s*try \{\s*await import\(moduleUrl\);\s*\} finally \{\s*URL\.revokeObjectURL\(moduleUrl\);\s*\}\s*$/;
+const nativeFetch = globalThis.fetch;
+let stageCounter = 0;
 
 async function localFetch(input) {
-  const href = input instanceof URL ? input.href : String(input);
+  const href = typeof input === 'string'
+    ? input
+    : (input instanceof URL ? input.href : input?.url);
+  if (!href) throw new Error('Build-time galaxy loader received an unreadable fetch input.');
   const url = new URL(href);
   if (url.protocol !== 'file:') {
-    throw new Error(`Build-time galaxy loader tried to fetch a non-local URL: ${url.href}`);
+    if (typeof nativeFetch === 'function') return nativeFetch(input);
+    throw new Error(`Build-time galaxy loader tried to fetch an unsupported URL: ${url.href}`);
   }
   try {
     const text = await readFile(fileURLToPath(url), 'utf8');
@@ -21,31 +27,39 @@ async function localFetch(input) {
   }
 }
 
-async function executeLoader(loaderSource, virtualPath, label) {
-  const virtualUrl = pathToFileURL(virtualPath).href;
-  let executable = loaderSource.replace(/import\.meta\.url/g, JSON.stringify(virtualUrl));
-  if (!terminalPattern.test(executable)) {
+async function executeLoader(loaderSource, label) {
+  if (!terminalPattern.test(loaderSource)) {
     throw new Error(`${label}: final Blob import marker not found; refusing to flatten an unknown loader revision.`);
   }
-  executable = executable.replace(terminalPattern, 'return source;\n');
-  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-  const run = new AsyncFunction('fetch', 'console', 'URL', `"use strict";\n${executable}`);
-  const result = await run(localFetch, console, URL);
-  if (typeof result !== 'string' || !result.trim()) {
-    throw new Error(`${label}: loader did not return transformed source.`);
+  const executable = loaderSource.replace(
+    terminalPattern,
+    'globalThis.__SMIREL_GALAXY_BUILD_RESULT__ = source;\n',
+  );
+  const tempPath = join(
+    targetDir,
+    `.smirel-galaxy-build-${process.pid}-${Date.now()}-${stageCounter++}.mjs`,
+  );
+  await writeFile(tempPath, executable, 'utf8');
+  delete globalThis.__SMIREL_GALAXY_BUILD_RESULT__;
+  try {
+    await import(`${pathToFileURL(tempPath).href}?stage=${stageCounter}`);
+    const result = globalThis.__SMIREL_GALAXY_BUILD_RESULT__;
+    if (typeof result !== 'string' || !result.trim()) {
+      throw new Error(`${label}: loader did not return transformed source.`);
+    }
+    return result;
+  } finally {
+    delete globalThis.__SMIREL_GALAXY_BUILD_RESULT__;
+    await unlink(tempPath).catch(() => {});
   }
-  return result;
 }
 
 async function expandRuntime() {
   const capturePath = join(targetDir, 'astra-homepage-glass-capture-loader.js');
-  const midPath = join(targetDir, 'astra-deep-nebula-mid-variants-loader.js');
-  const deepPath = join(targetDir, 'astra-deep-nebula-loader.js');
-
   const captureSource = await readFile(capturePath, 'utf8');
-  const transformedMid = await executeLoader(captureSource, capturePath, 'homepage capture loader');
-  const transformedDeep = await executeLoader(transformedMid, midPath, 'mid-nebula loader');
-  const finalRuntime = await executeLoader(transformedDeep, deepPath, 'deep-nebula loader');
+  const transformedMid = await executeLoader(captureSource, 'homepage capture loader');
+  const transformedDeep = await executeLoader(transformedMid, 'mid-nebula loader');
+  const finalRuntime = await executeLoader(transformedDeep, 'deep-nebula loader');
 
   const requiredMarkers = [
     "import * as THREE from 'three';",
@@ -91,9 +105,14 @@ async function rewriteIndex(runtimeHash) {
   await writeFile(indexPath, html, 'utf8');
 }
 
-const runtime = await expandRuntime();
-const runtimeHash = createHash('sha256').update(runtime).digest('hex');
-const outputPath = join(targetDir, 'astra-homepage-runtime.generated.js');
-await writeFile(outputPath, runtime, 'utf8');
-await rewriteIndex(runtimeHash);
-console.log(`Generated ${outputPath} (${runtime.length} bytes, sha256 ${runtimeHash})`);
+globalThis.fetch = localFetch;
+try {
+  const runtime = await expandRuntime();
+  const runtimeHash = createHash('sha256').update(runtime).digest('hex');
+  const outputPath = join(targetDir, 'astra-homepage-runtime.generated.js');
+  await writeFile(outputPath, runtime, 'utf8');
+  await rewriteIndex(runtimeHash);
+  console.log(`Generated ${outputPath} (${runtime.length} bytes, sha256 ${runtimeHash})`);
+} finally {
+  globalThis.fetch = nativeFetch;
+}

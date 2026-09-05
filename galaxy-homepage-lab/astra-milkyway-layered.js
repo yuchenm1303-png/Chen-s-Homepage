@@ -13,10 +13,6 @@ import {
 const canvas = document.getElementById('galaxyCanvas');
 if (!canvas) throw new Error('Galaxy canvas is required.');
 
-// The previous 118k density points were all promoted into individually visible
-// sub-pixel stars. That fixed missing flux, but produced a grain carpet. Keep the
-// same represented stellar population and split it by optical resolution instead:
-// resolved Astra stars + semi-resolved micro stars + aggregated unresolved light.
 const CONFIG = Object.freeze({
   bloomIntensity: 0.7,
   bloomThreshold: 0.08,
@@ -27,12 +23,10 @@ const CONFIG = Object.freeze({
   twinkleSpeed: 0.62,
   brightStarCount: 14800,
   backgroundFraction: 0.27,
-  densityPopulationBudget: 118000,
   microStarCount: 34000,
-  glowCarrierCount: 7200,
   microIntensity: 0.92,
-  glowIntensity: 0.115,
   microTwinkleSpeed: 0.26,
+  continuumIntensity: 0.055,
   fov: 55,
   near: 0.1,
   far: 64,
@@ -43,7 +37,6 @@ const BRIGHT_PALETTE = [
   new THREE.Color('#F87915'), new THREE.Color('#FA994C'),
   new THREE.Color('#F5F6FB'),
 ];
-
 const DENSITY_PALETTE = [
   new THREE.Color('#EEF3F8'), new THREE.Color('#DFEAF4'),
   new THREE.Color('#C8DDF0'), new THREE.Color('#EAD5BE'),
@@ -177,40 +170,107 @@ void main() {
   gl_FragColor = vec4(vColor * vBrightness, alpha);
 }`;
 
-const GLOW_VERTEX = `
-attribute float starBrightness;
-attribute vec3 starColor;
-attribute float starOpacity;
-attribute float starScale;
-uniform float uIntensity;
-uniform float uIntroProgress;
-uniform float uPixelRatio;
-varying float vBrightness;
-varying vec3 vColor;
-varying float vOpacity;
+const CONTINUUM_VERTEX = `
+varying vec2 vUv;
 void main() {
-  vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-  float cameraDepth = max(-viewPosition.z, 0.2);
-  float depthScale = clamp(18.0 / cameraDepth, 0.34, 0.92);
-  vBrightness = uIntensity * starBrightness;
-  vColor = starColor;
-  vOpacity = starOpacity * smoothstep(0.0, 0.78, uIntroProgress);
-  gl_PointSize = uPixelRatio * starScale * depthScale;
-  gl_Position = projectionMatrix * viewPosition;
+  vUv = uv;
+  gl_Position = vec4(position.xy, 0.9999, 1.0);
 }`;
 
-const GLOW_FRAGMENT = `
-varying float vBrightness;
-varying vec3 vColor;
-varying float vOpacity;
+const CONTINUUM_FRAGMENT = `
+uniform vec3 uCameraPosition;
+uniform vec3 uCameraForward;
+uniform vec3 uCameraRight;
+uniform vec3 uCameraUp;
+uniform float uAspect;
+uniform float uTanHalfFov;
+uniform float uIntroProgress;
+uniform float uIntensity;
+varying vec2 vUv;
+
+float gaussianWeight(float value, float centre, float width) {
+  float q = (value - centre) / width;
+  return exp(-q * q);
+}
+
 void main() {
-  vec2 p = gl_PointCoord - vec2(0.5);
-  float r = length(p);
-  float radial = exp(-r * r * 18.0);
-  radial *= 1.0 - smoothstep(0.46, 0.70, r);
-  float alpha = radial * vOpacity;
-  if (alpha <= 0.00002) discard;
-  gl_FragColor = vec4(vColor * vBrightness, alpha);
+  vec2 ndc = vUv * 2.0 - 1.0;
+  vec3 rayDir = normalize(
+    uCameraForward
+    + uCameraRight * ndc.x * uAspect * uTanHalfFov
+    + uCameraUp * ndc.y * uTanHalfFov
+  );
+
+  const float c = 0.8290375726;
+  const float s = 0.5591929035;
+  const float designAspect = 2.2;
+  const float tNear = 7.0;
+  const float tFar = 62.0;
+  const int steps = 20;
+  float stepSize = (tFar - tNear) / float(steps);
+
+  vec3 integrated = vec3(0.0);
+  float transmission = 1.0;
+
+  for (int i = 0; i < steps; i++) {
+    float t = tNear + (float(i) + 0.5) * stepSize;
+    vec3 p = uCameraPosition + rayDir * t;
+    float depth = max(-p.z, 1.0);
+
+    float nx = p.x / max(uTanHalfFov * depth * 1.30 * designAspect * 0.83, 0.001);
+    float ny = p.y / max(uTanHalfFov * depth * 1.30 * 1.04, 0.001);
+    float along = nx * c + ny * s;
+    float across = -nx * s + ny * c;
+
+    float centreWeight = gaussianWeight(along, 0.20, 0.38);
+    float broadWeight = gaussianWeight(along, 0.03, 1.14);
+    float centreLine = 0.024 * sin(along * 2.05 + 0.32)
+      + 0.014 * sin(along * 5.5 - 0.50);
+    float width = 0.155 + broadWeight * 0.072 + centreWeight * 0.145;
+    float acrossNorm = (across - centreLine) / max(width, 0.001);
+    float band = exp(-0.82 * acrossNorm * acrossNorm);
+    float longitudinal = 1.0 - smoothstep(1.28, 1.66, abs(along));
+
+    float structure = 0.78
+      + 0.10 * sin(p.x * 0.17 + p.z * 0.11)
+      + 0.07 * sin(p.y * 0.29 - p.z * 0.073)
+      + 0.05 * sin((p.x + p.y) * 0.41 + p.z * 0.19);
+    structure = clamp(structure, 0.56, 1.05);
+
+    float complexPeak = max(
+      max(gaussianWeight(along, -0.86, 0.22), gaussianWeight(along, -0.30, 0.20)),
+      max(gaussianWeight(along, 0.13, 0.23), gaussianWeight(along, 0.56, 0.22))
+    );
+    float stellarDensity = band * longitudinal * structure
+      * (0.72 + centreWeight * 0.78 + complexPeak * 0.24);
+
+    float mainRift = centreLine
+      + 0.016 * sin(along * 5.1 + 0.62)
+      - 0.018 * sin(along * 10.5 - 0.18);
+    float mainWidth = 0.030 + broadWeight * 0.010 + centreWeight * 0.043;
+    float mainDust = gaussianWeight(across, mainRift, mainWidth);
+
+    float branchWindow = gaussianWeight(along, 0.24, 0.64);
+    float branchRift = centreLine - 0.095 + 0.018 * sin(along * 8.2 + 1.08);
+    float branchDust = gaussianWeight(across, branchRift, 0.024 + branchWindow * 0.017) * branchWindow;
+
+    float dustDepthWindow = gaussianWeight(t, 22.0, 15.5);
+    float dustStructure = 0.76 + 0.16 * sin(p.x * 0.23 - p.z * 0.17)
+      * sin(p.y * 0.31 + p.z * 0.12);
+    float dust = (mainDust * 0.78 + branchDust * 0.44)
+      * dustDepthWindow * dustStructure;
+
+    vec3 coolLight = vec3(0.315, 0.355, 0.405);
+    vec3 warmLight = vec3(0.505, 0.415, 0.315);
+    vec3 stellarColor = mix(coolLight, warmLight, 0.20 + centreWeight * 0.52);
+
+    integrated += stellarColor * stellarDensity * transmission * stepSize * 0.0046;
+    transmission *= exp(-dust * stepSize * 0.105);
+  }
+
+  float reveal = smoothstep(0.0, 0.86, uIntroProgress);
+  vec3 emission = integrated * uIntensity * reveal;
+  gl_FragColor = vec4(emission, 1.0);
 }`;
 
 const ASTRA_BLOOM_PREFILTER = `
@@ -309,31 +369,35 @@ function makePointData(count) {
     rate: new Float32Array(count),
   };
 }
-function finishPoints(data, vertexShader, fragmentShader, uniforms, needsTwinkle = true) {
+function finishPoints(data, vertexShader, fragmentShader, uniforms) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
   geometry.setAttribute('starBrightness', new THREE.BufferAttribute(data.brightness, 1));
   geometry.setAttribute('starColor', new THREE.BufferAttribute(data.colors, 3));
   geometry.setAttribute('starOpacity', new THREE.BufferAttribute(data.opacity, 1));
   geometry.setAttribute('starScale', new THREE.BufferAttribute(data.scale, 1));
-  if (needsTwinkle) {
-    geometry.setAttribute('twinklePhase', new THREE.BufferAttribute(data.phase, 1));
-    geometry.setAttribute('twinkleRate', new THREE.BufferAttribute(data.rate, 1));
-  }
+  geometry.setAttribute('twinklePhase', new THREE.BufferAttribute(data.phase, 1));
+  geometry.setAttribute('twinkleRate', new THREE.BufferAttribute(data.rate, 1));
   const material = new THREE.ShaderMaterial({
-    depthTest: false, depthWrite: false, transparent: true, toneMapped: false,
+    depthTest: false,
+    depthWrite: false,
+    transparent: true,
+    toneMapped: false,
     blending: THREE.CustomBlending,
     blendEquation: THREE.AddEquation,
-    blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneFactor,
+    blendSrc: THREE.SrcAlphaFactor,
+    blendDst: THREE.OneFactor,
     blendEquationAlpha: THREE.AddEquation,
-    blendSrcAlpha: THREE.OneFactor, blendDstAlpha: THREE.OneMinusSrcAlphaFactor,
-    vertexShader, fragmentShader, uniforms,
+    blendSrcAlpha: THREE.OneFactor,
+    blendDstAlpha: THREE.OneMinusSrcAlphaFactor,
+    vertexShader,
+    fragmentShader,
+    uniforms,
   });
   const points = new THREE.Points(geometry, material);
   points.frustumCulled = false;
   return { points, geometry, material };
 }
-
 function pickBrightColor(random, centreWeight) {
   const seed = centreWeight > 0 && random() < centreWeight * 0.28 ? 0.64 + random() * 0.36 : random();
   if (seed < 0.36) return BRIGHT_PALETTE[0];
@@ -360,13 +424,13 @@ function sampleAlong(random) {
   if (mode < 0.90) return 0.68 + gaussian(random) * 0.16;
   return random() * 3.12 - 1.56;
 }
-function sampleMilkyWayBand(random, broad = false) {
+function sampleMilkyWayBand(random) {
   const along = THREE.MathUtils.clamp(sampleAlong(random), -1.58, 1.58);
   const centreWeight = gaussianWeight(along, 0.20, 0.38);
   const broadWeight = gaussianWeight(along, 0.03, 1.14);
   const centreLine = 0.024 * Math.sin(along * 2.05 + 0.32) + 0.014 * Math.sin(along * 5.5 - 0.50);
   const baseWidth = 0.145 + broadWeight * 0.065 + centreWeight * 0.125;
-  const widthScale = broad ? 1.15 + random() * 1.25 : 0.62 + random() * 0.72;
+  const widthScale = 0.62 + random() * 0.72;
   let across = centreLine + 0.020 * Math.sin(along * 2.9 - 0.34)
     + 0.010 * Math.sin(along * 7.7 + 1.10)
     + gaussian(random) * baseWidth * widthScale;
@@ -378,14 +442,18 @@ function sampleMilkyWayBand(random, broad = false) {
   const branchRift = centreLine - 0.095 + 0.018 * Math.sin(along * 8.2 + 1.08);
   const branchWidth = 0.025 + branchWindow * 0.018;
   const branchDust = Math.exp(-Math.pow((across - branchRift) / branchWidth, 2)) * branchWindow;
-  const dustTransmission = THREE.MathUtils.clamp(1.0 - mainDust * (0.76 + centreWeight * 0.12) - branchDust * 0.48, 0.10, 1.0);
+  const dustTransmission = THREE.MathUtils.clamp(
+    1.0 - mainDust * (0.76 + centreWeight * 0.12) - branchDust * 0.48,
+    0.10,
+    1.0,
+  );
   const complexPeak = Math.max(
     gaussianWeight(along, -0.86, 0.22),
     gaussianWeight(along, -0.30, 0.20),
     gaussianWeight(along, 0.13, 0.23),
     gaussianWeight(along, 0.56, 0.22),
   );
-  return { along, across, centreWeight, broadWeight, complexPeak, dustTransmission };
+  return { along, across, centreWeight, complexPeak, dustTransmission };
 }
 function toWorld(band, depth, thicknessScale, random) {
   const fovTan = Math.tan(THREE.MathUtils.degToRad(CONFIG.fov * 0.5));
@@ -431,7 +499,7 @@ function buildBrightField() {
     let y;
     let centreWeight = 0;
     if (isBand) {
-      const b = sampleMilkyWayBand(random, false);
+      const b = sampleMilkyWayBand(random);
       centreWeight = b.centreWeight;
       const nx = b.along * c - b.across * s;
       const ny = b.along * s + b.across * c;
@@ -492,7 +560,7 @@ function buildMicroField() {
   for (let i = 0; i < CONFIG.microStarCount; i++) {
     const shell = random();
     const depth = shell < 0.18 ? 12 + Math.pow(random(), 0.82) * 16 : 24 + Math.pow(random(), 0.92) * 34;
-    const band = sampleMilkyWayBand(random, false);
+    const band = sampleMilkyWayBand(random);
     const thickness = 0.016 + (1 - band.centreWeight) * 0.010;
     const p = toWorld(band, depth, thickness, random);
     const o = i * 3;
@@ -523,38 +591,41 @@ function buildMicroField() {
   return out;
 }
 
-function buildUnresolvedField() {
-  const random = seeded(0x554E5245);
-  const data = makePointData(CONFIG.glowCarrierCount);
-  const unresolvedPopulation = CONFIG.densityPopulationBudget - CONFIG.microStarCount;
-  const representedPerCarrier = unresolvedPopulation / CONFIG.glowCarrierCount;
-  for (let i = 0; i < CONFIG.glowCarrierCount; i++) {
-    const depth = 28 + Math.pow(random(), 0.90) * 34;
-    const band = sampleMilkyWayBand(random, true);
-    const thickness = 0.030 + (1 - band.centreWeight) * 0.018;
-    const p = toWorld(band, depth, thickness, random);
-    const o = i * 3;
-    data.positions[o] = p.x;
-    data.positions[o + 1] = p.y;
-    data.positions[o + 2] = p.z;
-    const centreBoost = 0.78 + band.centreWeight * 0.70;
-    const complexBoost = 0.82 + band.complexPeak * 0.34;
-    const populationEnergy = Math.sqrt(representedPerCarrier / 10.0);
-    data.brightness[i] = populationEnergy * centreBoost * complexBoost * (0.76 + random() * 0.34);
-    data.opacity[i] = (0.018 + random() * 0.020) * band.dustTransmission * (0.86 + band.broadWeight * 0.20);
-    data.scale[i] = 32 + random() * 44 + band.centreWeight * 22;
-    const color = pickDensityColor(random, band.centreWeight);
-    data.colors[o] = color.r;
-    data.colors[o + 1] = color.g;
-    data.colors[o + 2] = color.b;
-  }
-  const out = finishPoints(data, GLOW_VERTEX, GLOW_FRAGMENT, {
-    uIntensity: { value: CONFIG.glowIntensity },
-    uIntroProgress: { value: 0 },
-    uPixelRatio: { value: 1 },
-  }, false);
-  out.points.renderOrder = -20;
-  return out;
+function buildContinuumField() {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute([
+    -1, -1, 0,
+     3, -1, 0,
+    -1,  3, 0,
+  ], 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute([
+    0, 0,
+    2, 0,
+    0, 2,
+  ], 2));
+  const material = new THREE.ShaderMaterial({
+    vertexShader: CONTINUUM_VERTEX,
+    fragmentShader: CONTINUUM_FRAGMENT,
+    uniforms: {
+      uCameraPosition: { value: new THREE.Vector3() },
+      uCameraForward: { value: new THREE.Vector3(0, 0, -1) },
+      uCameraRight: { value: new THREE.Vector3(1, 0, 0) },
+      uCameraUp: { value: new THREE.Vector3(0, 1, 0) },
+      uAspect: { value: 1 },
+      uTanHalfFov: { value: Math.tan(THREE.MathUtils.degToRad(CONFIG.fov * 0.5)) },
+      uIntroProgress: { value: 0 },
+      uIntensity: { value: CONFIG.continuumIntensity },
+    },
+    depthTest: false,
+    depthWrite: false,
+    transparent: false,
+    blending: THREE.NoBlending,
+    toneMapped: false,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = -100;
+  return { mesh, geometry, material };
 }
 
 const renderer = new THREE.WebGLRenderer({
@@ -571,12 +642,14 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 const camera = new THREE.PerspectiveCamera(CONFIG.fov, 1, CONFIG.near, CONFIG.far);
 camera.position.set(0, 0, 0);
-const unresolvedField = buildUnresolvedField();
+
+const continuumField = buildContinuumField();
 const microField = buildMicroField();
 const brightField = buildBrightField();
-scene.add(unresolvedField.points);
+scene.add(continuumField.mesh);
 scene.add(microField.points);
 scene.add(brightField.points);
+
 const composer = new EffectComposer(renderer, {
   depthBuffer: false,
   frameBufferType: THREE.HalfFloatType,
@@ -609,12 +682,15 @@ function resize() {
   pixelRatio = dpr;
   renderer.setDrawingBufferSize(width, height, pixelRatio);
   composer.setSize(width, height, false);
-  bloom.setSize(Math.max(1, Math.floor(width * pixelRatio * 0.5)), Math.max(1, Math.floor(height * pixelRatio * 0.5)));
+  bloom.setSize(
+    Math.max(1, Math.floor(width * pixelRatio * 0.5)),
+    Math.max(1, Math.floor(height * pixelRatio * 0.5)),
+  );
   camera.aspect = width / Math.max(height, 1);
   camera.updateProjectionMatrix();
   brightField.material.uniforms.uPixelRatio.value = pixelRatio;
   microField.material.uniforms.uPixelRatio.value = pixelRatio;
-  unresolvedField.material.uniforms.uPixelRatio.value = pixelRatio;
+  continuumField.material.uniforms.uAspect.value = camera.aspect;
 }
 function shapeAxis(value) {
   const dead = 0.045;
@@ -637,9 +713,26 @@ window.addEventListener('blur', resetPointer, { passive: true });
 function damp(current, target, speed, dt) {
   return current + (target - current) * (1 - Math.exp(-speed * dt));
 }
+
 const started = performance.now();
 let previous = started;
 const lookTarget = new THREE.Vector3();
+const cameraForward = new THREE.Vector3();
+const cameraRight = new THREE.Vector3();
+const cameraUp = new THREE.Vector3();
+function updateContinuumCameraUniforms(intro) {
+  camera.updateMatrixWorld();
+  const e = camera.matrixWorld.elements;
+  cameraRight.set(e[0], e[1], e[2]).normalize();
+  cameraUp.set(e[4], e[5], e[6]).normalize();
+  cameraForward.set(-e[8], -e[9], -e[10]).normalize();
+  const u = continuumField.material.uniforms;
+  u.uCameraPosition.value.copy(camera.position);
+  u.uCameraRight.value.copy(cameraRight);
+  u.uCameraUp.value.copy(cameraUp);
+  u.uCameraForward.value.copy(cameraForward);
+  u.uIntroProgress.value = intro;
+}
 function frame(now) {
   resize();
   const dt = Math.min(0.05, Math.max(0.001, (now - previous) / 1000));
@@ -663,7 +756,7 @@ function frame(now) {
   microField.material.uniforms.uIntroProgress.value = intro;
   microField.material.uniforms.uTime.value = reducedMotion ? 0 : elapsed;
   microField.material.uniforms.uTwinkleSpeed.value = reducedMotion ? 0 : CONFIG.microTwinkleSpeed;
-  unresolvedField.material.uniforms.uIntroProgress.value = intro;
+  updateContinuumCameraUniforms(intro);
   composer.render(dt);
   requestAnimationFrame(frame);
 }

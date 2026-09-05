@@ -38,12 +38,8 @@
   background-color: var(--home-card);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  transform: scale(1);
-  transition: backdrop-filter .3s, transform .3s, background-color .3s;
+  transition: backdrop-filter .3s, background-color .3s;
 }
-
-.cards:hover { transform: scale(1.01); }
-.cards:active { transform: scale(.98); }
 
 .home-project-card {
   min-height: 132px;
@@ -51,39 +47,11 @@
   pointer-events: auto;
   border: 0;
   box-shadow: none;
-}
-
-.cards.home-project-card {
-  --project-tilt-x: 0deg;
-  --project-tilt-y: 0deg;
-  --project-tilt-scale: 1;
-  transform:
-    perspective(1150px)
-    rotateX(var(--project-tilt-x))
-    rotateY(var(--project-tilt-y))
-    scale(var(--project-tilt-scale));
-  transform-style: preserve-3d;
-  transform-origin: center center;
-  backface-visibility: hidden;
+  transition:
+    transform .5s cubic-bezier(.34,1.56,.64,1),
+    backdrop-filter .3s,
+    background-color .3s;
   will-change: transform;
-  transition:
-    transform 260ms cubic-bezier(.25,.46,.45,.94),
-    backdrop-filter .3s,
-    background-color .3s;
-}
-
-.cards.home-project-card:hover {
-  --project-tilt-scale: 1.01;
-}
-
-.cards.home-project-card:active {
-  --project-tilt-scale: .985;
-}
-
-.cards.home-project-card.is-tilting {
-  transition:
-    backdrop-filter .3s,
-    background-color .3s;
 }
 
 .home-project-card:hover {
@@ -99,6 +67,8 @@
   background: transparent;
   filter: drop-shadow(0 18px 34px rgba(0,0,0,.22));
   isolation: isolate;
+  transition: transform .5s cubic-bezier(.34,1.56,.64,1);
+  will-change: transform;
 }
 
 .liquid-glass__backdrop,
@@ -290,7 +260,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cards {
+  .home-project-card,
+  .liquid-glass-card {
     transition: none;
   }
 }

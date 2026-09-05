@@ -10,10 +10,10 @@
   // Runtime code must not re-score or replace them.
   const FIXED_INDICES = Object.freeze({
     blog: 5596,
-    'ai-ledger-real-streaming': 2630,
-    'building-homepage': 204,
-    'opengl-liquid-glass': 5451,
-    'computer-use-design': 5173,
+    'ai-ledger-real-streaming': 5292,
+    'building-homepage': 568,
+    'opengl-liquid-glass': 1691,
+    'computer-use-design': 13147,
     'app-performance-optimization': 4538,
     'compose-parent-bubble-rendering': 6740,
     'gan-hemt-stability': 8132,
@@ -21,14 +21,14 @@
 
     contact: 3913,
     'contact-github': 7173,
-    'contact-email': 1483,
+    'contact-email': 12628,
     'contact-phone': 4389,
     'contact-qq': 12626,
   });
 
   // Targets remain as design documentation / graceful fallback if the renderer's
   // deterministic star field is intentionally replaced in a future revision.
-  const LOCAL_DEPTH = Object.freeze([18, 34]);
+  const LOCAL_DEPTH = Object.freeze([18, 24]);
 
   function freezePair(pair) {
     return Object.freeze([pair[0], pair[1]]);
@@ -50,10 +50,10 @@
     blog: makeFieldLayout({
       centre: [-0.46, -0.45],
       offsets: {
-        'ai-ledger-real-streaming': [-0.14, 0.18],
-        'building-homepage': [0.04, 0.22],
-        'opengl-liquid-glass': [0.19, 0.15],
-        'computer-use-design': [0.25, -0.01],
+        'ai-ledger-real-streaming': [-0.13, 0.13],
+        'building-homepage': [0.00, 0.22],
+        'opengl-liquid-glass': [0.19, 0.13],
+        'computer-use-design': [0.27, -0.01],
         'app-performance-optimization': [0.17, -0.17],
         'compose-parent-bubble-rendering': [0.00, -0.23],
         'gan-hemt-stability': [-0.19, -0.16],
@@ -76,7 +76,7 @@
       centre: [0.51, 0.50],
       offsets: {
         'contact-github': [-0.18, 0.09],
-        'contact-email': [0.18, 0.10],
+        'contact-email': [0.12, 0.15],
         'contact-phone': [-0.11, -0.17],
         'contact-qq': [0.09, -0.16],
       },

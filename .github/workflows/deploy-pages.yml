@@ -1,4 +1,3 @@
-# Deployment trigger refreshed by ChatGPT on 2026-08-27
 name: Deploy homepage to GitHub Pages
 
 on:
@@ -22,16 +21,37 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout production repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+          persist-credentials: false
 
-      # listing-studio-product-icon.png is committed in this repository.
-      # Keep Pages deployment self-contained instead of depending on anonymous
-      # raw access to another repository, which can return 404 and block the
-      # entire site from publishing.
+      - name: Checkout pinned galaxy homepage release
+        uses: actions/checkout@v4
+        with:
+          ref: c5e5db7feebe008f76bdc84cf260cd3280b13fd3
+          path: galaxy-release
+          persist-credentials: false
+
       - name: Verify committed Listing Studio icon
         shell: bash
-        run: test -s download/listing-studio-product-icon.png
+        run: test -s production/download/listing-studio-product-icon.png
+
+      - name: Assemble production homepage
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p published
+          rsync -a --exclude='.git' production/ published/
+          rm -rf published/stellar-homepage
+          mkdir -p published/stellar-homepage
+          rsync -a --delete galaxy-release/galaxy-homepage-lab/ published/stellar-homepage/
+          test -s published/stellar-homepage/index.html
+          test -s published/stellar-homepage/homepage-star-activity.js
+          grep -q '<base href="/stellar-homepage/"' published/index.html
+          test "$(tr -d '\r\n' < published/CNAME)" = "smirel.com"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -39,7 +59,7 @@ jobs:
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "."
+          path: published
 
       - name: Deploy to GitHub Pages
         id: deployment

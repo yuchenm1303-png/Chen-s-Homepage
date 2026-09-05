@@ -81,9 +81,9 @@
         float phaseTime = uTime * mix(0.62, 1.02, activity);
         vec3 p = normalize(vLocalPosition);
 
-        // Stellaris-style surface construction: the large-scale field stays
-        // continuous. Several smooth noise octaves are phase-animated into a
-        // molten mask; no Voronoi borders are exposed to the image.
+        // Keep the large-scale plasma flow continuous, but let progressively
+        // finer bands perturb the phase. This raises information density
+        // without reintroducing visible Voronoi/cellular borders.
         vec3 flow = vec3(
           noise3(p * 1.35 + vec3(phaseTime * 0.011, 5.2, 1.7)),
           noise3(p * 1.35 + vec3(8.4, -phaseTime * 0.009, 3.6)),
@@ -94,57 +94,101 @@
         float noise1 = noise3(q * 2.2 + vec3(phaseTime * 0.006, 0.0, 3.4)) - 0.5;
         float noise2 = noise3(q * 8.8 + vec3(-phaseTime * 0.018, phaseTime * 0.012, 9.1)) - 0.5;
         float noise3Fine = noise3(q * 17.6 + vec3(4.7, -phaseTime * 0.029, phaseTime * 0.021)) - 0.5;
-        float field = noise1 + noise2 * 0.72 + noise3Fine * 0.38;
+        float noise4Fine = noise3(q * 35.2 + vec3(-phaseTime * 0.057, 8.3, phaseTime * 0.041)) - 0.5;
+        float field = noise1 * 0.58 + noise2 * 0.90 + noise3Fine * 0.58 + noise4Fine * 0.24;
 
-        float animatedNoise = sin((field + phaseTime * 0.064) * 9.6);
+        float animatedNoise = sin((field + phaseTime * 0.064) * 10.8);
         float invertedHeat = clamp((1.0 - animatedNoise) * 0.5, 0.0, 1.0);
-        float lavaMask = pow(max(-animatedNoise, 0.0), 2.0);
+        float lavaMask = pow(max(-animatedNoise, 0.0), 1.72);
 
-        // Emulate Stellaris' separate lava / heated-stone textures with two
-        // procedural detail bands. The fine band breaks up the broad plasma
-        // field without turning it into a visible geometric cell network.
         float broadThermal = fbm3(q * 3.0 + vec3(phaseTime * 0.008, 7.3, -phaseTime * 0.006));
-        float stoneA = noise3(q * 24.0 + vec3(-phaseTime * 0.038, phaseTime * 0.022, 13.0));
-        float stoneB = noise3(q * 49.0 + vec3(phaseTime * 0.074, -phaseTime * 0.051, phaseTime * 0.033));
-        float stoneTexture = 0.66 + stoneA * 0.21 + stoneB * 0.13;
-        float lavaTexture = 0.72 + noise3(q * 31.0 + vec3(phaseTime * 0.052, 3.2, -phaseTime * 0.041)) * 0.28;
+        float stoneA = noise3(q * 26.0 + vec3(-phaseTime * 0.038, phaseTime * 0.022, 13.0));
+        float stoneB = noise3(q * 54.0 + vec3(phaseTime * 0.074, -phaseTime * 0.051, phaseTime * 0.033));
+        float microA = noise3(q * 92.0 + vec3(-phaseTime * 0.125, phaseTime * 0.071, 5.9));
+        float microB = noise3(q * 146.0 + vec3(phaseTime * 0.164, -phaseTime * 0.093, 17.2));
 
-        float stoneHeat = smoothstep(0.10, 0.92, invertedHeat * 0.82 + broadThermal * 0.18);
-        float hotIslands = smoothstep(0.38, 0.88, lavaMask * (0.72 + stoneA * 0.28));
-        float whiteHotIslands = smoothstep(0.70, 0.98, lavaMask * (0.66 + stoneB * 0.34));
-        float coolVeil = smoothstep(0.70, 0.93, broadThermal)
-          * smoothstep(0.10, 0.82, animatedNoise * 0.5 + 0.5);
+        // The current version looked like broad ink blots because the high
+        // frequency bands only modulated the final colour by a few percent.
+        // Feed them into the thermal topology itself so the broad molten zones
+        // break into dense moving granulation.
+        float thermalGrain = clamp(
+          stoneA * 0.36
+          + stoneB * 0.30
+          + microA * 0.22
+          + microB * 0.12,
+          0.0,
+          1.0
+        );
+        float ridgeA = 1.0 - abs(stoneB * 2.0 - 1.0);
+        float ridgeB = 1.0 - abs(microA * 2.0 - 1.0);
+        float filamentField = clamp(ridgeA * 0.58 + ridgeB * 0.42, 0.0, 1.0);
 
-        vec3 coldColor = uBaseColor * vec3(0.12, 0.16, 0.24);
-        vec3 hotStoneColor = uBaseColor * vec3(0.54, 0.66, 0.84);
-        vec3 brightColor = mix(uBaseColor, vec3(1.0, 0.89, 0.70), 0.22) * 1.18;
-        vec3 whiteHotColor = mix(uBaseColor, vec3(1.0), 0.70) * 1.38;
+        float stoneTexture = 0.58
+          + stoneA * 0.18
+          + stoneB * 0.13
+          + microA * 0.07
+          + microB * 0.04;
+        float lavaTexture = 0.64
+          + noise3(q * 33.0 + vec3(phaseTime * 0.052, 3.2, -phaseTime * 0.041)) * 0.20
+          + microA * 0.10
+          + microB * 0.06;
+
+        float stoneHeat = smoothstep(
+          0.08,
+          0.91,
+          invertedHeat * 0.70 + broadThermal * 0.16 + thermalGrain * 0.14
+        );
+        float detailedLava = clamp(
+          lavaMask * (0.72 + thermalGrain * 0.48)
+          + max(thermalGrain - 0.58, 0.0) * 0.22,
+          0.0,
+          1.35
+        );
+        float hotIslands = smoothstep(0.34, 0.84, detailedLava);
+        float whiteHotIslands = smoothstep(
+          0.64,
+          1.10,
+          detailedLava * (0.82 + microB * 0.30)
+        );
+        float hotFilaments = smoothstep(0.73, 0.94, filamentField)
+          * smoothstep(0.18, 0.92, detailedLava)
+          * (0.42 + activity * 0.58);
+        float coolVeil = smoothstep(0.72, 0.94, broadThermal)
+          * smoothstep(0.12, 0.84, animatedNoise * 0.5 + 0.5);
+
+        vec3 coldColor = uBaseColor * vec3(0.10, 0.14, 0.22);
+        vec3 hotStoneColor = uBaseColor * vec3(0.58, 0.70, 0.90);
+        vec3 brightColor = mix(uBaseColor, vec3(1.0, 0.91, 0.72), 0.28) * 1.52;
+        vec3 whiteHotColor = mix(uBaseColor, vec3(1.0), 0.82) * 2.20;
 
         vec3 heatedStone = mix(coldColor, hotStoneColor, stoneHeat);
         heatedStone *= stoneTexture;
-        heatedStone += hotStoneColor * pow(invertedHeat, 2.2) * (0.10 + activity * 0.06);
+        heatedStone += hotStoneColor
+          * pow(invertedHeat, 2.0)
+          * (0.12 + activity * 0.08);
 
         vec3 lava = brightColor
           * lavaTexture
-          * pow(lavaMask, 0.62)
-          * (0.66 + activity * 0.28);
+          * pow(detailedLava, 0.54)
+          * (0.78 + activity * 0.34);
 
         vec3 body = heatedStone + lava;
-        body = mix(body, whiteHotColor, hotIslands * (0.10 + activity * 0.12));
-        body += whiteHotColor * whiteHotIslands * (0.08 + activity * 0.10);
-        body *= 1.0 - coolVeil * (0.10 + activity * 0.06);
+        body = mix(body, brightColor, hotIslands * (0.12 + activity * 0.12));
+        body += whiteHotColor * whiteHotIslands * (0.13 + activity * 0.14);
+        body += whiteHotColor * hotFilaments * (0.08 + activity * 0.10);
+        body *= 1.0 - coolVeil * (0.09 + activity * 0.05);
 
-        // Fine granulation remains subordinate to the molten field, so the
-        // surface reads as turbulent plasma rather than cracked polygons.
-        float microGranulation = noise3(q * 72.0 + vec3(-phaseTime * 0.11, phaseTime * 0.067, 5.9));
-        body *= 0.94 + microGranulation * (0.07 + activity * 0.025);
+        // Preserve visible fine structure even outside the hottest patches.
+        float microGranulation = microA * 0.62 + microB * 0.38;
+        float microContrast = (microGranulation - 0.5) * (0.18 + activity * 0.05);
+        body *= 1.0 + microContrast;
 
         vec3 viewDir = normalize(cameraPosition - vWorldPosition);
         float facing = max(dot(normalize(vWorldNormal), viewDir), 0.0);
         float limb = pow(facing, 0.30);
         float incandescentRim = pow(1.0 - facing, 6.0);
         body *= mix(0.44, 1.0, limb);
-        body += brightColor * incandescentRim * (0.045 + activity * 0.030);
+        body += brightColor * incandescentRim * (0.050 + activity * 0.035);
 
         float pulse = 0.996 + (0.003 + activity * 0.004) * sin(phaseTime * 0.88);
         gl_FragColor = vec4(body * pulse, 1.0);

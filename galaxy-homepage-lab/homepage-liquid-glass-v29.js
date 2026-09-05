@@ -9,15 +9,9 @@
     return;
   }
 
-  const backdropCanvas = card.querySelector('.liquid-glass__backdrop');
-  const opticsCanvas = card.querySelector('.liquid-glass__optics');
-  if (!(backdropCanvas instanceof HTMLCanvasElement) || !(opticsCanvas instanceof HTMLCanvasElement)) {
-    card.classList.add('liquid-glass--fallback');
-    return;
-  }
-
-  // Pinned defaults from OpenGL V29.5 / APP_RAW at commit 48b489c.
-  // These values are intentionally not retuned for the homepage.
+  // Pinned OpenGL V29.5 defaults from commit 48b489c. Optical mapping and
+  // material parameters are unchanged; only the backdrop transport moves from
+  // CPU canvases to the galaxy renderer's existing WebGL context.
   const params = Object.freeze({
     blurRadius: 0.230414746543779,
     blurIterations: 12,
@@ -49,135 +43,128 @@
   });
 
   const OPTICAL_RADIUS_PX = 46;
-  const CAPTURE_INTERVAL_MS = 1000 / 24;
-  const quality = () => Math.min(window.devicePixelRatio || 1, 1.5);
-
-  // Match the original three-layer V29.5 composition: gb + gl + ui.
-  // Do not cross-fade the optical canvas with the untouched galaxy; that would
-  // average away the displacement we are trying to see.
   card.style.borderRadius = `${OPTICAL_RADIUS_PX}px`;
-  backdropCanvas.style.opacity = '1';
-  opticsCanvas.style.opacity = '1';
 
-  const source = document.createElement('canvas');
-  const sourceCtx = source.getContext('2d', { alpha: false });
-  const colorCanvas = document.createElement('canvas');
-  const colorCtx = colorCanvas.getContext('2d', { alpha: false });
-  const blurA = document.createElement('canvas');
-  const blurACtx = blurA.getContext('2d', { alpha: false });
-  const blurB = document.createElement('canvas');
-  const blurBCtx = blurB.getContext('2d', { alpha: false });
-  const blurCanvas = document.createElement('canvas');
-  const blurCtx = blurCanvas.getContext('2d', { alpha: false });
-  const backdropCtx = backdropCanvas.getContext('2d', { alpha: true });
-
-  if (!sourceCtx || !colorCtx || !blurACtx || !blurBCtx || !blurCtx || !backdropCtx) {
-    card.classList.add('liquid-glass--fallback');
-    return;
-  }
-
-  let gl;
-  let program;
-  let quad;
-  let texture;
-  let locations;
+  let rendererRef = null;
+  let gl = null;
+  let program = null;
+  let quad = null;
+  let texture = null;
+  let locations = null;
+  let textureWidth = 0;
+  let textureHeight = 0;
   let visible = true;
   let failed = false;
-  let lastCapture = -1e9;
 
-  function setSize(canvas, width, height) {
-    const w = Math.max(1, Math.round(width));
-    const h = Math.max(1, Math.round(height));
-    if (canvas.width !== w) canvas.width = w;
-    if (canvas.height !== h) canvas.height = h;
+  const previousAfterRender = window.__ASTRA_AFTER_RENDER__;
+
+  function fail(error) {
+    if (failed) return;
+    failed = true;
+    card.classList.add('liquid-glass--fallback');
+    console.warn('[homepage-liquid-glass] same-context V29.5 fallback', error);
   }
 
-  function reset2d(ctx) {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.imageSmoothingEnabled = true;
-    try { ctx.imageSmoothingQuality = 'high'; } catch (_) {}
+  function convertVertexShader(source) {
+    return `#version 300 es\n${source}`
+      .replace(/attribute\s+vec2\s+a\s*;/, 'in vec2 a;');
   }
 
-  function shift(dst, src, width, height, step, horizontal) {
-    reset2d(dst);
-    dst.clearRect(0, 0, width, height);
-    dst.save();
-    dst.globalCompositeOperation = 'lighter';
-    dst.globalAlpha = 0.2;
-    for (let i = -2; i <= 2; i += 1) {
-      dst.drawImage(src, horizontal ? i * step : 0, horizontal ? 0 : i * step, width, height);
-    }
-    dst.restore();
-    dst.save();
-    dst.globalCompositeOperation = 'destination-over';
-    dst.drawImage(src, 0, 0, width, height);
-    dst.restore();
+  function convertFragmentShader(source) {
+    let fragment = source
+      .replace(
+        'uniform float uShoulderEnabled,uRadius,uIntensity;',
+        'uniform float uShoulderEnabled,uRadius,uIntensity;\nuniform vec2 uViewportOrigin,uBlurTexel;',
+      )
+      .replace(
+        /vec3 bodyBackdrop\(vec2 uv\)\{[\s\S]*?\n\}/,
+        `vec3 bodyBackdrop(vec2 uv){
+  vec2 c=clamp(uv,uBlurTexel*1.6,vec2(1.0)-uBlurTexel*1.6);
+  vec2 s=vec2(c.x,1.0-c.y);
+  vec3 color=texture(uBlurTexture,s).rgb*.20;
+  color+=texture(uBlurTexture,s+vec2( uBlurTexel.x,0.0)).rgb*.12;
+  color+=texture(uBlurTexture,s+vec2(-uBlurTexel.x,0.0)).rgb*.12;
+  color+=texture(uBlurTexture,s+vec2(0.0, uBlurTexel.y)).rgb*.12;
+  color+=texture(uBlurTexture,s+vec2(0.0,-uBlurTexel.y)).rgb*.12;
+  color+=texture(uBlurTexture,s+vec2( uBlurTexel.x, uBlurTexel.y)).rgb*.08;
+  color+=texture(uBlurTexture,s+vec2(-uBlurTexel.x, uBlurTexel.y)).rgb*.08;
+  color+=texture(uBlurTexture,s+vec2( uBlurTexel.x,-uBlurTexel.y)).rgb*.08;
+  color+=texture(uBlurTexture,s+vec2(-uBlurTexel.x,-uBlurTexel.y)).rgb*.08;
+  color*=1.14239631336406;
+  color=(color-vec3(.5))*1.0241935483871+vec3(.5);
+  float luma=dot(color,vec3(.2126,.7152,.0722));
+  color=mix(vec3(luma),color,1.112);
+  return clamp(color,0.0,1.0);
+}`,
+      )
+      .replace(
+        'vec2 p=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);',
+        'vec2 localFrag=gl_FragCoord.xy-uViewportOrigin;\n  vec2 p=vec2(localFrag.x,uRes.y-localFrag.y);',
+      )
+      .replace(/texture2D\(/g, 'texture(')
+      .replace(/gl_FragColor/g, 'outColor');
+
+    fragment = fragment.replace(
+      'precision highp float;',
+      'precision highp float;\nout vec4 outColor;',
+    );
+    return `#version 300 es\n${fragment}`;
   }
 
-  function blur(sourceImage, width, height, radius) {
-    reset2d(blurCtx);
-    blurCtx.clearRect(0, 0, width, height);
-    if (radius <= 0.025) {
-      blurCtx.drawImage(sourceImage, 0, 0, width, height);
-      return;
-    }
-
-    setSize(blurA, width, height);
-    setSize(blurB, width, height);
-    const passes = Math.max(1, Math.min(3, Math.ceil(params.blurIterations / 4)));
-    const step = Math.max(0.25, radius / Math.sqrt(2 * passes));
-    let current = sourceImage;
-    for (let i = 0; i < passes; i += 1) {
-      shift(blurACtx, current, width, height, step, true);
-      shift(blurBCtx, blurA, width, height, step, false);
-      current = blurB;
-    }
-    blurCtx.drawImage(current, 0, 0, width, height);
-  }
-
-  function compile(type, shaderSource) {
+  function compile(type, source) {
     const shader = gl.createShader(type);
-    gl.shaderSource(shader, shaderSource);
+    gl.shaderSource(shader, source);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      throw new Error(gl.getShaderInfoLog(shader) || 'Liquid glass shader compile failed');
+      const message = gl.getShaderInfoLog(shader) || 'Liquid glass shader compile failed';
+      gl.deleteShader(shader);
+      throw new Error(message);
     }
     return shader;
   }
 
-  function initGl() {
-    gl = opticsCanvas.getContext('webgl', {
-      alpha: true,
-      antialias: false,
-      premultipliedAlpha: false,
-      preserveDrawingBuffer: false,
-    });
-    if (!gl) throw new Error('WebGL unavailable for liquid glass');
+  function initialize(renderer) {
+    if (rendererRef === renderer && program) return;
+    rendererRef = renderer;
+    gl = renderer.getContext();
+    if (!gl || !(gl instanceof WebGL2RenderingContext)) {
+      throw new Error('Homepage liquid glass requires the galaxy WebGL2 context.');
+    }
 
+    const vertex = compile(gl.VERTEX_SHADER, convertVertexShader(shaders.vs));
+    const fragment = compile(gl.FRAGMENT_SHADER, convertFragmentShader(shaders.fs));
     program = gl.createProgram();
-    gl.attachShader(program, compile(gl.VERTEX_SHADER, shaders.vs));
-    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, shaders.fs));
+    gl.attachShader(program, vertex);
+    gl.attachShader(program, fragment);
     gl.linkProgram(program);
+    gl.deleteShader(vertex);
+    gl.deleteShader(fragment);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       throw new Error(gl.getProgramInfoLog(program) || 'Liquid glass program link failed');
     }
 
     quad = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quad);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+      gl.STATIC_DRAW,
+    );
 
     const names = [
       'a', 'uRes', 'uOrigin', 'uRoot', 'uBlurTexture', 'uMat', 'uBodyLensA',
       'uBodyLensB', 'uBody', 'uShoulder', 'uShoulderFlow', 'uShoulderEnabled',
-      'uRadius', 'uIntensity',
+      'uRadius', 'uIntensity', 'uViewportOrigin', 'uBlurTexel',
     ];
     locations = {};
     for (const name of names) {
-      locations[name] = name === 'a' ? gl.getAttribLocation(program, name) : gl.getUniformLocation(program, name);
+      locations[name] = name === 'a'
+        ? gl.getAttribLocation(program, name)
+        : gl.getUniformLocation(program, name);
     }
-    const missing = names.filter((name) => name === 'a' ? locations[name] < 0 : locations[name] === null);
+    const missing = names.filter((name) => (
+      name === 'a' ? locations[name] < 0 : locations[name] === null
+    ));
     if (missing.length) throw new Error(`Liquid glass uniforms missing: ${missing.join(', ')}`);
 
     texture = gl.createTexture();
@@ -188,89 +175,112 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   }
 
-  function captureBackdropFromValidGalaxyBuffer() {
-    const sourceRect = sourceCanvas.getBoundingClientRect();
-    const cardRect = card.getBoundingClientRect();
-    if (sourceRect.width <= 0 || sourceRect.height <= 0 || cardRect.width <= 0 || cardRect.height <= 0) return false;
-
-    const d = quality();
-    const width = Math.max(1, Math.round(cardRect.width * d));
-    const height = Math.max(1, Math.round(cardRect.height * d));
-    const scaleX = sourceCanvas.width / sourceRect.width;
-    const scaleY = sourceCanvas.height / sourceRect.height;
-    const sx = Math.max(0, (cardRect.left - sourceRect.left) * scaleX);
-    const sy = Math.max(0, (cardRect.top - sourceRect.top) * scaleY);
-    const sw = Math.min(sourceCanvas.width - sx, cardRect.width * scaleX);
-    const sh = Math.min(sourceCanvas.height - sy, cardRect.height * scaleY);
-    if (sw <= 0 || sh <= 0) return false;
-
-    for (const canvas of [source, colorCanvas, blurCanvas, backdropCanvas, opticsCanvas]) {
-      setSize(canvas, width, height);
-    }
-
-    // IMPORTANT: this drawImage is called synchronously from the galaxy
-    // renderer's post-render hook, before its preserveDrawingBuffer=false
-    // framebuffer can be invalidated by browser compositing.
-    reset2d(sourceCtx);
-    sourceCtx.clearRect(0, 0, width, height);
-    sourceCtx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, width, height);
-
-    // Original V29.5 backdrop preprocessing.
-    reset2d(colorCtx);
-    colorCtx.clearRect(0, 0, width, height);
-    colorCtx.save();
-    colorCtx.filter = `brightness(${params.brightness}) contrast(${params.contrast}) saturate(${params.saturation})`;
-    colorCtx.drawImage(source, 0, 0, width, height);
-    colorCtx.restore();
-
-    const effectiveBlur = Math.max(
-      0,
-      params.blurRadius * d * Math.pow(Math.max(1, params.blurIterations), 0.55),
-    );
-    blur(colorCanvas, width, height, effectiveBlur);
-
-    reset2d(backdropCtx);
-    backdropCtx.clearRect(0, 0, width, height);
-    backdropCtx.drawImage(blurCanvas, 0, 0, width, height);
-
-    gl.activeTexture(gl.TEXTURE0);
+  function ensureTexture(width, height) {
+    if (textureWidth === width && textureHeight === height) return;
+    textureWidth = width;
+    textureHeight = height;
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, blurCanvas);
-    gl.flush();
-    return true;
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      width,
+      height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
   }
 
-  function renderOptics() {
-    const d = quality();
-    const width = opticsCanvas.width;
-    const height = opticsCanvas.height;
+  function cardFramebufferRect() {
+    const canvasRect = sourceCanvas.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    if (
+      canvasRect.width <= 0 || canvasRect.height <= 0
+      || cardRect.width <= 0 || cardRect.height <= 0
+    ) return null;
 
-    gl.viewport(0, 0, width, height);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    const scaleX = sourceCanvas.width / canvasRect.width;
+    const scaleY = sourceCanvas.height / canvasRect.height;
+    const left = Math.round((cardRect.left - canvasRect.left) * scaleX);
+    const right = Math.round((cardRect.right - canvasRect.left) * scaleX);
+    const top = Math.round((cardRect.top - canvasRect.top) * scaleY);
+    const bottom = Math.round((cardRect.bottom - canvasRect.top) * scaleY);
+
+    const x = Math.max(0, left);
+    const y = Math.max(0, sourceCanvas.height - bottom);
+    const width = Math.min(sourceCanvas.width - x, right - left);
+    const height = Math.min(sourceCanvas.height - y, bottom - top);
+    if (width <= 1 || height <= 1) return null;
+
+    return { x, y, width, height, scale: (scaleX + scaleY) * 0.5 };
+  }
+
+  function renderGlass(frame) {
+    if (failed || !visible || document.hidden) return;
+    const { renderer } = frame || {};
+    if (!renderer) return;
+
+    initialize(renderer);
+    const rect = cardFramebufferRect();
+    if (!rect) return;
+    const { x, y, width, height, scale } = rect;
+
+    // GPU-local copy: only the pixels under the liquid card are copied. This
+    // replaces WebGL -> 2D Canvas readback and the subsequent CPU -> GPU upload.
+    ensureTexture(width, height);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, x, y, width, height);
+
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, quad);
     gl.enableVertexAttribArray(locations.a);
     gl.vertexAttribPointer(locations.a, 2, gl.FLOAT, false, 0, 0);
 
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.CULL_FACE);
+    gl.disable(gl.BLEND);
+    gl.enable(gl.SCISSOR_TEST);
+    gl.viewport(x, y, width, height);
+    gl.scissor(x, y, width, height);
+
     gl.uniform2f(locations.uRes, width, height);
     gl.uniform2f(locations.uOrigin, 0, 0);
     gl.uniform2f(locations.uRoot, width, height);
-    gl.uniform1f(locations.uRadius, OPTICAL_RADIUS_PX * d);
+    gl.uniform2f(locations.uViewportOrigin, x, y);
+
+    const effectiveBlurPx = params.blurRadius
+      * scale
+      * Math.pow(Math.max(1, params.blurIterations), 0.55);
+    gl.uniform2f(
+      locations.uBlurTexel,
+      effectiveBlurPx / Math.max(width, 1),
+      effectiveBlurPx / Math.max(height, 1),
+    );
+
+    gl.uniform1f(locations.uRadius, OPTICAL_RADIUS_PX * scale);
     gl.uniform1f(locations.uIntensity, params.glassIntensity);
-    gl.uniform4f(locations.uMat, params.bodyVisibility, params.bodyMaxAlpha, params.bodyOutputBrightness, 0);
+    gl.uniform4f(
+      locations.uMat,
+      params.bodyVisibility,
+      params.bodyMaxAlpha,
+      params.bodyOutputBrightness,
+      0,
+    );
     gl.uniform4f(
       locations.uBodyLensA,
-      params.bodyLensBasePull * d,
-      params.bodyLensPullDp * d,
+      params.bodyLensBasePull * scale,
+      params.bodyLensPullDp * scale,
       params.bodyLensConcentration,
       params.bodyLensCornerBoost,
     );
     gl.uniform4f(
       locations.uBodyLensB,
-      params.bodyLensExtraDistance * d,
-      params.bodyLensReachDp * d,
+      params.bodyLensExtraDistance * scale,
+      params.bodyLensReachDp * scale,
       params.bodyLensDark,
       0,
     );
@@ -283,58 +293,38 @@
     );
     gl.uniform4f(
       locations.uShoulder,
-      params.shoulderWidthPx * d,
+      params.shoulderWidthPx * scale,
       params.shoulderMaxAngleDeg,
       params.shoulderFalloffRoundness,
       params.shoulderMaterialStrength,
     );
     gl.uniform2f(
       locations.uShoulderFlow,
-      params.shoulderCaptureWidthPx * d,
+      params.shoulderCaptureWidthPx * scale,
       params.shoulderTangentialFlowStrength,
     );
     gl.uniform1f(locations.uShoulderEnabled, params.edgeMode);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.uniform1i(locations.uBlurTexture, 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Restore the default viewport/scissor and invalidate Three.js' GL state
+    // cache so the next composer frame starts from a known state.
+    gl.disable(gl.SCISSOR_TEST);
+    gl.viewport(0, 0, sourceCanvas.width, sourceCanvas.height);
+    renderer.resetState();
   }
 
-  function consumeGalaxyFrame(now) {
-    if (failed || !visible || document.hidden || now - lastCapture < CAPTURE_INTERVAL_MS) return;
+  window.__ASTRA_AFTER_RENDER__ = (frame) => {
+    if (typeof previousAfterRender === 'function') previousAfterRender(frame);
     try {
-      if (captureBackdropFromValidGalaxyBuffer()) {
-        renderOptics();
-        lastCapture = now;
-      }
+      renderGlass(frame);
     } catch (error) {
-      failed = true;
-      card.classList.add('liquid-glass--fallback');
-      console.warn('[homepage-liquid-glass] V29.5 fallback', error);
+      fail(error);
     }
-  }
+  };
 
-  try {
-    initGl();
-
-    const previousAfterRender = window.__ASTRA_AFTER_RENDER__;
-    window.__ASTRA_AFTER_RENDER__ = (now) => {
-      if (typeof previousAfterRender === 'function') previousAfterRender(now);
-      consumeGalaxyFrame(now);
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      visible = entries.some((entry) => entry.isIntersecting);
-      if (visible) lastCapture = -1e9;
-    }, { threshold: 0.01 });
-    observer.observe(card);
-
-    window.addEventListener('resize', () => {
-      lastCapture = -1e9;
-    }, { passive: true });
-  } catch (error) {
-    failed = true;
-    card.classList.add('liquid-glass--fallback');
-    console.warn('[homepage-liquid-glass] unavailable; using shared CSS glass', error);
-  }
+  const observer = new IntersectionObserver((entries) => {
+    visible = entries.some((entry) => entry.isIntersecting);
+  }, { threshold: 0.01 });
+  observer.observe(card);
 })();

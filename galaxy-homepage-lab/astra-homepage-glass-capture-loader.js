@@ -156,33 +156,44 @@ source = replaceOnce(
   'Interactive star presentation budget',
 );
 
-// Visibility-only experiment: keep all 48.8k existing star points, spatial
-// distribution, palettes, bloom, camera and flight behavior unchanged. Raise
-// only the micro-star energy that currently falls below practical display
-// visibility, so more of the existing 34k micro stars are actually perceived.
+// Depth-aware visibility experiment. Keep all 48.8k star points and their
+// positions unchanged, but move visual emphasis toward the near and middle
+// shells. The previous uniform 0.90 px floor disproportionately rescued the
+// farthest micro-stars; this version gives near/mid stars a larger optical floor
+// and energy window while deliberately letting the far shell fall back.
 source = replaceOnce(
   source,
   /vParticleDiameter = max\\(opticalDiameter, uPixelRatio \\* 0\\.58\\);/,
-  'vParticleDiameter = max(opticalDiameter, uPixelRatio * 0.90);',
-  'Micro-star minimum optical footprint',
+  \`float farVisibility = smoothstep(30.0, 54.0, cameraDepth);
+  float visibilityFloor = mix(uPixelRatio * 1.18, uPixelRatio * 0.62, farVisibility);
+  vParticleDiameter = max(opticalDiameter, visibilityFloor);\`,
+  'Depth-aware micro-star optical footprint',
 );
 source = replaceOnce(
   source,
-  /vFluxCompensation = clamp\\(ratio \\* ratio, 1\\.0, 1\\.85\\);/,
-  'vFluxCompensation = clamp(ratio * ratio, 1.0, 2.35);',
-  'Micro-star sub-pixel flux compensation',
+  /float referenceDiameter = uPixelRatio \\* 1\\.35;\\n  float ratio = referenceDiameter \\/ max\\(vParticleDiameter, 0\\.0001\\);\\n  vFluxCompensation = clamp\\(ratio \\* ratio, 1\\.0, 1\\.85\\);/,
+  \`float referenceDiameter = uPixelRatio * mix(1.62, 1.10, farVisibility);
+  float ratio = referenceDiameter / max(vParticleDiameter, 0.0001);
+  float maxFluxCompensation = mix(2.70, 1.30, farVisibility);
+  vFluxCompensation = clamp(ratio * ratio, 1.0, maxFluxCompensation);\`,
+  'Depth-aware micro-star flux compensation',
 );
 source = replaceOnce(
   source,
   /data\\.brightness\\[i\\] = \\(0\\.46 \\+ random\\(\\) \\* 0\\.46\\) \\* centreBoost \\* complexBoost \\* depthQuiet;/,
-  'data.brightness[i] = (0.54 + random() * 0.44) * centreBoost * complexBoost * depthQuiet;',
-  'Micro-star source brightness floor',
+  \`const nearMidVisibility = 1.0 + Math.exp(-Math.pow((depth - 27.0) / 14.0, 2)) * 0.95;
+    const farFade = 1.0 - THREE.MathUtils.smoothstep(depth, 40.0, 58.0) * 0.48;
+    data.brightness[i] = (0.54 + random() * 0.44) * centreBoost * complexBoost * depthQuiet
+      * nearMidVisibility * farFade;\`,
+  'Near-mid micro-star brightness emphasis',
 );
 source = replaceOnce(
   source,
   /data\\.opacity\\[i\\] = \\(0\\.24 \\+ random\\(\\) \\* 0\\.34\\) \\* band\\.dustTransmission \\* \\(0\\.90 \\+ band\\.centreWeight \\* 0\\.12\\);/,
-  'data.opacity[i] = (0.30 + random() * 0.34) * band.dustTransmission * (0.92 + band.centreWeight * 0.12);',
-  'Micro-star source opacity floor',
+  \`data.opacity[i] = (0.30 + random() * 0.34) * band.dustTransmission
+      * (0.92 + band.centreWeight * 0.12)
+      * Math.min(1.52, nearMidVisibility) * farFade;\`,
+  'Near-mid micro-star opacity emphasis',
 );
 `;
 

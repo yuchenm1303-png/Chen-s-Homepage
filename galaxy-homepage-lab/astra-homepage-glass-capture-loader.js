@@ -144,9 +144,9 @@ source = replaceOnce(
 source = replaceOnce(
   source,
   /continuumCache\\.width = continuumTarget\\.width;\\n    continuumCache\\.height = continuumTarget\\.height;/,
-  \`continuumCache.motionLod = starFlightMoving;
-    continuumCache.width = activeContinuumTarget.width;
-    continuumCache.height = activeContinuumTarget.height;\`,
+  \`continuumCache.width = activeContinuumTarget.width;
+    continuumCache.height = activeContinuumTarget.height;
+    continuumCache.motionLod = starFlightMoving;\`,
   'Cache active continuum target identity and dimensions',
 );
 

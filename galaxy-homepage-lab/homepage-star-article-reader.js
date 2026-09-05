@@ -5,6 +5,15 @@
   const baseInstall = window[INSTALL_KEY];
   if (typeof baseInstall !== 'function' || baseInstall.__smirelArticleReader) return;
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   const articleInstall = function installArticleReader(context) {
     const controller = baseInstall(context);
     if (!controller) return controller;
@@ -18,51 +27,12 @@
         pointer-events: none !important;
       }
 
-      .stellar-article-reader {
-        width: 100%;
-        max-width: 68ch;
-        color: rgba(255,255,255,.73);
-        font: 400 15px/1.88 ui-rounded, "SF Pro Rounded", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+      .stellar-article-reader strong {
+        color: rgba(255,255,255,.91);
+        font-weight: 620;
       }
-      .stellar-article-reader > :first-child { margin-top: 0 !important; }
-      .stellar-article-reader p { margin: 0 0 22px; }
-      .stellar-article-reader .article-lead,
-      .stellar-article-reader > p:first-child {
-        color: rgba(255,255,255,.84);
-        font-size: 18px;
-        line-height: 1.76;
-        letter-spacing: -.01em;
-      }
-      .stellar-article-reader h2 {
-        margin: 58px 0 18px;
-        color: rgba(255,255,255,.94);
-        font-size: clamp(24px, 3vw, 34px);
-        line-height: 1.18;
-        font-weight: 540;
-        letter-spacing: -.035em;
-      }
-      .stellar-article-reader h3 {
-        margin: 38px 0 14px;
-        color: rgba(255,255,255,.88);
-        font-size: 19px;
-        line-height: 1.35;
-        font-weight: 570;
-      }
-      .stellar-article-reader ul,
-      .stellar-article-reader ol {
-        margin: 18px 0 26px;
-        padding-left: 1.35em;
-      }
-      .stellar-article-reader li { margin: 8px 0; }
-      .stellar-article-reader strong { color: rgba(255,255,255,.91); font-weight: 620; }
-      .stellar-article-reader a { color: rgba(207,232,255,.92); }
-      .stellar-article-reader blockquote {
-        margin: 30px 0;
-        padding: 2px 0 2px 20px;
-        border-left: 1px solid rgba(194,225,255,.34);
-        color: rgba(225,239,255,.77);
-        font-size: 17px;
-        line-height: 1.72;
+      .stellar-article-reader a {
+        color: rgba(207,232,255,.92);
       }
       .stellar-article-reader code {
         font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
@@ -72,12 +42,7 @@
       .stellar-article-reader pre,
       .stellar-article-reader .article-code {
         overflow: auto;
-        margin: 28px 0;
         border: 1px solid rgba(255,255,255,.11);
-        border-radius: 14px;
-        background: rgba(3,7,13,.46);
-        -webkit-backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
       }
       .stellar-article-reader pre {
         padding: 18px;
@@ -131,19 +96,6 @@
         border-bottom: 1px solid rgba(255,255,255,.10);
         text-align: left;
       }
-      .star-detail-main[data-article-reader] .star-detail-note-date,
-      .star-detail-main[data-article-reader] .star-detail-note-lede,
-      .star-detail-main[data-article-reader] .star-detail-meta,
-      .star-detail-main[data-article-reader] .star-detail-divider,
-      .star-detail-main[data-article-reader] .star-detail-note-intro,
-      .star-detail-main[data-article-reader] .star-detail-object {
-        display: none;
-      }
-      @media (max-width: 620px) {
-        .stellar-article-reader { font-size: 14px; line-height: 1.82; }
-        .stellar-article-reader .article-lead,
-        .stellar-article-reader > p:first-child { font-size: 16px; }
-      }
     `;
     document.head.appendChild(style);
 
@@ -167,24 +119,55 @@
       }
     }
 
+    function clearArticleMode(main, shell) {
+      appliedId = null;
+      if (main) delete main.dataset.articleReader;
+      shell?.classList.remove('is-article-reader');
+    }
+
+    function articleMarkup(object) {
+      const metaItems = [object.subtitle, ...(object.meta || [])]
+        .filter(Boolean)
+        .filter((value, index, list) => list.indexOf(value) === index)
+        .map((item) => `<span>${escapeHtml(item)}</span>`)
+        .join('');
+      const deck = object.lede
+        ? `<p class="stellar-article-deck">${escapeHtml(object.lede)}</p>`
+        : '';
+      const objectLabel = object.star?.classLabel || 'Journal star';
+
+      return `
+        <article class="stellar-article-page">
+          <header class="stellar-article-hero">
+            <p class="stellar-article-eyebrow">Note / ${escapeHtml(object.order || '')}</p>
+            <h1 class="stellar-article-title">${escapeHtml(object.title || '')}</h1>
+            ${deck}
+            <p class="stellar-article-meta">${metaItems}</p>
+          </header>
+          <div class="stellar-article-reader">${object.articleHtml}</div>
+          <footer class="stellar-article-footer">Observation ${escapeHtml(object.order || '')} · ${escapeHtml(objectLabel)}</footer>
+        </article>
+      `;
+    }
+
     function applyFullArticle() {
       const object = controller.activeObject;
       const main = document.querySelector('.star-detail-main');
-      if (!main) return;
+      const shell = document.querySelector('.star-detail-shell');
+      if (!main || !shell) return;
 
       if (!object || object.kind !== 'note' || !object.articleHtml) {
-        if (!document.body.classList.contains('star-detail-open')) {
-          appliedId = null;
-          delete main.dataset.articleReader;
+        if (main.dataset.articleReader || shell.classList.contains('is-article-reader')) {
+          clearArticleMode(main, shell);
         }
         return;
       }
 
+      if (shell.dataset.starId !== object.id) return;
       if (appliedId === object.id && main.dataset.articleReader === object.id) return;
-      const shell = document.querySelector('.star-detail-shell');
-      if (shell?.dataset.starId !== object.id) return;
 
-      main.innerHTML = `<article class="stellar-article-reader">${object.articleHtml}</article>`;
+      shell.classList.add('is-article-reader');
+      main.innerHTML = articleMarkup(object);
       main.dataset.articleReader = object.id;
       appliedId = object.id;
     }

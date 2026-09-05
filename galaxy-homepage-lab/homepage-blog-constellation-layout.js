@@ -4,31 +4,31 @@
   const catalog = window.__SMIREL_STELLAR_CATALOG__;
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
-  // The bright field is deterministic (seed 0xA57A2D31), so constellation design
-  // should also be deterministic. These indices were selected once from the real
-  // bright-field geometry and are now part of the visual identity of each field.
-  // Runtime code must not re-score or replace them.
+  // The bright field is deterministic (seed 0xA57A2D31), so these are authored
+  // identities rather than runtime search hints. The indices below were selected
+  // once from the real 14,800-star geometry and verified as compact silhouettes
+  // around their own field primaries on the desktop reference viewport.
   const FIXED_INDICES = Object.freeze({
     blog: 5596,
-    'ai-ledger-real-streaming': 5292,
-    'building-homepage': 568,
-    'opengl-liquid-glass': 1691,
-    'computer-use-design': 13147,
-    'app-performance-optimization': 4538,
-    'compose-parent-bubble-rendering': 6740,
-    'gan-hemt-stability': 8132,
-    'ai-listing-research': 2462,
+    'ai-ledger-real-streaming': 6518,
+    'building-homepage': 204,
+    'opengl-liquid-glass': 3066,
+    'computer-use-design': 14552,
+    'app-performance-optimization': 8268,
+    'compose-parent-bubble-rendering': 8605,
+    'gan-hemt-stability': 4398,
+    'ai-listing-research': 13626,
 
-    contact: 3913,
-    'contact-github': 7173,
-    'contact-email': 12628,
+    contact: 11408,
+    'contact-github': 9953,
+    'contact-email': 2930,
     'contact-phone': 4389,
-    'contact-qq': 12626,
+    'contact-qq': 5849,
   });
 
-  // Targets remain as design documentation / graceful fallback if the renderer's
-  // deterministic star field is intentionally replaced in a future revision.
-  const LOCAL_DEPTH = Object.freeze([18, 24]);
+  // Targets document the authored silhouette and remain a fallback only if the
+  // underlying deterministic bright-field generator is intentionally replaced.
+  const LOCAL_DEPTH = Object.freeze([18, 32]);
 
   function freezePair(pair) {
     return Object.freeze([pair[0], pair[1]]);
@@ -48,16 +48,16 @@
 
   const layouts = Object.freeze({
     blog: makeFieldLayout({
-      centre: [-0.46, -0.45],
+      centre: [-0.70, -0.45],
       offsets: {
-        'ai-ledger-real-streaming': [-0.13, 0.13],
-        'building-homepage': [0.00, 0.22],
-        'opengl-liquid-glass': [0.19, 0.13],
+        'ai-ledger-real-streaming': [-0.14, 0.18],
+        'building-homepage': [0.04, 0.22],
+        'opengl-liquid-glass': [0.22, 0.15],
         'computer-use-design': [0.27, -0.01],
-        'app-performance-optimization': [0.17, -0.17],
-        'compose-parent-bubble-rendering': [0.00, -0.23],
-        'gan-hemt-stability': [-0.19, -0.16],
-        'ai-listing-research': [-0.23, 0.00],
+        'app-performance-optimization': [0.21, -0.19],
+        'compose-parent-bubble-rendering': [0.03, -0.24],
+        'gan-hemt-stability': [-0.12, -0.20],
+        'ai-listing-research': [-0.15, -0.03],
       },
       edges: [
         ['blog', 'ai-ledger-real-streaming'],
@@ -73,12 +73,12 @@
     }),
 
     contact: makeFieldLayout({
-      centre: [0.51, 0.50],
+      centre: [0.74, 0.45],
       offsets: {
-        'contact-github': [-0.18, 0.09],
-        'contact-email': [0.12, 0.15],
-        'contact-phone': [-0.11, -0.17],
-        'contact-qq': [0.09, -0.16],
+        'contact-github': [-0.15, 0.16],
+        'contact-email': [0.12, 0.16],
+        'contact-phone': [-0.12, -0.12],
+        'contact-qq': [0.10, -0.08],
       },
       edges: [
         ['contact-github', 'contact'],

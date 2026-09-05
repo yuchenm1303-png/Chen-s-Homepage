@@ -20,19 +20,19 @@
     const colors = brightField.geometry.getAttribute('starColor');
     if (!positions || !brightness || !colors) return controller;
 
-    const constellationParents = catalog.filter((item) => item.constellation?.nodes?.length);
-    if (!constellationParents.length) return controller;
+    const fields = catalog.filter((item) => item.kind === 'field' && item.constellation?.nodes?.length);
+    if (!fields.length) return controller;
 
     const objectById = new Map(catalog.map((item) => [item.id, item]));
-    const hiddenAnchorIds = catalog.filter((item) => item.hiddenFromIndex).map((item) => item.id);
-    const anchorPositions = new Map();
-    const projectedPositions = new Map();
+    const spatialAnchors = new Map();
+    const projected = new Map();
+    const fieldButtons = new Map();
     const companionButtons = new Map();
     const edgeElements = new Map();
-    const parentButtons = new Map();
 
     let anchorsResolved = false;
-    let openParentId = null;
+    let openFieldId = null;
+    let persistentFieldId = null;
     let closeTimer = 0;
 
     const scratch = {
@@ -45,17 +45,93 @@
     const style = document.createElement('style');
     style.dataset.smirelConstellation = 'true';
     style.textContent = `
-      /* Main content stars are navigation, not easter eggs: their labels are always legible. */
-      .smirel-star-anchor__label {
-        opacity: .62 !important;
-        transform: translateX(0) !important;
+      /* The old per-project anchor UI is intentionally suppressed. The four field
+         stars below are now the only primary navigation objects in the galaxy. */
+      .smirel-star-anchor { display: none !important; }
+
+      .smirel-field-star {
+        --field-color: #d8efff;
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 9;
+        width: 76px;
+        height: 76px;
+        margin: -38px 0 0 -38px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: rgba(247,250,255,.96);
+        cursor: pointer;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .30s ease;
       }
-      .smirel-star-anchor:hover .smirel-star-anchor__label,
-      .smirel-star-anchor:focus-visible .smirel-star-anchor__label {
-        opacity: .96 !important;
+      .smirel-field-star::before {
+        content: '';
+        position: absolute;
+        inset: 17px;
+        border: 1px solid color-mix(in srgb, var(--field-color) 48%, transparent);
+        border-radius: inherit;
+        transform: scale(.82);
+        box-shadow:
+          0 0 20px color-mix(in srgb, var(--field-color) 13%, transparent),
+          inset 0 0 12px rgba(255,255,255,.055);
+        transition:
+          transform .34s cubic-bezier(.2,.8,.2,1),
+          border-color .25s ease,
+          box-shadow .25s ease;
       }
-      ${hiddenAnchorIds.map((id) => `.smirel-star-anchor[data-star-id="${id}"]`).join(',\n      ')} {
-        display: none !important;
+      .smirel-field-star::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 4px;
+        height: 4px;
+        margin: -2px 0 0 -2px;
+        border-radius: 50%;
+        background: var(--field-color);
+        box-shadow: 0 0 12px var(--field-color), 0 0 28px color-mix(in srgb, var(--field-color) 38%, transparent);
+      }
+      .smirel-field-star:hover::before,
+      .smirel-field-star:focus-visible::before,
+      .smirel-field-star.is-preview::before {
+        transform: scale(1);
+        border-color: color-mix(in srgb, var(--field-color) 86%, white 14%);
+        box-shadow:
+          0 0 30px color-mix(in srgb, var(--field-color) 24%, transparent),
+          inset 0 0 15px rgba(255,255,255,.09);
+      }
+      .smirel-field-star__label {
+        position: absolute;
+        left: 61px;
+        top: 25px;
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        white-space: nowrap;
+        text-align: left;
+        text-shadow: 0 1px 12px #000, 0 0 22px #000;
+      }
+      .smirel-field-star__label strong {
+        color: rgba(248,250,255,.82);
+        font: 680 10px/1 ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: .13em;
+        text-transform: uppercase;
+        transition: color .2s ease, opacity .2s ease;
+      }
+      .smirel-field-star__label small {
+        color: rgba(255,255,255,.34);
+        font: 650 8px/1 ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+      }
+      .smirel-field-star:hover .smirel-field-star__label strong,
+      .smirel-field-star:focus-visible .smirel-field-star__label strong,
+      .smirel-field-star.is-preview .smirel-field-star__label strong {
+        color: rgba(255,255,255,.98);
       }
 
       .smirel-constellation-map {
@@ -68,23 +144,28 @@
         pointer-events: none;
       }
       .smirel-constellation-edge {
+        --edge-delay: 0ms;
         vector-effect: non-scaling-stroke;
-        stroke: rgba(190, 222, 255, .31);
-        stroke-width: .8;
+        stroke: rgba(187,219,251,.27);
+        stroke-width: .78;
         stroke-linecap: round;
         fill: none;
         opacity: 0;
         stroke-dasharray: 1;
         stroke-dashoffset: 1;
-        filter: drop-shadow(0 0 4px rgba(170, 216, 255, .14));
+        filter: drop-shadow(0 0 4px rgba(170,216,255,.12));
         transition:
-          opacity .18s ease,
-          stroke-dashoffset .46s cubic-bezier(.22,.61,.36,1);
-        transition-delay: var(--edge-delay, 0ms);
+          opacity .18s ease var(--edge-delay),
+          stroke-dashoffset .46s cubic-bezier(.22,.61,.36,1) var(--edge-delay);
       }
       .smirel-constellation-edge.is-open {
         opacity: 1;
         stroke-dashoffset: 0;
+      }
+      body.star-field-open .smirel-constellation-edge.is-open,
+      body.star-field-transition .smirel-constellation-edge.is-open {
+        stroke: rgba(197,227,255,.40);
+        stroke-width: .92;
       }
 
       .smirel-companion-star {
@@ -94,9 +175,9 @@
         left: 0;
         top: 0;
         z-index: 9;
-        width: 38px;
-        height: 38px;
-        margin: -19px 0 0 -19px;
+        width: 42px;
+        height: 42px;
+        margin: -21px 0 0 -21px;
         padding: 0;
         border: 0;
         border-radius: 50%;
@@ -105,17 +186,16 @@
         opacity: 0;
         pointer-events: none;
         cursor: pointer;
-        transform-origin: 50% 50%;
         transition: opacity .22s ease var(--companion-delay);
       }
       .smirel-companion-star::before {
         content: '';
         position: absolute;
-        inset: 11px;
-        border: 1px solid color-mix(in srgb, var(--companion-color) 40%, transparent);
+        inset: 12px;
+        border: 1px solid color-mix(in srgb, var(--companion-color) 42%, transparent);
         border-radius: 50%;
-        transform: scale(.62);
-        box-shadow: 0 0 12px color-mix(in srgb, var(--companion-color) 15%, transparent);
+        transform: scale(.58);
+        box-shadow: 0 0 12px color-mix(in srgb, var(--companion-color) 13%, transparent);
         transition:
           transform .38s cubic-bezier(.2,.8,.2,1),
           border-color .22s ease,
@@ -137,62 +217,76 @@
         opacity: 1;
         pointer-events: auto;
       }
-      .smirel-companion-star.is-open::before {
-        transform: scale(1);
-      }
+      .smirel-companion-star.is-open::before { transform: scale(1); }
+      .smirel-companion-star.is-static { cursor: default; }
+      .smirel-companion-star.is-static.is-open { pointer-events: none; }
       .smirel-companion-star:hover::before,
       .smirel-companion-star:focus-visible::before {
-        border-color: color-mix(in srgb, var(--companion-color) 82%, white 18%);
-        box-shadow: 0 0 21px color-mix(in srgb, var(--companion-color) 28%, transparent);
+        border-color: color-mix(in srgb, var(--companion-color) 84%, white 16%);
+        box-shadow: 0 0 22px color-mix(in srgb, var(--companion-color) 28%, transparent);
       }
       .smirel-companion-label {
         position: absolute;
-        left: 34px;
-        top: 10px;
+        left: 36px;
+        top: 11px;
         display: flex;
         flex-direction: column;
         gap: 4px;
         min-width: max-content;
+        max-width: 260px;
         text-align: left;
         white-space: nowrap;
         text-shadow: 0 1px 10px #000, 0 0 18px #000;
-        opacity: .74;
+        opacity: .68;
         transform: translateX(-4px);
         transition: opacity .2s ease, transform .2s ease;
       }
-      .smirel-companion-star.is-open .smirel-companion-label {
-        transform: translateX(0);
-      }
+      .smirel-companion-star.is-open .smirel-companion-label { transform: translateX(0); }
       .smirel-companion-star:hover .smirel-companion-label,
-      .smirel-companion-star:focus-visible .smirel-companion-label {
-        opacity: 1;
-      }
+      .smirel-companion-star:focus-visible .smirel-companion-label,
+      body.star-field-open .smirel-companion-label { opacity: .94; }
       .smirel-companion-label strong {
-        color: rgba(248,251,255,.92);
-        font: 620 9px/1.05 ui-sans-serif, system-ui, sans-serif;
-        letter-spacing: .105em;
+        overflow: hidden;
+        max-width: 250px;
+        text-overflow: ellipsis;
+        color: rgba(248,251,255,.90);
+        font: 630 9px/1.05 ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: .085em;
         text-transform: uppercase;
       }
       .smirel-companion-label small {
-        color: rgba(255,255,255,.42);
+        color: rgba(255,255,255,.40);
         font: 560 7.5px/1 ui-sans-serif, system-ui, sans-serif;
-        letter-spacing: .11em;
+        letter-spacing: .10em;
         text-transform: uppercase;
       }
 
+      body.star-flight-active .smirel-field-star,
       body.star-flight-active .smirel-constellation-map,
       body.star-flight-active .smirel-companion-star {
         opacity: 0 !important;
         pointer-events: none !important;
       }
+      body.star-field-open .smirel-field-star,
+      body.star-field-transition .smirel-field-star {
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+      body.star-field-transition .smirel-companion-star {
+        pointer-events: none !important;
+      }
 
       @media (max-width: 760px) {
-        .smirel-star-anchor__label { opacity: .72 !important; }
-        .smirel-companion-label strong { font-size: 8px; }
+        .smirel-field-star { width: 64px; height: 64px; margin: -32px 0 0 -32px; }
+        .smirel-field-star__label { left: 51px; top: 21px; }
+        .smirel-field-star__label strong { font-size: 9px; }
+        .smirel-companion-label strong { font-size: 8px; max-width: 180px; }
         .smirel-companion-label small { display: none; }
       }
 
       @media (prefers-reduced-motion: reduce) {
+        .smirel-field-star,
+        .smirel-field-star::before,
         .smirel-constellation-edge,
         .smirel-companion-star,
         .smirel-companion-star::before,
@@ -207,7 +301,7 @@
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.classList.add('smirel-constellation-map');
     svg.setAttribute('aria-hidden', 'true');
-    svg.setAttribute('viewBox', `0 0 ${Math.max(innerWidth, 1)} ${Math.max(innerHeight, 1)}`);
+    svg.setAttribute('viewBox', `0 0 ${Math.max(window.innerWidth, 1)} ${Math.max(window.innerHeight, 1)}`);
     svg.setAttribute('preserveAspectRatio', 'none');
     document.body.appendChild(svg);
 
@@ -217,12 +311,10 @@
         && y >= rect.top - margin && y <= rect.bottom + margin;
     }
 
-    /*
-     * Mirror the star-flight anchor resolver exactly. This intentionally uses the
-     * existing bright-field geometry rather than drawing fake DOM stars, so every
-     * constellation node is tied to the same physical star that openObject() flies to.
-     */
-    function resolveAnchorPositions() {
+    /* Keep this resolver byte-for-byte equivalent in behavior to the base flight
+       resolver. That makes a DOM constellation node and the star that openObject()
+       later approaches the same bright-field point, not two visually similar stars. */
+    function resolveSpatialAnchors() {
       if (anchorsResolved || camera.aspect <= 0) return;
 
       const introRect = document.querySelector('.home-intro')?.getBoundingClientRect() || null;
@@ -298,65 +390,135 @@
         }
 
         if (bestIndex < 0) continue;
-        anchorPositions.set(object.id, new THREE.Vector3().fromBufferAttribute(positions, bestIndex));
+        spatialAnchors.set(object.id, {
+          object,
+          index: bestIndex,
+          position: new THREE.Vector3().fromBufferAttribute(positions, bestIndex),
+        });
         usedAnchorIndices.add(bestIndex);
         chosenProjected.push({ x: bestProjectedX, y: bestProjectedY });
       }
 
       anchorsResolved = true;
+      buildOverlayObjects();
     }
 
     function companionMeta(object) {
-      const category = object.meta?.[0] || (object.kind === 'note' ? 'Note' : 'Project');
+      if (object.kind === 'contact') return object.action?.label || 'Contact';
+      if (object.kind === 'profile') return object.meta?.[0] || 'Profile';
+      const category = object.meta?.[0] || (object.kind === 'note' ? 'Article' : 'Project');
       return object.date ? `${category} · ${object.date}` : category;
     }
 
-    function createCompanionButton(parent, object, index) {
+    function fieldLabel(field) {
+      return `<span class="smirel-field-star__label"><strong>${field.title}</strong><small>${field.order}</small></span>`;
+    }
+
+    function createFieldButton(field) {
+      if (fieldButtons.has(field.id)) return;
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'smirel-companion-star';
-      button.dataset.companionId = object.id;
-      button.dataset.parentStar = parent.id;
-      button.style.setProperty('--companion-color', object.star?.tint || parent.star?.tint || '#d8efff');
-      button.style.setProperty('--companion-delay', `${Math.min(index * 42, 190)}ms`);
-      button.setAttribute('aria-label', `Open ${object.title}`);
-      button.innerHTML = `
-        <span class="smirel-companion-label">
-          <strong>${object.title}</strong>
-          <small>${companionMeta(object)}</small>
-        </span>
-      `;
-      button.addEventListener('pointerenter', cancelScheduledClose);
+      button.className = 'smirel-field-star';
+      button.dataset.fieldId = field.id;
+      button.style.setProperty('--field-color', field.star?.tint || '#d8efff');
+      button.setAttribute('aria-label', `Open ${field.title} field`);
+      button.innerHTML = fieldLabel(field);
+      button.addEventListener('pointerenter', () => openConstellation(field.id, false));
       button.addEventListener('pointerleave', scheduleClose);
-      button.addEventListener('focusin', cancelScheduledClose);
+      button.addEventListener('focusin', () => openConstellation(field.id, false));
       button.addEventListener('focusout', scheduleClose);
       button.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
-        closeConstellation(true);
-        controller.openObject?.(object.id);
+        cancelScheduledClose();
+        if (typeof controller.openField === 'function') {
+          controller.openField(field.id);
+        } else {
+          window.dispatchEvent(new CustomEvent('smirel:field-request', { detail: { fieldId: field.id } }));
+        }
       });
+      document.body.appendChild(button);
+      fieldButtons.set(field.id, button);
+    }
+
+    function createCompanionButton(field, object, index) {
+      if (companionButtons.has(object.id)) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'smirel-companion-star';
+      button.dataset.companionId = object.id;
+      button.dataset.parentField = field.id;
+      button.style.setProperty('--companion-color', object.star?.tint || field.star?.tint || '#d8efff');
+      button.style.setProperty('--companion-delay', `${Math.min(index * 38, 220)}ms`);
+      button.setAttribute('aria-label', object.interactive === false ? object.title : `Open ${object.title}`);
+      button.innerHTML = `
+        <span class="smirel-companion-label">
+          <strong>${object.navTitle || object.title}</strong>
+          <small>${companionMeta(object)}</small>
+        </span>
+      `;
+
+      if (object.interactive === false) {
+        button.classList.add('is-static');
+        button.tabIndex = -1;
+      } else {
+        button.addEventListener('pointerenter', cancelScheduledClose);
+        button.addEventListener('pointerleave', scheduleClose);
+        button.addEventListener('focusin', cancelScheduledClose);
+        button.addEventListener('focusout', scheduleClose);
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          cancelScheduledClose();
+
+          if (object.kind === 'contact' && object.action?.href) {
+            if (object.action.external) {
+              window.open(object.action.href, '_blank', 'noopener,noreferrer');
+            } else {
+              window.location.href = object.action.href;
+            }
+            return;
+          }
+
+          if (!persistentFieldId) closeConstellation(true);
+          controller.openObject?.(object.id);
+        });
+      }
+
       document.body.appendChild(button);
       companionButtons.set(object.id, button);
     }
 
-    function edgeKey(parentId, edge, index) {
-      return `${parentId}:${edge[0]}:${edge[1]}:${index}`;
+    function edgeKey(fieldId, edge, index) {
+      return `${fieldId}:${edge[0]}:${edge[1]}:${index}`;
     }
 
-    function createEdges(parent) {
-      const edges = parent.constellation?.edges || [];
+    function createEdges(field) {
+      const edges = field.constellation?.edges || [];
       edges.forEach((edge, index) => {
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.classList.add('smirel-constellation-edge');
         line.setAttribute('pathLength', '1');
-        line.dataset.parentStar = parent.id;
+        line.dataset.parentField = field.id;
         line.dataset.fromStar = edge[0];
         line.dataset.toStar = edge[1];
-        line.style.setProperty('--edge-delay', `${Math.min(index * 45, 230)}ms`);
+        line.style.setProperty('--edge-delay', `${Math.min(index * 42, 260)}ms`);
         svg.appendChild(line);
-        edgeElements.set(edgeKey(parent.id, edge, index), line);
+        edgeElements.set(edgeKey(field.id, edge, index), line);
       });
+    }
+
+    function buildOverlayObjects() {
+      for (const field of fields) {
+        if (!spatialAnchors.has(field.id)) continue;
+        createFieldButton(field);
+        const nodes = field.constellation?.nodes || [];
+        nodes.forEach((id, index) => {
+          const object = objectById.get(id);
+          if (object && spatialAnchors.has(id)) createCompanionButton(field, object, index);
+        });
+        createEdges(field);
+      }
     }
 
     function cancelScheduledClose() {
@@ -366,140 +528,176 @@
     }
 
     function scheduleClose() {
+      if (persistentFieldId) return;
       cancelScheduledClose();
       closeTimer = setTimeout(() => {
         closeTimer = 0;
         closeConstellation(false);
-      }, 170);
+      }, 180);
     }
 
-    function openConstellation(parentId) {
-      if (document.body.classList.contains('star-flight-active')) return;
+    function setFieldPreviewClass(fieldId, open) {
+      fieldButtons.get(fieldId)?.classList.toggle('is-preview', open);
+    }
+
+    function openConstellation(fieldId, persistent = false) {
+      const field = objectById.get(fieldId);
+      if (!field?.constellation) return false;
+      if (document.body.classList.contains('star-flight-active')) return false;
       cancelScheduledClose();
-      openParentId = parentId;
 
-      const parent = objectById.get(parentId);
-      if (!parent?.constellation) return;
-      parentButtons.get(parentId)?.setAttribute('aria-expanded', 'true');
+      if (openFieldId && openFieldId !== fieldId) closeConstellation(true, false);
+      openFieldId = fieldId;
+      if (persistent) persistentFieldId = fieldId;
+      setFieldPreviewClass(fieldId, true);
 
-      for (const childId of parent.constellation.nodes) {
-        companionButtons.get(childId)?.classList.add('is-open');
+      const nodeIds = new Set(field.constellation.nodes || []);
+      for (const [id, button] of companionButtons) {
+        const shouldOpen = nodeIds.has(id);
+        button.classList.toggle('is-open', shouldOpen);
+        if (!shouldOpen) button.style.pointerEvents = 'none';
       }
-      for (const line of edgeElements.values()) {
-        line.classList.toggle('is-open', line.dataset.parentStar === parentId);
+
+      for (const [key, line] of edgeElements) {
+        line.classList.toggle('is-open', key.startsWith(`${fieldId}:`));
       }
+      return true;
     }
 
-    function closeConstellation(immediate) {
+    function closeConstellation(force = false, clearPersistent = true) {
+      if (persistentFieldId && !force) return false;
       cancelScheduledClose();
-      const previous = openParentId;
-      openParentId = null;
-      if (previous) parentButtons.get(previous)?.setAttribute('aria-expanded', 'false');
-
-      for (const button of companionButtons.values()) {
-        button.classList.remove('is-open');
-        if (immediate) button.style.transitionDelay = '0ms';
-      }
-      for (const line of edgeElements.values()) {
-        line.classList.remove('is-open');
-        if (immediate) line.style.transitionDelay = '0ms';
-      }
-
-      if (immediate) {
-        requestAnimationFrame(() => {
-          for (const button of companionButtons.values()) button.style.transitionDelay = '';
-          for (const line of edgeElements.values()) line.style.transitionDelay = '';
-        });
-      }
+      if (openFieldId) setFieldPreviewClass(openFieldId, false);
+      for (const button of companionButtons.values()) button.classList.remove('is-open');
+      for (const line of edgeElements.values()) line.classList.remove('is-open');
+      openFieldId = null;
+      if (force && clearPersistent) persistentFieldId = null;
+      return true;
     }
 
-    for (const parent of constellationParents) {
-      const parentButton = document.querySelector(`.smirel-star-anchor[data-star-id="${parent.id}"]`);
-      if (!parentButton) continue;
-      parentButtons.set(parent.id, parentButton);
-      parentButton.setAttribute('aria-expanded', 'false');
-      parentButton.addEventListener('pointerenter', () => openConstellation(parent.id));
-      parentButton.addEventListener('pointerleave', scheduleClose);
-      parentButton.addEventListener('focusin', () => openConstellation(parent.id));
-      parentButton.addEventListener('focusout', scheduleClose);
-
-      parent.constellation.nodes.forEach((childId, index) => {
-        const child = objectById.get(childId);
-        if (child && !companionButtons.has(childId)) createCompanionButton(parent, child, index);
-      });
-      createEdges(parent);
+    function setPersistentField(fieldId, persistent) {
+      if (!persistent) {
+        if (persistentFieldId === fieldId) persistentFieldId = null;
+        return true;
+      }
+      persistentFieldId = fieldId;
+      return openConstellation(fieldId, true);
     }
 
-    function projectToScreen(id) {
-      const position = anchorPositions.get(id);
-      if (!position) return null;
-      scratch.projected.copy(position).project(camera);
+    function projectAnchor(id) {
+      const anchor = spatialAnchors.get(id);
+      if (!anchor) return null;
+      scratch.projected.copy(anchor.position).project(camera);
       const visible = scratch.projected.z >= -1 && scratch.projected.z <= 1
-        && Math.abs(scratch.projected.x) <= 1.08
-        && Math.abs(scratch.projected.y) <= 1.08;
-      if (!visible) return null;
+        && Math.abs(scratch.projected.x) <= 1.20
+        && Math.abs(scratch.projected.y) <= 1.20;
+      if (!visible) {
+        projected.delete(id);
+        return null;
+      }
       const point = {
-        x: (scratch.projected.x * 0.5 + 0.5) * Math.max(window.innerWidth, 1),
-        y: (-scratch.projected.y * 0.5 + 0.5) * Math.max(window.innerHeight, 1),
+        x: (scratch.projected.x * 0.5 + 0.5) * window.innerWidth,
+        y: (-scratch.projected.y * 0.5 + 0.5) * window.innerHeight,
       };
-      projectedPositions.set(id, point);
+      projected.set(id, point);
       return point;
     }
 
-    function updateConstellationGeometry() {
-      resolveAnchorPositions();
-      if (!anchorsResolved) return;
+    function updateFieldButtons() {
+      const suppress = document.body.classList.contains('star-flight-active')
+        || document.body.classList.contains('star-field-open')
+        || document.body.classList.contains('star-field-transition');
 
-      svg.setAttribute('viewBox', `0 0 ${Math.max(innerWidth, 1)} ${Math.max(innerHeight, 1)}`);
-      projectedPositions.clear();
-
-      for (const [id, button] of companionButtons) {
-        const point = projectToScreen(id);
-        if (!point) {
-          button.style.visibility = 'hidden';
+      for (const field of fields) {
+        const button = fieldButtons.get(field.id);
+        if (!button) continue;
+        if (suppress) {
+          button.style.opacity = '0';
+          button.style.pointerEvents = 'none';
           continue;
         }
-        button.style.visibility = 'visible';
+        const point = projectAnchor(field.id);
+        if (!point) {
+          button.style.opacity = '0';
+          button.style.pointerEvents = 'none';
+          continue;
+        }
         button.style.transform = `translate3d(${point.x}px, ${point.y}px, 0)`;
+        button.style.opacity = '1';
+        button.style.pointerEvents = 'auto';
+      }
+    }
+
+    function updateCompanionsAndEdges() {
+      if (!openFieldId) return;
+      const field = objectById.get(openFieldId);
+      if (!field?.constellation) return;
+
+      const mapHidden = document.body.classList.contains('star-flight-active');
+      const nodeIds = field.constellation.nodes || [];
+      projectAnchor(field.id);
+      for (const id of nodeIds) {
+        const point = projectAnchor(id);
+        const button = companionButtons.get(id);
+        if (!button) continue;
+        if (!point || mapHidden) {
+          button.style.opacity = '0';
+          button.style.pointerEvents = 'none';
+          continue;
+        }
+        button.style.transform = `translate3d(${point.x}px, ${point.y}px, 0)`;
+        if (button.classList.contains('is-open')) {
+          button.style.opacity = '1';
+          if (!button.classList.contains('is-static') && !document.body.classList.contains('star-field-transition')) {
+            button.style.pointerEvents = 'auto';
+          }
+        }
       }
 
-      for (const line of edgeElements.values()) {
-        const from = projectedPositions.get(line.dataset.fromStar) || projectToScreen(line.dataset.fromStar);
-        const to = projectedPositions.get(line.dataset.toStar) || projectToScreen(line.dataset.toStar);
-        if (!from || !to) {
-          line.style.visibility = 'hidden';
-          continue;
+      const edges = field.constellation.edges || [];
+      edges.forEach((edge, index) => {
+        const line = edgeElements.get(edgeKey(field.id, edge, index));
+        if (!line) return;
+        const from = projected.get(edge[0]) || projectAnchor(edge[0]);
+        const to = projected.get(edge[1]) || projectAnchor(edge[1]);
+        if (!from || !to || mapHidden) {
+          line.style.opacity = '0';
+          return;
         }
-        line.style.visibility = 'visible';
         line.setAttribute('x1', from.x.toFixed(2));
         line.setAttribute('y1', from.y.toFixed(2));
         line.setAttribute('x2', to.x.toFixed(2));
         line.setAttribute('y2', to.y.toFixed(2));
-      }
-
-      if (openParentId) {
-        const parentButton = parentButtons.get(openParentId);
-        const mainVisible = parentButton && parseFloat(parentButton.style.opacity || '0') > 0.1;
-        if (!mainVisible) closeConstellation(false);
-      }
+        line.style.opacity = '';
+      });
     }
+
+    window.addEventListener('resize', () => {
+      svg.setAttribute('viewBox', `0 0 ${Math.max(window.innerWidth, 1)} ${Math.max(window.innerHeight, 1)}`);
+    }, { passive: true });
+
+    controller.resolveSpatialAnchors = resolveSpatialAnchors;
+    controller.getSpatialAnchor = (objectId) => spatialAnchors.get(objectId) || null;
+    controller.constellation = {
+      open: openConstellation,
+      close: closeConstellation,
+      setPersistentField,
+      get openFieldId() { return openFieldId; },
+      get persistentFieldId() { return persistentFieldId; },
+    };
 
     const baseUpdate = controller.update.bind(controller);
     controller.update = (now, dt, elapsed) => {
       const ownsCamera = baseUpdate(now, dt, elapsed);
-      if (document.body.classList.contains('star-flight-active')) {
-        if (openParentId) closeConstellation(true);
-      } else {
-        updateConstellationGeometry();
+      resolveSpatialAnchors();
+      updateFieldButtons();
+
+      if (persistentFieldId && !document.body.classList.contains('star-flight-active')) {
+        if (openFieldId !== persistentFieldId) openConstellation(persistentFieldId, true);
       }
+      updateCompanionsAndEdges();
       return ownsCamera;
     };
-
-    window.addEventListener('resize', () => {
-      anchorsResolved = false;
-      anchorPositions.clear();
-      projectedPositions.clear();
-    }, { passive: true });
 
     return controller;
   };

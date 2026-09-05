@@ -4,8 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <title>Smirel · Astra Milky Way Stars Study</title>
+  <title>Smirel · Home</title>
   <link rel="stylesheet" href="./astra-official-port.css" />
+  <link rel="stylesheet" href="./homepage-glass-cards.css" />
   <script type="importmap">
     {
       "imports": {
@@ -17,6 +18,39 @@
 </head>
 <body>
   <canvas id="galaxyCanvas" aria-hidden="true"></canvas>
+
+  <main class="home-overlay" aria-label="Smirel homepage preview">
+    <section class="home-intro glass-card glass-card--intro" aria-labelledby="home-title">
+      <p class="home-kicker">Smirel / 2026</p>
+      <h1 class="home-title" id="home-title">Jack</h1>
+      <p class="home-copy">Building agents, infrastructure and small useful systems in a quiet corner of the internet.</p>
+    </section>
+
+    <section class="home-projects" aria-label="Selected work">
+      <article class="glass-card glass-card--project">
+        <p class="project-index">01 / Agent</p>
+        <h2 class="project-title">Loom</h2>
+        <p class="project-copy">A general-purpose agent built around tools, planning and reliable execution.</p>
+        <div class="project-meta" aria-label="Loom tags">
+          <span class="project-tag">Agent</span>
+          <span class="project-tag">Python</span>
+          <span class="project-tag">Tools</span>
+        </div>
+      </article>
+
+      <article class="glass-card glass-card--project">
+        <p class="project-index">02 / Infrastructure</p>
+        <h2 class="project-title">TermRelay</h2>
+        <p class="project-copy">A lightweight AI gateway for routing, accounts, sessions and upstream services.</p>
+        <div class="project-meta" aria-label="TermRelay tags">
+          <span class="project-tag">Gateway</span>
+          <span class="project-tag">Go</span>
+          <span class="project-tag">Redis</span>
+        </div>
+      </article>
+    </section>
+  </main>
+
   <script type="module" src="./astra-deep-nebula-mid-variants-loader.js"></script>
 </body>
 </html>

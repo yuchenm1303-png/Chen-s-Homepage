@@ -79,14 +79,17 @@
     const shell = createDetailShell();
     const detailBack = shell.querySelector('.star-detail-back');
     const starSlot = shell.querySelector('.star-detail-star-slot');
+    const starHeader = shell.querySelector('.star-detail-header');
     const originalBack = document.querySelector('.smirel-star-back');
 
-    // One-shot physical camera move. The arrived star never changes world
-    // position, scale, parent, geometry or material. Its apparent shrink and
-    // travel into the header are entirely produced by this same PerspectiveCamera.
+    // The visual path is unchanged: the same PerspectiveCamera performs the
+    // arrived -> archive move. Performance work below only removes redundant
+    // layout and prevents the expensive volume pass from jumping to full quality
+    // while that camera is still moving.
     const OPEN_MS = reducedMotion ? 1 : 1080;
     const CLOSE_MS = reducedMotion ? 1 : 840;
     const DETAIL_REVEAL_AT = 0.32;
+    const FULL_QUALITY_SETTLE_MS = reducedMotion ? 0 : 140;
 
     let phase = 'idle';
     let phaseStartedAt = 0;
@@ -100,6 +103,11 @@
     let arrivalDepth = 3.2;
     let detailFov = 25;
     let detailDepth = 38;
+    let layoutDirty = true;
+    let targetReady = false;
+    let measuredWidth = 0;
+    let measuredHeight = 0;
+    let fullQualityAfterMs = 0;
 
     const starPosition = new THREE.Vector3();
     const arrivalCameraPosition = new THREE.Vector3();
@@ -112,7 +120,6 @@
     const baseShouldRenderFrame = typeof controller.shouldRenderFrame === 'function'
       ? controller.shouldRenderFrame.bind(controller)
       : null;
-    const baseContinuumDescriptor = Object.getOwnPropertyDescriptor(controller, 'continuumIntervalMs');
 
     function smootherstep01(value) {
       const t = THREE.MathUtils.clamp(value, 0, 1);
@@ -135,48 +142,83 @@
       return starGroup;
     }
 
-    function measureArchiveTarget() {
+    function markLayoutDirty() {
+      layoutDirty = true;
+    }
+
+    window.addEventListener('resize', markLayoutDirty, { passive: true });
+
+    function measureArchiveTarget(force = false) {
       if (!starSlot) return false;
-      const rect = starSlot.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return false;
 
       const width = Math.max(window.innerWidth, 1);
       const height = Math.max(window.innerHeight, 1);
-      const centreX = rect.left + rect.width * 0.5;
-      const centreY = rect.top + rect.height * 0.5;
+      if (!force && targetReady && !layoutDirty
+          && width === measuredWidth && height === measuredHeight) {
+        return true;
+      }
+
+      // This is intentionally the only synchronous layout read in the camera
+      // path. The previous implementation read this rectangle every frame while
+      // CSS transforms were animating, forcing style/layout flushes at 60+ Hz.
+      const rect = starSlot.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return false;
+
+      // getBoundingClientRect includes the header's entrance transform. Remove
+      // that compositor-only translation once here so the cached target is the
+      // exact final resting position, not a target that chases the DOM animation.
+      let transformX = 0;
+      let transformY = 0;
+      if (starHeader) {
+        const transform = getComputedStyle(starHeader).transform;
+        if (transform && transform !== 'none' && typeof DOMMatrixReadOnly === 'function') {
+          try {
+            const matrix = new DOMMatrixReadOnly(transform);
+            transformX = matrix.m41;
+            transformY = matrix.m42;
+          } catch (_) {
+            // A missing matrix parser only affects the one-time 10px entrance
+            // offset; it must never break the 3D transition.
+          }
+        }
+      }
+
+      const centreX = rect.left + rect.width * 0.5 - transformX;
+      const centreY = rect.top + rect.height * 0.5 - transformY;
       targetNdc.set(
         centreX / width * 2 - 1,
         1 - centreY / height * 2,
       );
 
-      // Narrowing the lens while retreating keeps the final star only mildly
-      // off-axis, so the real sphere remains visually round without changing
-      // projection type or introducing a second render layer.
       detailFov = width <= 620 ? 30 : 25;
       const starScale = starGroup?.scale?.x || 0.84;
-      const focalPixels = height / Math.max(2 * Math.tan(THREE.MathUtils.degToRad(detailFov) * 0.5), 1e-5);
+      const focalPixels = height / Math.max(
+        2 * Math.tan(THREE.MathUtils.degToRad(detailFov) * 0.5),
+        1e-5,
+      );
       const desiredCoreRadiusPx = Math.min(rect.width, rect.height) * 0.31;
       detailDepth = THREE.MathUtils.clamp(
         starScale * focalPixels / Math.max(desiredCoreRadiusPx, 1),
         Math.max(arrivalDepth + 8, 18),
         42,
       );
+
+      measuredWidth = width;
+      measuredHeight = height;
+      layoutDirty = false;
+      targetReady = true;
       return true;
     }
 
     function applyCameraBlend(blend) {
-      const t = THREE.MathUtils.clamp(blend, 0, 1);
-      measureArchiveTarget();
+      if (!measureArchiveTarget()) return;
 
+      const t = THREE.MathUtils.clamp(blend, 0, 1);
       const currentFov = THREE.MathUtils.lerp(arrivalFov, detailFov, t);
       const forwardDepth = THREE.MathUtils.lerp(arrivalDepth, detailDepth, t);
       const screenX = targetNdc.x * t;
       const screenY = targetNdc.y * t;
       const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(currentFov) * 0.5);
-
-      // With orientation held exactly at the arrival quaternion, these physical
-      // lateral camera offsets project the fixed star centre to the requested NDC.
-      // The nebula and all point stars therefore see precisely the same camera.
       const lateralX = screenX * forwardDepth * camera.aspect * tanHalfFov;
       const lateralY = screenY * forwardDepth * tanHalfFov;
 
@@ -186,7 +228,6 @@
         .addScaledVector(cameraUp, -lateralY);
       camera.quaternion.copy(arrivalQuaternion);
       camera.fov = currentFov;
-      camera.clearViewOffset();
       camera.updateProjectionMatrix();
     }
 
@@ -210,6 +251,7 @@
 
       phase = 'closing';
       phaseStartedAt = performance.now();
+      fullQualityAfterMs = 0;
       closeStartBlend = currentBlend;
       closeDuration = reducedMotion ? 1 : Math.max(360, CLOSE_MS * Math.max(0.50, closeStartBlend));
       document.body.classList.remove('star-detail-open');
@@ -227,23 +269,20 @@
       beginClose();
     }, true);
 
-    // The refined arrived state normally renders at ~30 Hz and refreshes its
-    // continuum slowly. While this camera is physically moving, both must stay
-    // frame-synchronous or a mathematically continuous path would still look jerky.
+    // The outer renderer asks these hooks what work is actually necessary. The
+    // scene must still present every browser frame while the camera is moving,
+    // but the expensive continuum can remain on the same motion budget already
+    // used by the smooth 4.2s flight. Once motion stops it restores full quality.
     controller.shouldRenderFrame = (now, lastCompositeMs) => {
       if (phase === 'opening' || phase === 'closing') return true;
       return baseShouldRenderFrame ? baseShouldRenderFrame(now, lastCompositeMs) : false;
     };
 
-    Object.defineProperty(controller, 'continuumIntervalMs', {
-      configurable: true,
-      get() {
-        if (phase === 'opening' || phase === 'closing') return 0;
-        return baseContinuumDescriptor?.get
-          ? baseContinuumDescriptor.get.call(controller)
-          : 30;
-      },
-    });
+    controller.motionLodActive = (now = performance.now()) => (
+      phase === 'opening'
+      || phase === 'closing'
+      || (phase === 'open' && now < fullQualityAfterMs)
+    );
 
     const baseUpdate = controller.update.bind(controller);
     controller.update = (now, dt, elapsed) => {
@@ -267,9 +306,16 @@
           camera.updateProjectionMatrix();
           currentBlend = 0;
           detailShown = false;
+          targetReady = false;
+          layoutDirty = true;
+          fullQualityAfterMs = 0;
           hideDetail();
           phase = 'opening';
           phaseStartedAt = now;
+
+          // Pay the single layout read before animation work begins. Every
+          // following transition frame is pure math + GPU work.
+          measureArchiveTarget(true);
         }
       }
 
@@ -284,9 +330,14 @@
             applyCameraBlend(1);
             showDetail();
             phase = 'open';
+            fullQualityAfterMs = now + FULL_QUALITY_SETTLE_MS;
           }
         } else if (phase === 'open') {
           currentBlend = 1;
+          // The base arrived runtime currently reapplies its arrival camera each
+          // presented frame, so restore the exact cached archive camera without
+          // touching DOM layout. If that base runtime later exposes camera
+          // ownership directly, this becomes a no-op optimization point.
           applyCameraBlend(1);
         } else if (phase === 'closing') {
           const raw = THREE.MathUtils.clamp((now - phaseStartedAt) / closeDuration, 0, 1);
@@ -301,6 +352,7 @@
             camera.clearViewOffset();
             camera.updateProjectionMatrix();
             hideDetail();
+            fullQualityAfterMs = 0;
             phase = 'handoff';
             originalBack?.click();
           }
@@ -310,6 +362,7 @@
         camera.updateProjectionMatrix();
         hideDetail();
         currentBlend = 0;
+        fullQualityAfterMs = 0;
         phase = 'idle';
       }
 

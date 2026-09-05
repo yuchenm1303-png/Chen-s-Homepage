@@ -45,6 +45,15 @@
 
   const SAMPLE_MARGIN_CSS_PX = 128;
   const MAX_CAPTURE_DPR = 1.25;
+  const MAX_SHARED_CAPTURE_PIXELS = 1100000;
+
+  const sharedFrameCanvas = document.createElement('canvas');
+  const sharedFrameCtx = sharedFrameCanvas.getContext('2d', { alpha: false });
+  if (!sharedFrameCtx) {
+    primaryCard.classList.add('liquid-glass--fallback');
+    panelCard?.classList.add('liquid-glass--fallback');
+    return;
+  }
 
   function setCanvasSize(canvas, width, height) {
     const w = Math.max(1, Math.round(width));
@@ -85,6 +94,77 @@
     try { ctx.filter = 'none'; } catch (_) {}
   }
 
+  function captureSharedFrame(cards) {
+    const sourceRect = sourceCanvas.getBoundingClientRect();
+    if (sourceRect.width <= 0 || sourceRect.height <= 0 || !cards.length) return null;
+
+    let cropLeft = sourceRect.right;
+    let cropTop = sourceRect.bottom;
+    let cropRight = sourceRect.left;
+    let cropBottom = sourceRect.top;
+
+    for (const card of cards) {
+      const rect = getUntransformedRect(card);
+      if (rect.width <= 0 || rect.height <= 0) continue;
+      cropLeft = Math.min(cropLeft, Math.max(sourceRect.left, rect.left - SAMPLE_MARGIN_CSS_PX));
+      cropTop = Math.min(cropTop, Math.max(sourceRect.top, rect.top - SAMPLE_MARGIN_CSS_PX));
+      cropRight = Math.max(cropRight, Math.min(sourceRect.right, rect.right + SAMPLE_MARGIN_CSS_PX));
+      cropBottom = Math.max(cropBottom, Math.min(sourceRect.bottom, rect.bottom + SAMPLE_MARGIN_CSS_PX));
+    }
+
+    if (cropRight <= cropLeft || cropBottom <= cropTop) return null;
+
+    const cssWidth = cropRight - cropLeft;
+    const cssHeight = cropBottom - cropTop;
+    let quality = Math.min(window.devicePixelRatio || 1, MAX_CAPTURE_DPR);
+    const requestedPixels = cssWidth * cssHeight * quality * quality;
+    if (requestedPixels > MAX_SHARED_CAPTURE_PIXELS) {
+      quality *= Math.sqrt(MAX_SHARED_CAPTURE_PIXELS / requestedPixels);
+    }
+    quality = Math.max(0.5, quality);
+
+    const width = Math.max(1, Math.round(cssWidth * quality));
+    const height = Math.max(1, Math.round(cssHeight * quality));
+    const scaleX = sourceCanvas.width / sourceRect.width;
+    const scaleY = sourceCanvas.height / sourceRect.height;
+    const sx = (cropLeft - sourceRect.left) * scaleX;
+    const sy = (cropTop - sourceRect.top) * scaleY;
+    const sw = cssWidth * scaleX;
+    const sh = cssHeight * scaleY;
+    const effectiveBlur = Math.max(
+      0,
+      params.blurRadius * quality * Math.pow(Math.max(1, params.blurIterations), 0.55),
+    );
+
+    setCanvasSize(sharedFrameCanvas, width, height);
+    smoothContext(sharedFrameCtx);
+    sharedFrameCtx.clearRect(0, 0, width, height);
+    sharedFrameCtx.save();
+    sharedFrameCtx.filter = [
+      `brightness(${params.brightness})`,
+      `contrast(${params.contrast})`,
+      `saturate(${params.saturation})`,
+      `blur(${effectiveBlur}px)`,
+    ].join(' ');
+    sharedFrameCtx.drawImage(
+      sourceCanvas,
+      sx, sy, sw, sh,
+      0, 0, width, height,
+    );
+    sharedFrameCtx.restore();
+
+    return {
+      sourceRect,
+      cropLeft,
+      cropTop,
+      cropRight,
+      cropBottom,
+      quality,
+      width,
+      height,
+    };
+  }
+
   function createSurface(card, { enabled, label }) {
     if (!(card instanceof HTMLElement)) return null;
 
@@ -97,10 +177,10 @@
       return null;
     }
 
-    const prefilterCanvas = document.createElement('canvas');
-    const prefilterCtx = prefilterCanvas.getContext('2d', { alpha: false });
+    const rootCanvas = document.createElement('canvas');
+    const rootCtx = rootCanvas.getContext('2d', { alpha: false });
     const backdropCtx = backdropCanvas.getContext('2d', { alpha: true });
-    if (!prefilterCtx || !backdropCtx) {
+    if (!rootCtx || !backdropCtx) {
       card.classList.add('liquid-glass--fallback');
       return null;
     }
@@ -176,64 +256,44 @@
       initialized = true;
     }
 
-    function captureBackdrop() {
-      const sourceRect = sourceCanvas.getBoundingClientRect();
+    function captureFromSharedFrame(frame) {
       const cardRect = getUntransformedRect(card);
-      if (sourceRect.width <= 0 || sourceRect.height <= 0
-          || cardRect.width <= 0 || cardRect.height <= 0) {
-        return false;
-      }
+      if (cardRect.width <= 0 || cardRect.height <= 0) return false;
 
-      const quality = Math.min(window.devicePixelRatio || 1, MAX_CAPTURE_DPR);
-      const cropLeft = Math.max(sourceRect.left, cardRect.left - SAMPLE_MARGIN_CSS_PX);
-      const cropTop = Math.max(sourceRect.top, cardRect.top - SAMPLE_MARGIN_CSS_PX);
-      const cropRight = Math.min(sourceRect.right, cardRect.right + SAMPLE_MARGIN_CSS_PX);
-      const cropBottom = Math.min(sourceRect.bottom, cardRect.bottom + SAMPLE_MARGIN_CSS_PX);
+      const cropLeft = Math.max(frame.cropLeft, cardRect.left - SAMPLE_MARGIN_CSS_PX);
+      const cropTop = Math.max(frame.cropTop, cardRect.top - SAMPLE_MARGIN_CSS_PX);
+      const cropRight = Math.min(frame.cropRight, cardRect.right + SAMPLE_MARGIN_CSS_PX);
+      const cropBottom = Math.min(frame.cropBottom, cardRect.bottom + SAMPLE_MARGIN_CSS_PX);
       if (cropRight <= cropLeft || cropBottom <= cropTop) return false;
 
-      const rootWidth = Math.max(1, Math.round((cropRight - cropLeft) * quality));
-      const rootHeight = Math.max(1, Math.round((cropBottom - cropTop) * quality));
-      const cardWidth = Math.max(1, Math.round(cardRect.width * quality));
-      const cardHeight = Math.max(1, Math.round(cardRect.height * quality));
-      const originX = (cardRect.left - cropLeft) * quality;
-      const originY = (cardRect.top - cropTop) * quality;
+      const rootWidth = Math.max(1, Math.round((cropRight - cropLeft) * frame.quality));
+      const rootHeight = Math.max(1, Math.round((cropBottom - cropTop) * frame.quality));
+      const cardWidth = Math.max(1, Math.round(cardRect.width * frame.quality));
+      const cardHeight = Math.max(1, Math.round(cardRect.height * frame.quality));
+      const originX = (cardRect.left - cropLeft) * frame.quality;
+      const originY = (cardRect.top - cropTop) * frame.quality;
 
-      const scaleX = sourceCanvas.width / sourceRect.width;
-      const scaleY = sourceCanvas.height / sourceRect.height;
-      const sx = (cropLeft - sourceRect.left) * scaleX;
-      const sy = (cropTop - sourceRect.top) * scaleY;
-      const sw = (cropRight - cropLeft) * scaleX;
-      const sh = (cropBottom - cropTop) * scaleY;
+      const sx = (cropLeft - frame.cropLeft) * frame.quality;
+      const sy = (cropTop - frame.cropTop) * frame.quality;
+      const sw = (cropRight - cropLeft) * frame.quality;
+      const sh = (cropBottom - cropTop) * frame.quality;
 
-      setCanvasSize(prefilterCanvas, rootWidth, rootHeight);
+      setCanvasSize(rootCanvas, rootWidth, rootHeight);
       setCanvasSize(backdropCanvas, cardWidth, cardHeight);
       setCanvasSize(opticsCanvas, cardWidth, cardHeight);
 
-      const effectiveBlur = Math.max(
-        0,
-        params.blurRadius * quality * Math.pow(Math.max(1, params.blurIterations), 0.55),
-      );
-
-      smoothContext(prefilterCtx);
-      prefilterCtx.clearRect(0, 0, rootWidth, rootHeight);
-      prefilterCtx.save();
-      prefilterCtx.filter = [
-        `brightness(${params.brightness})`,
-        `contrast(${params.contrast})`,
-        `saturate(${params.saturation})`,
-        `blur(${effectiveBlur}px)`,
-      ].join(' ');
-      prefilterCtx.drawImage(
-        sourceCanvas,
+      smoothContext(rootCtx);
+      rootCtx.clearRect(0, 0, rootWidth, rootHeight);
+      rootCtx.drawImage(
+        sharedFrameCanvas,
         sx, sy, sw, sh,
         0, 0, rootWidth, rootHeight,
       );
-      prefilterCtx.restore();
 
       smoothContext(backdropCtx);
       backdropCtx.clearRect(0, 0, cardWidth, cardHeight);
       backdropCtx.drawImage(
-        prefilterCanvas,
+        rootCanvas,
         originX, originY, cardWidth, cardHeight,
         0, 0, cardWidth, cardHeight,
       );
@@ -249,7 +309,7 @@
           gl.RGBA,
           gl.RGBA,
           gl.UNSIGNED_BYTE,
-          prefilterCanvas,
+          rootCanvas,
         );
         textureWidth = rootWidth;
         textureHeight = rootHeight;
@@ -261,12 +321,12 @@
           0,
           gl.RGBA,
           gl.UNSIGNED_BYTE,
-          prefilterCanvas,
+          rootCanvas,
         );
       }
 
       captureState = {
-        quality,
+        quality: frame.quality,
         rootWidth,
         rootHeight,
         cardWidth,
@@ -343,12 +403,12 @@
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
-    function sync() {
+    function sync(frame) {
       if (failed || document.hidden || !enabled()) return;
 
       try {
         ensureInitialized();
-        if (captureBackdrop()) {
+        if (captureFromSharedFrame(frame)) {
           renderOptics();
           card.classList.remove('liquid-glass--fallback');
         }
@@ -362,10 +422,6 @@
     return { sync };
   }
 
-  // The profile surface stays permanently attached and live. The panel gets its
-  // own lazily initialized surface only while open, so opening a section never
-  // steals/freeze the profile card's optics canvas and the second pipeline costs
-  // nothing while the panel is closed.
   const primarySurface = createSurface(primaryCard, {
     enabled: () => true,
     label: 'profile',
@@ -375,8 +431,26 @@
     label: 'panel',
   });
 
+  let sharedCaptureFailed = false;
   window.__SMIREL_HOMEPAGE_GLASS_SYNC__ = () => {
-    primarySurface?.sync();
-    panelSurface?.sync();
+    if (sharedCaptureFailed || document.hidden) return;
+
+    const activeCards = [primaryCard];
+    if (panelCard instanceof HTMLElement
+        && document.body.classList.contains('home-panel-open')) {
+      activeCards.push(panelCard);
+    }
+
+    try {
+      const frame = captureSharedFrame(activeCards);
+      if (!frame) return;
+      primarySurface?.sync(frame);
+      panelSurface?.sync(frame);
+    } catch (error) {
+      sharedCaptureFailed = true;
+      primaryCard.classList.add('liquid-glass--fallback');
+      panelCard?.classList.add('liquid-glass--fallback');
+      console.warn('[homepage-liquid-glass] shared galaxy capture failed; using CSS fallback', error);
+    }
   };
 })();

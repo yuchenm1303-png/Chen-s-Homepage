@@ -31,6 +31,13 @@ jobs:
           path: production
           persist-credentials: false
 
+      - name: Checkout pinned production galaxy release
+        uses: actions/checkout@v4
+        with:
+          ref: c5e5db7feebe008f76bdc84cf260cd3280b13fd3
+          path: galaxy-release
+          persist-credentials: false
+
       - name: Checkout galaxy development branch
         uses: actions/checkout@v4
         with:
@@ -44,10 +51,19 @@ jobs:
           set -euo pipefail
           mkdir -p published
           rsync -a --exclude='.git' production/ published/
+
+          rm -rf published/stellar-homepage
+          mkdir -p published/stellar-homepage
+          rsync -a --delete galaxy-release/galaxy-homepage-lab/ published/stellar-homepage/
+
           rm -rf published/galaxy
           mkdir -p published/galaxy
           rsync -a --delete galaxy-source/galaxy-homepage-lab/ published/galaxy/
+
+          test -s published/stellar-homepage/index.html
+          test -s published/stellar-homepage/homepage-star-activity.js
           test -s published/galaxy/index.html
+          grep -q '<base href="/stellar-homepage/"' published/index.html
           test "$(tr -d '\r\n' < published/CNAME)" = "smirel.com"
 
       - name: Configure Pages

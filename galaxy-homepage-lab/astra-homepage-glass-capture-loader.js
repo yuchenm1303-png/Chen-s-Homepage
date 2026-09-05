@@ -197,19 +197,6 @@ source = replaceOnce(
     || introActive\`,
   'Interactive star presentation budget',
 );
-
-// Keep all original micro-star energy, dust, angular placement and point count.
-// Only compress the 82% far shell toward the camera so points that were nearly
-// invisible at depth 34-58 become naturally resolvable in the mid field.
-source = replaceOnce(
-  source,
-  /    const shell = random\\(\\);\\n    const depth = shell < 0\\.18 \\? 12 \\+ Math\\.pow\\(random\\(\\), 0\\.82\\) \\* 16 : 24 \\+ Math\\.pow\\(random\\(\\), 0\\.92\\) \\* 34;/,
-  \`    const shell = random();
-    const depth = shell < 0.18
-      ? 12 + Math.pow(random(), 0.82) * 16
-      : 15 + Math.pow(random(), 0.88) * 19;\`,
-  'Pull far micro-star shell forward',
-);
 `;
 
 // The stable loader first injects its performance patch into the deep-nebula

@@ -11,10 +11,10 @@
   // way: compose the screen first, then pin the real stars that occupy that space.
   const FIXED_INDICES = Object.freeze({
     about: 8430,
-    'about-identity': 1949,
-    'about-work': 1692,
-    'about-study': 5196,
-    'about-place': 6991,
+    'about-identity': 2782,
+    'about-work': 5342,
+    'about-study': 3717,
+    'about-place': 4139,
 
     blog: 5596,
     'building-homepage': 518,
@@ -55,15 +55,15 @@
 
   const layouts = Object.freeze({
     about: makeFieldLayout({
-      // Neutral-camera NDC positions corresponding to the approved local screen
-      // composition on a 1912x1020 reference viewport. The fixed indices above
-      // remain the source of truth; these values document/fallback the silhouette.
-      centre: [-0.0801, -0.7906],
+      // Screen-first composition measured from the user's latest marked capture.
+      // On the neutral 2040x1115 canvas viewport all four companions stay inside
+      // the requested local About territory around the existing primary star.
+      centre: [-0.0820, -0.7906],
       offsets: {
-        'about-identity': [0.2244, 0.8195],
-        'about-work': [0.4816, 0.9773],
-        'about-study': [0.4840, 0.3308],
-        'about-place': [0.0966, 0.4859],
+        'about-identity': [-0.0078, 0.3921],
+        'about-work': [0.1951, 0.4043],
+        'about-study': [0.1112, 0.1861],
+        'about-place': [-0.0845, 0.1639],
       },
       edges: [
         ['about', 'about-identity'],
@@ -168,7 +168,7 @@
     /* Labels point into free screen space rather than mechanically following
        graph direction. This is part of the authored screen composition. */
     .smirel-companion-star[data-parent-field="about"][data-companion-id="about-identity"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="about"][data-companion-id="about-place"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="about"][data-companion-id="about-work"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="app-performance-optimization"] .smirel-companion-label,

@@ -124,7 +124,12 @@ float microStar(vec2 p, float scale, float threshold, float radius) {
   vec2 jitter = (hash22(cell + 7.31) - 0.5) * 0.78;
   float d = length(local - jitter);
   float gate = smoothstep(threshold, 1.0, hash21(cell + 31.77));
-  return smoothstep(radius, 0.0, d) * gate;
+
+  // Pixel-footprint AA keeps subpixel micro-stars alive on DPR=1 displays instead
+  // of relying on a lucky fragment sample landing inside a tiny procedural radius.
+  float footprint = max(fwidth(d) * 0.82, 0.006);
+  float coverage = 1.0 - smoothstep(radius - footprint, radius + footprint, d);
+  return coverage * gate;
 }
 
 void main() {
@@ -256,15 +261,14 @@ void main() {
   float visibleGranular = granularDensity * transmission;
   float visibleCentre = centreDensity * transmission;
 
-  // Unresolved glow is derived from density only. There is no independent nebula silhouette.
-  float unresolved = clamp(
+  // Unresolved light stays density-driven, but a photographic exposure curve lifts
+  // faint stellar populations without turning the band into a uniform fog layer.
+  float unresolvedLinear =
       visibleStellarDensity * 0.42
     + visibleDenseLane * 0.40
     + visibleGranular * 0.24
-    + visibleCentre * 0.64,
-    0.0,
-    1.0
-  );
+    + visibleCentre * 0.64;
+  float unresolved = 1.0 - exp(-unresolvedLinear * 1.55);
 
   // Subtle physical colour hierarchy.
   float centreWarmth = galacticCentre * (0.45 + 0.55 * macroDensity);
@@ -284,11 +288,11 @@ void main() {
     * transmission
     * 0.22;
 
-  vec3 neutralLight = vec3(0.215, 0.225, 0.235);
-  vec3 warmLight = vec3(0.405, 0.335, 0.250);
-  vec3 reddenedLight = vec3(0.295, 0.185, 0.145);
-  vec3 blueLight = vec3(0.135, 0.185, 0.285);
-  vec3 hiiLight = vec3(0.315, 0.115, 0.145);
+  vec3 neutralLight = vec3(0.340, 0.350, 0.365);
+  vec3 warmLight = vec3(0.565, 0.465, 0.345);
+  vec3 reddenedLight = vec3(0.390, 0.245, 0.185);
+  vec3 blueLight = vec3(0.180, 0.245, 0.365);
+  vec3 hiiLight = vec3(0.390, 0.145, 0.175);
 
   vec3 glowColor = neutralLight;
   glowColor = mix(glowColor, warmLight, clamp(centreWarmth * 0.72, 0.0, 1.0));
@@ -296,13 +300,13 @@ void main() {
   glowColor += blueLight * youngBlue * 0.16;
   glowColor += hiiLight * hii * 0.18;
 
-  // Micro-star density is also modulated by extinction. This is the key visual change:
-  // the Milky Way becomes bright because there are many stars, not because there is fog.
-  float microMask = clamp(
-    (visibleStellarDensity * 0.62 + visibleDenseLane * 0.58 + visibleCentre * 0.55),
-    0.0,
-    1.0
-  );
+  // Micro-star density is also modulated by extinction. Tone-map the mask so low-DPR
+  // displays retain the dense unresolved-star impression without filling empty sky.
+  float microMaskLinear =
+      visibleStellarDensity * 0.62
+    + visibleDenseLane * 0.58
+    + visibleCentre * 0.55;
+  float microMask = 1.0 - exp(-microMaskLinear * 1.35);
 
   float microA = microStar(p + vec2(1.3, -2.1), 185.0, 0.980, 0.050);
   float microB = microStar(p + vec2(-3.0, 1.6), 285.0, 0.989, 0.046);
@@ -319,22 +323,24 @@ void main() {
   vec3 warmStar = vec3(0.95, 0.76, 0.54);
   vec3 microColor = mix(coolStar, warmStar, smoothstep(0.36, 0.76, starTemperature));
 
-  // Low-opacity unresolved starlight. The surrounding sky remains true black.
+  // Keep alpha responsible for occupancy/extinction, while RGB carries exposed stellar
+  // radiance. Avoid multiplying density into both channels and effectively squaring it
+  // during browser canvas composition.
   float emissionAlpha = clamp(
-      unresolved * 0.085
-    + visibleCentre * 0.045
-    + hii * 0.012,
+      unresolved * 0.150
+    + visibleCentre * 0.070
+    + hii * 0.020,
     0.0,
-    0.145
+    0.260
   );
 
-  vec3 emission = glowColor * (
-      unresolved * 0.72
-    + visibleCentre * 0.28
-  );
+  float exposure = 0.42
+    + unresolved * 0.58
+    + visibleCentre * 0.22;
+  vec3 emission = glowColor * exposure;
 
-  emission += microColor * microStars * 0.52;
-  emissionAlpha = clamp(emissionAlpha + microStars * 0.22, 0.0, 0.18);
+  emission += microColor * microStars * 0.86;
+  emissionAlpha = clamp(emissionAlpha + microStars * 0.34, 0.0, 0.30);
 
   // Extinction pass: black alpha removes the resolved star field beneath this canvas.
   // Keep it localized to the galactic plane so the rest of the screen is untouched.
@@ -347,7 +353,7 @@ void main() {
     0.26
   );
 
-  float alpha = clamp(emissionAlpha + extinctionAlpha, 0.0, 0.30);
+  float alpha = clamp(emissionAlpha + extinctionAlpha, 0.0, 0.40);
   float extinctionMix = extinctionAlpha / max(alpha, 0.0001);
   vec3 color = mix(emission, vec3(0.0012, 0.0017, 0.0024), extinctionMix);
 

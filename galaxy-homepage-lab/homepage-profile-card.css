@@ -1,0 +1,119 @@
+.home-profile-card {
+  width: min(410px, calc(100vw - 40px));
+  min-height: 214px;
+}
+
+.home-profile-card .liquid-glass__content {
+  min-height: 214px;
+  padding: 21px 23px 19px;
+}
+
+.home-profile-card .home-identity {
+  margin-top: 18px;
+}
+
+.home-profile-main {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 15px;
+}
+
+.home-avatar {
+  width: 58px;
+  height: 58px;
+  display: block;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.035);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.28) inset,
+    0 8px 22px rgba(0,0,0,.24);
+}
+
+.home-profile-primary {
+  min-width: 0;
+}
+
+.home-profile-card .home-title {
+  margin: 0;
+  font-family: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  font-size: clamp(26px, 2.35vw, 32px);
+  font-weight: 520;
+  line-height: 1.05;
+  letter-spacing: -.035em;
+}
+
+.home-profile-card .home-role {
+  margin: 6px 0 0;
+  max-width: none;
+  color: rgba(255,255,255,.72);
+  font-size: 10.75px;
+  line-height: 1.35;
+  letter-spacing: .008em;
+}
+
+.home-role-secondary {
+  margin: 4px 0 0;
+  color: rgba(255,255,255,.43);
+  font-size: 9.75px;
+  line-height: 1.35;
+  letter-spacing: .02em;
+}
+
+.home-profile-card .home-copy {
+  margin: 12px 0 0;
+  max-width: 44ch;
+  color: rgba(255,255,255,.54);
+  font-size: 11.5px;
+  line-height: 1.48;
+}
+
+.home-profile-card .home-profile-meta {
+  padding-top: 13px;
+  font-size: 9px;
+  letter-spacing: .075em;
+}
+
+@media (max-width: 760px) {
+  .home-profile-card,
+  .home-profile-card .liquid-glass__content {
+    min-height: 198px;
+  }
+
+  .home-profile-card .liquid-glass__content {
+    padding: 18px 19px 17px;
+  }
+
+  .home-profile-card .home-identity {
+    margin-top: 16px;
+  }
+
+  .home-profile-main {
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 13px;
+  }
+
+  .home-avatar {
+    width: 50px;
+    height: 50px;
+  }
+
+  .home-profile-card .home-title {
+    font-size: 28px;
+  }
+
+  .home-profile-card .home-role {
+    font-size: 10px;
+  }
+
+  .home-role-secondary {
+    font-size: 9.25px;
+  }
+
+  .home-profile-card .home-copy {
+    margin-top: 10px;
+    font-size: 10.75px;
+  }
+}

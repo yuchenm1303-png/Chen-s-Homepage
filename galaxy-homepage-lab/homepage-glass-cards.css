@@ -57,42 +57,20 @@
   background-color: rgba(0,0,0,.20);
 }
 
+/*
+ * The liquid surface itself is rendered in the galaxy EffectComposer. This DOM
+ * element is only the interaction/content shell, so it must not add a second
+ * CSS glass material on top of V29.5.
+ */
 .liquid-glass-card {
   position: relative;
   min-height: 176px;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 46px;
   pointer-events: auto;
   background: transparent;
-  filter: drop-shadow(0 18px 34px rgba(0,0,0,.22));
+  filter: none;
   isolation: isolate;
-}
-
-.liquid-glass__backdrop,
-.liquid-glass__optics {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-/*
- * V29.5 produces an opaque sampled glass surface by default. That is correct on
- * bright photographic backgrounds, but on a sparse black star field it hides
- * most low-energy stars after the prefilter. Keep the real galaxy visible
- * underneath and let the refracted sample behave as the optical layer instead.
- */
-.liquid-glass__backdrop {
-  z-index: 0;
-  opacity: .16;
-}
-
-.liquid-glass__optics {
-  z-index: 1;
-  opacity: .56;
 }
 
 .liquid-glass__content {
@@ -103,19 +81,6 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-}
-
-.liquid-glass-card.liquid-glass--fallback {
-  background-color: var(--home-card);
-  -webkit-backdrop-filter: blur(4px) brightness(1.12) saturate(1.04);
-  backdrop-filter: blur(4px) brightness(1.12) saturate(1.04);
-  border-radius: 6px;
-  filter: none;
-}
-
-.liquid-glass--fallback .liquid-glass__backdrop,
-.liquid-glass--fallback .liquid-glass__optics {
-  display: none;
 }
 
 .home-kicker,
@@ -216,10 +181,6 @@
   .liquid-glass-card,
   .liquid-glass__content {
     min-height: 150px;
-  }
-
-  .liquid-glass-card {
-    border-radius: 18px;
   }
 
   .liquid-glass__content {

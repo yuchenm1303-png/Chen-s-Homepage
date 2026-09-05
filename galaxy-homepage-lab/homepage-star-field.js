@@ -42,7 +42,6 @@
 
     const scratch = {
       centre: new THREE.Vector3(),
-      point: new THREE.Vector3(),
       back: new THREE.Vector3(),
       forward: new THREE.Vector3(),
       targetPosition: new THREE.Vector3(),
@@ -173,6 +172,12 @@
       ? controller.openObject.bind(controller)
       : null;
     const baseNeedsDescriptor = Object.getOwnPropertyDescriptor(controller, 'needsContinuousRender');
+    const baseShouldRenderFrame = typeof controller.shouldRenderFrame === 'function'
+      ? controller.shouldRenderFrame.bind(controller)
+      : null;
+    const baseMotionLodActive = typeof controller.motionLodActive === 'function'
+      ? controller.motionLodActive.bind(controller)
+      : null;
 
     function smootherstep01(value) {
       const t = THREE.MathUtils.clamp(value, 0, 1);
@@ -208,9 +213,7 @@
     function computeFieldPose(field) {
       controller.resolveSpatialAnchors?.();
       const ids = [field.id, ...(field.constellation?.nodes || [])];
-      const anchors = ids
-        .map((id) => controller.getSpatialAnchor?.(id))
-        .filter(Boolean);
+      const anchors = ids.map((id) => controller.getSpatialAnchor?.(id)).filter(Boolean);
       if (!anchors.length) return false;
 
       scratch.centre.set(0, 0, 0);
@@ -223,9 +226,7 @@
       scratch.centre.multiplyScalar(1 / Math.max(weightTotal, 1));
 
       let radius = 0;
-      for (const anchor of anchors) {
-        radius = Math.max(radius, anchor.position.distanceTo(scratch.centre));
-      }
+      for (const anchor of anchors) radius = Math.max(radius, anchor.position.distanceTo(scratch.centre));
 
       scratch.back.subVectors(camera.position, scratch.centre);
       if (scratch.back.lengthSq() < 1e-6) {
@@ -280,9 +281,7 @@
       document.body.classList.remove('star-field-open');
       hud.setAttribute('aria-hidden', 'false');
       controller.constellation?.setPersistentField?.(fieldId, true);
-      window.dispatchEvent(new CustomEvent('smirel:field-change', {
-        detail: { phase: 'entering', field },
-      }));
+      window.dispatchEvent(new CustomEvent('smirel:field-change', { detail: { phase: 'entering', field } }));
       return true;
     }
 
@@ -315,14 +314,7 @@
       leaveField();
     }, true);
 
-    const panelToField = {
-      about: 'about',
-      projects: 'projects',
-      notes: 'blog',
-      blog: 'blog',
-      contact: 'contact',
-    };
-
+    const panelToField = { about: 'about', projects: 'projects', notes: 'blog', blog: 'blog', contact: 'contact' };
     document.addEventListener('click', (event) => {
       const panelButton = event.target.closest?.('[data-home-panel]');
       const fieldId = panelButton ? panelToField[panelButton.dataset.homePanel] : null;
@@ -342,9 +334,7 @@
 
     Object.defineProperty(controller, 'currentField', {
       configurable: true,
-      get() {
-        return state.fieldId ? fieldById.get(state.fieldId) || null : null;
-      },
+      get() { return state.fieldId ? fieldById.get(state.fieldId) || null : null; },
     });
 
     Object.defineProperty(controller, 'needsContinuousRender', {
@@ -356,6 +346,17 @@
         return baseNeeds || state.phase === 'entering' || state.phase === 'leaving';
       },
     });
+
+    controller.shouldRenderFrame = (now, lastCompositeMs) => {
+      if (state.phase === 'entering' || state.phase === 'leaving') return true;
+      return baseShouldRenderFrame ? baseShouldRenderFrame(now, lastCompositeMs) : false;
+    };
+
+    controller.motionLodActive = (now = performance.now()) => (
+      state.phase === 'entering'
+      || state.phase === 'leaving'
+      || (baseMotionLodActive ? baseMotionLodActive(now) : false)
+    );
 
     controller.update = (now, dt, elapsed) => {
       const baseOwnsCamera = baseUpdate(now, dt, elapsed);

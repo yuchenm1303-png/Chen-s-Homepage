@@ -79,16 +79,17 @@ source = replaceOnce(
   'Interactive star camera ownership',
 );
 
-// During flight, camera position and FOV change every presented frame. The
-// continuum must follow that same temporal cadence or it visibly snaps between
-// stale camera states. Keep it frame-synchronous, but temporarily lower the
-// low-frequency render target to 42% of its normal linear resolution. The
-// target returns to full quality as soon as the camera arrives.
+// Camera motion needs a temporally fresh continuum, but the full-resolution
+// volume is far more expensive than the point-star and stellar passes. Reuse the
+// already-approved flight motion budget for both the flight itself and the
+// continuous arrived->detail camera handoff. Final stationary frames always
+// return to the original full-resolution target.
 source = replaceOnce(
   source,
   /  const targetChanged = continuumCache\\.width !== continuumTarget\\.width\\n    \\|\\| continuumCache\\.height !== continuumTarget\\.height;/,
-  \`  const starFlightMoving = document.body.classList.contains('star-flight-active')
-    && !document.body.classList.contains('star-flight-arrived');
+  \`  const detailMotionLod = starFlight?.motionLodActive?.(now) === true;
+  const starFlightMoving = document.body.classList.contains('star-flight-active')
+    && (!document.body.classList.contains('star-flight-arrived') || detailMotionLod);
   const baseContinuumScale = width >= 1100 ? 0.40 : 0.48;
   const flightContinuumScale = baseContinuumScale * (starFlightMoving ? 0.42 : 1.0);
   const desiredContinuumWidth = Math.max(
@@ -131,8 +132,9 @@ source = replaceOnce(
   'Interactive star FOV cache state',
 );
 
-// Moving flight frames update the reduced continuum every rendered camera frame.
-// Idle and arrived states keep the refined runtime's lower-frequency budgets.
+// Any moving camera frame updates the reduced continuum at presentation cadence.
+// Idle and fully settled detail states keep the refined runtime's lower-frequency
+// budgets and full-resolution cached volume.
 source = replaceOnce(
   source,
   /  const interactionBudgetReady = now - continuumCache\\.lastRenderMs >= 30\\.0;/,

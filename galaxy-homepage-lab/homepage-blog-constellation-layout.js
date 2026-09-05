@@ -72,9 +72,10 @@
 
     blog: makeFieldLayout({
       // Screen-first composition on the 1664x918 reference viewport. Blog stays
-      // low in the field while every companion is reached directly from the
-      // primary star. The radial topology keeps the hierarchy obvious and avoids
-      // ring / chain silhouettes without changing the approved star positions.
+      // low in the field and remains the visual hub, but only the four structural
+      // spokes connect directly to it. The remaining stars continue through short
+      // secondary branches, preserving hierarchy without an artificial perfect
+      // radial pattern or any closed loop.
       centre: [-0.5868, -0.4530],
       offsets: {
         'building-homepage': [-0.1709, 0.1828],
@@ -89,12 +90,12 @@
       edges: [
         ['blog', 'building-homepage'],
         ['blog', 'opengl-liquid-glass'],
-        ['blog', 'computer-use-design'],
-        ['blog', 'gan-hemt-stability'],
-        ['blog', 'ai-ledger-real-streaming'],
         ['blog', 'app-performance-optimization'],
         ['blog', 'compose-parent-bubble-rendering'],
-        ['blog', 'ai-listing-research'],
+        ['opengl-liquid-glass', 'computer-use-design'],
+        ['computer-use-design', 'gan-hemt-stability'],
+        ['gan-hemt-stability', 'ai-ledger-real-streaming'],
+        ['compose-parent-bubble-rendering', 'ai-listing-research'],
       ],
     }),
 

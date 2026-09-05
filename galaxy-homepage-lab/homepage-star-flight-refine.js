@@ -16,6 +16,7 @@
     let chromosphere = null;
     let corona = null;
     let halo = null;
+    let activeObjectId = null;
 
     const noiseLibrary = `
       float hash31(vec3 p) {
@@ -45,21 +46,23 @@
 
     const refinedCoreFragment = `
       uniform float uTime;
+      uniform float uActivity;
       uniform vec3 uBaseColor;
       varying vec3 vLocalPosition;
       varying vec3 vWorldPosition;
       varying vec3 vWorldNormal;
       ${noiseLibrary}
       void main() {
+        float phaseTime = uTime * mix(0.72, 1.28, clamp(uActivity, 0.0, 1.0));
         vec3 p = normalize(vLocalPosition);
-        float convection = noise3(p * 4.2 + vec3(uTime * 0.030, -uTime * 0.019, uTime * 0.013));
-        float cells = noise3(p * 13.5 + vec3(-uTime * 0.058, uTime * 0.026, uTime * 0.021));
-        float granules = noise3(p * 27.0 + vec3(uTime * 0.082, uTime * 0.021, -uTime * 0.044));
+        float convection = noise3(p * 4.2 + vec3(phaseTime * 0.030, -phaseTime * 0.019, phaseTime * 0.013));
+        float cells = noise3(p * 13.5 + vec3(-phaseTime * 0.058, phaseTime * 0.026, phaseTime * 0.021));
+        float granules = noise3(p * 27.0 + vec3(phaseTime * 0.082, phaseTime * 0.021, -phaseTime * 0.044));
 
         float cellEdge = 1.0 - abs(cells * 2.0 - 1.0);
         float lanes = smoothstep(0.70, 0.94, cellEdge);
         float brightGranules = smoothstep(0.56, 0.88, granules);
-        float latitudeFlow = 0.5 + 0.5 * sin((p.y + convection * 0.11) * 15.0 + uTime * 0.16);
+        float latitudeFlow = 0.5 + 0.5 * sin((p.y + convection * 0.11) * 15.0 + phaseTime * 0.16);
         float broadSpot = smoothstep(0.70, 0.88, convection)
           * (1.0 - smoothstep(0.48, 0.66, cells));
 
@@ -72,21 +75,22 @@
         vec3 granuleColor = mix(uBaseColor, vec3(1.0, 0.91, 0.74), 0.30);
 
         float surface = 0.72 + convection * 0.20 + latitudeFlow * 0.08 + brightGranules * 0.14;
-        surface *= 1.0 - lanes * 0.13;
-        surface *= 1.0 - broadSpot * 0.38;
+        surface *= 1.0 - lanes * (0.08 + 0.08 * uActivity);
+        surface *= 1.0 - broadSpot * (0.24 + 0.22 * uActivity);
 
         vec3 body = mix(deep, photosphere, clamp(surface, 0.0, 1.0));
-        body = mix(body, granuleColor, brightGranules * 0.22);
+        body = mix(body, granuleColor, brightGranules * (0.16 + 0.10 * uActivity));
         body *= mix(0.55, 1.02, limb);
 
         float emission = 0.78 + brightGranules * 0.22 + convection * 0.10;
-        emission *= 0.985 + 0.015 * sin(uTime * 1.1);
+        emission *= 0.988 + (0.008 + 0.010 * uActivity) * sin(phaseTime * 1.1);
         gl_FragColor = vec4(body * emission, 1.0);
       }
     `;
 
     const refinedCoronaFragment = `
       uniform float uTime;
+      uniform float uActivity;
       uniform vec3 uBaseColor;
       uniform float uStrength;
       varying vec3 vLocalPosition;
@@ -94,29 +98,32 @@
       varying vec3 vWorldNormal;
       ${noiseLibrary}
       void main() {
+        float phaseTime = uTime * mix(0.70, 1.30, clamp(uActivity, 0.0, 1.0));
         vec3 viewDir = normalize(cameraPosition - vWorldPosition);
         float fresnel = pow(1.0 - abs(dot(normalize(vWorldNormal), viewDir)), 2.8);
         vec3 p = normalize(vLocalPosition);
-        float plume = noise3(p * 6.2 + vec3(uTime * 0.022, -uTime * 0.017, uTime * 0.013));
-        float alpha = fresnel * (0.035 + plume * 0.085) * uStrength;
-        vec3 color = mix(uBaseColor, vec3(0.82, 0.93, 1.0), 0.36) * (0.88 + plume * 0.32);
+        float plume = noise3(p * 6.2 + vec3(phaseTime * 0.022, -phaseTime * 0.017, phaseTime * 0.013));
+        float alpha = fresnel * (0.030 + plume * (0.055 + 0.050 * uActivity)) * uStrength;
+        vec3 color = mix(uBaseColor, vec3(0.82, 0.93, 1.0), 0.36) * (0.88 + plume * (0.24 + 0.12 * uActivity));
         gl_FragColor = vec4(color, alpha);
       }
     `;
 
     const chromosphereFragment = `
       uniform float uTime;
+      uniform float uActivity;
       uniform vec3 uBaseColor;
       varying vec3 vLocalPosition;
       varying vec3 vWorldPosition;
       varying vec3 vWorldNormal;
       ${noiseLibrary}
       void main() {
+        float phaseTime = uTime * mix(0.72, 1.26, clamp(uActivity, 0.0, 1.0));
         vec3 viewDir = normalize(cameraPosition - vWorldPosition);
         float rim = pow(1.0 - max(dot(normalize(vWorldNormal), viewDir), 0.0), 4.0);
         vec3 p = normalize(vLocalPosition);
-        float mottling = noise3(p * 10.0 + vec3(uTime * 0.035, -uTime * 0.018, uTime * 0.026));
-        float alpha = rim * (0.030 + mottling * 0.050);
+        float mottling = noise3(p * 10.0 + vec3(phaseTime * 0.035, -phaseTime * 0.018, phaseTime * 0.026));
+        float alpha = rim * (0.025 + mottling * (0.035 + 0.035 * uActivity));
         vec3 color = mix(uBaseColor, vec3(1.0, 0.76, 0.56), 0.24) * (0.88 + mottling * 0.20);
         gl_FragColor = vec4(color, alpha);
       }
@@ -142,6 +149,7 @@
       starCore.geometry.dispose();
       starCore.geometry = new THREE.SphereGeometry(1, 64, 40);
       starCore.material.fragmentShader = refinedCoreFragment;
+      starCore.material.uniforms.uActivity = { value: 1 };
       starCore.material.transparent = true;
       starCore.material.depthWrite = false;
       starCore.material.depthTest = false;
@@ -152,6 +160,7 @@
       corona.geometry.dispose();
       corona.geometry = new THREE.SphereGeometry(1.105, 48, 30);
       corona.material.fragmentShader = refinedCoronaFragment;
+      corona.material.uniforms.uActivity = { value: 1 };
       corona.material.depthWrite = false;
       corona.material.depthTest = false;
       corona.material.blending = THREE.AdditiveBlending;
@@ -161,6 +170,7 @@
       const chromosphereMaterial = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
+          uActivity: { value: 1 },
           uBaseColor: { value: starCore.material.uniforms.uBaseColor.value.clone() },
         },
         vertexShader: starCore.material.vertexShader,
@@ -184,26 +194,51 @@
       refined = true;
     }
 
+    function applyDescriptor(elapsed) {
+      if (!refined || !starGroup) return;
+      const active = controller.activeObject;
+      const descriptor = active?.star || null;
+      const radius = descriptor?.radius ?? 1;
+      const activity = descriptor?.activity ?? 1;
+      const coronaStrength = descriptor?.corona ?? 1;
+      const haloStrength = descriptor?.halo ?? 1;
+
+      if (active?.id !== activeObjectId) {
+        activeObjectId = active?.id || null;
+        if (starCore?.material?.uniforms?.uActivity) starCore.material.uniforms.uActivity.value = activity;
+        if (corona?.material?.uniforms?.uActivity) corona.material.uniforms.uActivity.value = activity;
+        if (chromosphere?.material?.uniforms?.uActivity) chromosphere.material.uniforms.uActivity.value = activity;
+        if (chromosphere?.material?.uniforms?.uBaseColor && starCore?.material?.uniforms?.uBaseColor) {
+          chromosphere.material.uniforms.uBaseColor.value.copy(starCore.material.uniforms.uBaseColor.value);
+        }
+      }
+
+      if (chromosphere?.material?.uniforms?.uTime) {
+        chromosphere.material.uniforms.uTime.value = elapsed;
+      }
+      if (corona?.material?.uniforms?.uStrength) {
+        corona.material.uniforms.uStrength.value *= coronaStrength;
+      }
+
+      const arrived = document.body.classList.contains('star-flight-arrived');
+      if (arrived) {
+        starGroup.scale.setScalar(0.84 * radius);
+      } else {
+        starGroup.scale.setScalar(starGroup.scale.x * 0.84);
+      }
+
+      if (halo?.material) {
+        const reveal = Math.min(1, Math.max(0, starGroup.scale.x / Math.max(0.84 * radius, 0.001)));
+        halo.scale.setScalar(4.35 + haloStrength * 0.72);
+        halo.material.opacity = (0.085 + reveal * 0.23) * (0.76 + haloStrength * 0.28);
+      }
+    }
+
     const baseUpdate = controller.update.bind(controller);
     controller.update = (now, dt, elapsed) => {
       const ownsCamera = baseUpdate(now, dt, elapsed);
       refineStarOnce();
-
-      if (refined && starGroup) {
-        const arrived = document.body.classList.contains('star-flight-arrived');
-        if (arrived) {
-          starGroup.scale.setScalar(0.84);
-        } else {
-          starGroup.scale.setScalar(starGroup.scale.x * 0.84);
-        }
-        if (chromosphere?.material?.uniforms?.uTime) {
-          chromosphere.material.uniforms.uTime.value = elapsed;
-        }
-        if (halo?.material) {
-          const reveal = Math.min(1, Math.max(0, starGroup.scale.x / 0.84));
-          halo.material.opacity = 0.10 + reveal * 0.24;
-        }
-      }
+      applyDescriptor(elapsed);
       return ownsCamera;
     };
 

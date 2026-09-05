@@ -12,12 +12,12 @@
     shell.setAttribute('aria-hidden', 'true');
     shell.innerHTML = `
       <header class="star-detail-header">
-        <span class="star-detail-star-slot" aria-hidden="true"></span>
         <div class="star-detail-heading">
           <p class="star-detail-kicker">Project / 01</p>
           <h1 class="star-detail-title">Loom</h1>
           <p class="star-detail-subtitle">General-purpose agent · 2026 — present</p>
         </div>
+        <span class="star-detail-star-slot" aria-hidden="true"></span>
       </header>
 
       <button class="star-detail-back" type="button" aria-label="Back to galaxy">
@@ -81,34 +81,36 @@
     const starSlot = shell.querySelector('.star-detail-star-slot');
     const originalBack = document.querySelector('.smirel-star-back');
 
-    // The detail transition owns the exact arrived star body. There is no clone,
-    // sprite or screenshot hand-off: one starGroup moves from arrival into the UI.
-    const HOLD_MS = reducedMotion ? 1 : 70;
-    const OPEN_MS = reducedMotion ? 1 : 620;
-    const CLOSE_MS = reducedMotion ? 1 : 440;
-    const DETAIL_DISTANCE = 8.4;
+    // The arrived star remains one physical object in one scene for the whole
+    // transition. Its world position and scale never change in detail mode.
+    // Apparent shrinking comes only from a real camera retreat; screen travel
+    // comes only from a continuously animated asymmetric perspective frustum.
+    const OPEN_MS = reducedMotion ? 1 : 1040;
+    const CLOSE_MS = reducedMotion ? 1 : 820;
+    const DETAIL_REVEAL_AT = 0.30;
 
     let phase = 'idle';
-    let arrivedAt = 0;
     let phaseStartedAt = 0;
-    let starGroup = null;
     let previousArrived = false;
-    let arrivalScale = 0.84;
-    let detailScale = 0.34;
+    let detailShown = false;
+    let currentBlend = 0;
+    let closeStartBlend = 1;
+    let closeDuration = CLOSE_MS;
+    let starGroup = null;
+    let arrivalFov = 47;
+    let arrivalDistance = 3.2;
+    let detailDistance = 20;
 
-    const arrivalPosition = new THREE.Vector3();
-    const targetPosition = new THREE.Vector3();
-    const startPosition = new THREE.Vector3();
-    const cameraLocal = new THREE.Vector3();
-    const arcOffset = new THREE.Vector3();
-    const cameraRight = new THREE.Vector3();
-    const cameraUp = new THREE.Vector3();
-    const cameraForward = new THREE.Vector3();
+    const starPosition = new THREE.Vector3();
+    const arrivalCameraPosition = new THREE.Vector3();
+    const arrivalQuaternion = new THREE.Quaternion();
+    const retreatDirection = new THREE.Vector3();
+    const targetViewOffset = new THREE.Vector2();
 
-    function easeOutQuint(value) {
-      const t = THREE.MathUtils.clamp(value, 0, 1);
-      return 1 - Math.pow(1 - t, 5);
-    }
+    const baseShouldRenderFrame = typeof controller.shouldRenderFrame === 'function'
+      ? controller.shouldRenderFrame.bind(controller)
+      : null;
+    const baseContinuumDescriptor = Object.getOwnPropertyDescriptor(controller, 'continuumIntervalMs');
 
     function smootherstep01(value) {
       const t = THREE.MathUtils.clamp(value, 0, 1);
@@ -122,12 +124,8 @@
       let fallbackCore = null;
       scene.traverse((object) => {
         const fragment = object.material?.fragmentShader || '';
-        if (!refinedCore && fragment.includes('float convection = noise3(p * 4.2')) {
-          refinedCore = object;
-        }
-        if (!fallbackCore && fragment.includes('float hot = smoothstep(0.40, 0.86')) {
-          fallbackCore = object;
-        }
+        if (!refinedCore && fragment.includes('float convection = noise3(p * 4.2')) refinedCore = object;
+        if (!fallbackCore && fragment.includes('float hot = smoothstep(0.40, 0.86')) fallbackCore = object;
       });
 
       const core = refinedCore || fallbackCore;
@@ -135,7 +133,7 @@
       return starGroup;
     }
 
-    function updateDetailTarget() {
+    function measureArchiveTarget() {
       if (!starSlot) return false;
       const rect = starSlot.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return false;
@@ -147,28 +145,59 @@
       const ndcX = centreX / width * 2 - 1;
       const ndcY = 1 - centreY / height * 2;
 
-      const halfHeight = Math.tan(THREE.MathUtils.degToRad(camera.fov) * 0.5) * DETAIL_DISTANCE;
-      const halfWidth = halfHeight * camera.aspect;
-      cameraLocal.set(ndcX * halfWidth, ndcY * halfHeight, -DETAIL_DISTANCE);
-      camera.updateMatrixWorld();
-      targetPosition.copy(cameraLocal).applyMatrix4(camera.matrixWorld);
+      // PerspectiveCamera.setViewOffset with a full-size sub-view changes only
+      // the projection principal point. A sphere kept on the physical camera axis
+      // therefore moves on screen without becoming an off-axis ellipse.
+      targetViewOffset.set(
+        -ndcX * width * 0.5,
+        ndcY * height * 0.5,
+      );
 
-      // Keep the real sphere physically smaller than the arrived body, while
-      // placing it far enough from the camera that off-axis perspective is tiny.
-      const pixelsPerWorldUnit = height / Math.max(2 * halfHeight, 1e-5);
-      const desiredCoreRadiusPx = Math.min(rect.width, rect.height) * 0.39;
-      detailScale = desiredCoreRadiusPx / pixelsPerWorldUnit;
-      detailScale = Math.min(arrivalScale * 0.72, Math.max(0.22, detailScale));
+      // Keep the model scale untouched (refined arrival scale is 0.84). Choose a
+      // real viewing distance that makes the photosphere fit the title slot; halo
+      // is intentionally allowed to breathe beyond the slot.
+      const starScale = starGroup?.scale?.x || 0.84;
+      const focalPixels = height / Math.max(2 * Math.tan(THREE.MathUtils.degToRad(arrivalFov) * 0.5), 1e-5);
+      const desiredCoreRadiusPx = Math.min(rect.width, rect.height) * 0.28;
+      detailDistance = THREE.MathUtils.clamp(
+        starScale * focalPixels / Math.max(desiredCoreRadiusPx, 1),
+        Math.max(arrivalDistance + 5, 13),
+        34,
+      );
       return true;
     }
 
+    function applyCameraBlend(blend) {
+      const t = THREE.MathUtils.clamp(blend, 0, 1);
+      measureArchiveTarget();
+
+      const distance = THREE.MathUtils.lerp(arrivalDistance, detailDistance, t);
+      camera.position.copy(starPosition).addScaledVector(retreatDirection, distance);
+      camera.quaternion.copy(arrivalQuaternion);
+      camera.fov = arrivalFov;
+
+      const width = Math.max(window.innerWidth, 1);
+      const height = Math.max(window.innerHeight, 1);
+      const offsetX = targetViewOffset.x * t;
+      const offsetY = targetViewOffset.y * t;
+      if (Math.abs(offsetX) < 0.01 && Math.abs(offsetY) < 0.01) {
+        camera.clearViewOffset();
+        camera.updateProjectionMatrix();
+      } else {
+        camera.setViewOffset(width, height, offsetX, offsetY, width, height);
+      }
+    }
+
     function showDetail() {
+      if (detailShown) return;
+      detailShown = true;
       shell.setAttribute('aria-hidden', 'false');
       document.body.classList.remove('star-detail-closing');
       document.body.classList.add('star-detail-open');
     }
 
     function hideDetail() {
+      detailShown = false;
       shell.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('star-detail-open', 'star-detail-closing');
     }
@@ -176,12 +205,11 @@
     function beginClose() {
       if (!document.body.classList.contains('star-flight-arrived')) return;
       if (phase !== 'opening' && phase !== 'open') return;
-      const group = locateStarGroup();
-      if (!group) return;
 
       phase = 'closing';
       phaseStartedAt = performance.now();
-      startPosition.copy(group.position);
+      closeStartBlend = currentBlend;
+      closeDuration = reducedMotion ? 1 : Math.max(340, CLOSE_MS * Math.max(0.48, closeStartBlend));
       document.body.classList.remove('star-detail-open');
       document.body.classList.add('star-detail-closing');
     }
@@ -197,6 +225,24 @@
       beginClose();
     }, true);
 
+    // Arrived mode is normally presentation-throttled. Camera motion during the
+    // detail hand-off must stay frame-synchronous or the physical star/background
+    // relationship appears to jump even if the transform math is continuous.
+    controller.shouldRenderFrame = (now, lastCompositeMs) => {
+      if (phase === 'opening' || phase === 'closing') return true;
+      return baseShouldRenderFrame ? baseShouldRenderFrame(now, lastCompositeMs) : false;
+    };
+
+    Object.defineProperty(controller, 'continuumIntervalMs', {
+      configurable: true,
+      get() {
+        if (phase === 'opening' || phase === 'closing') return 0;
+        return baseContinuumDescriptor?.get
+          ? baseContinuumDescriptor.get.call(controller)
+          : 30;
+      },
+    });
+
     const baseUpdate = controller.update.bind(controller);
     controller.update = (now, dt, elapsed) => {
       const ownsCamera = baseUpdate(now, dt, elapsed);
@@ -205,77 +251,64 @@
       if (arrived && !previousArrived) {
         const group = locateStarGroup();
         if (group) {
-          arrivalPosition.copy(group.position);
-          arrivalScale = group.scale.x || 0.84;
-          group.visible = true;
-          phase = 'holding';
-          arrivedAt = now;
+          starPosition.copy(group.position);
+          arrivalCameraPosition.copy(camera.position);
+          arrivalQuaternion.copy(camera.quaternion);
+          arrivalFov = camera.fov;
+          arrivalDistance = Math.max(camera.position.distanceTo(starPosition), 0.001);
+          retreatDirection.subVectors(arrivalCameraPosition, starPosition).normalize();
+          camera.clearViewOffset();
+          camera.updateProjectionMatrix();
+          currentBlend = 0;
+          detailShown = false;
           hideDetail();
+          phase = 'opening';
+          phaseStartedAt = now;
         }
       }
 
-      if (arrived) {
-        const group = locateStarGroup();
-        if (group) {
-          if (phase === 'holding' && now - arrivedAt >= HOLD_MS) {
-            phase = 'opening';
-            phaseStartedAt = now;
-            startPosition.copy(arrivalPosition);
+      if (arrived && starGroup) {
+        if (phase === 'opening') {
+          const raw = THREE.MathUtils.clamp((now - phaseStartedAt) / OPEN_MS, 0, 1);
+          currentBlend = smootherstep01(raw);
+          applyCameraBlend(currentBlend);
+          if (raw >= DETAIL_REVEAL_AT) showDetail();
+          if (raw >= 1) {
+            currentBlend = 1;
+            applyCameraBlend(1);
             showDetail();
+            phase = 'open';
           }
+        } else if (phase === 'open') {
+          currentBlend = 1;
+          applyCameraBlend(1);
+        } else if (phase === 'closing') {
+          const raw = THREE.MathUtils.clamp((now - phaseStartedAt) / closeDuration, 0, 1);
+          currentBlend = closeStartBlend * (1 - smootherstep01(raw));
+          applyCameraBlend(currentBlend);
 
-          if (phase === 'holding') {
-            group.visible = true;
-            group.position.copy(arrivalPosition);
-            group.scale.setScalar(arrivalScale);
-          } else if (phase === 'opening') {
-            const raw = THREE.MathUtils.clamp((now - phaseStartedAt) / OPEN_MS, 0, 1);
-            const move = easeOutQuint(raw);
-            const size = smootherstep01(raw);
-            updateDetailTarget();
-
-            // Move the exact arrived star along a shallow camera-space arc so the
-            // transition reads as one physical object receding into the archive UI.
-            camera.getWorldDirection(cameraForward);
-            cameraRight.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
-            cameraUp.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
-            group.position.lerpVectors(startPosition, targetPosition, move);
-            arcOffset.copy(cameraUp).multiplyScalar(Math.sin(Math.PI * raw) * 0.18)
-              .addScaledVector(cameraRight, Math.sin(Math.PI * raw) * -0.10);
-            group.position.add(arcOffset);
-            group.scale.setScalar(THREE.MathUtils.lerp(arrivalScale, detailScale, size));
-            group.visible = true;
-
-            if (raw >= 1) phase = 'open';
-          } else if (phase === 'open') {
-            updateDetailTarget();
-            group.position.copy(targetPosition);
-            group.scale.setScalar(detailScale);
-            group.visible = true;
-          } else if (phase === 'closing') {
-            const raw = THREE.MathUtils.clamp((now - phaseStartedAt) / CLOSE_MS, 0, 1);
-            const move = smootherstep01(raw);
-            updateDetailTarget();
-            group.position.lerpVectors(startPosition, arrivalPosition, move);
-            group.scale.setScalar(THREE.MathUtils.lerp(detailScale, arrivalScale, move));
-            group.visible = true;
-
-            if (raw >= 1) {
-              group.position.copy(arrivalPosition);
-              group.scale.setScalar(arrivalScale);
-              hideDetail();
-              phase = 'handoff';
-              originalBack?.click();
-            }
+          if (raw >= 1) {
+            currentBlend = 0;
+            camera.clearViewOffset();
+            camera.position.copy(arrivalCameraPosition);
+            camera.quaternion.copy(arrivalQuaternion);
+            camera.fov = arrivalFov;
+            camera.updateProjectionMatrix();
+            hideDetail();
+            phase = 'handoff';
+            originalBack?.click();
           }
         }
       } else if (previousArrived) {
+        camera.clearViewOffset();
+        camera.updateProjectionMatrix();
         hideDetail();
+        currentBlend = 0;
         phase = 'idle';
       }
 
       previousArrived = arrived;
-      return ownsCamera;
+      return ownsCamera || phase === 'opening' || phase === 'open' || phase === 'closing';
     };
 
     return controller;

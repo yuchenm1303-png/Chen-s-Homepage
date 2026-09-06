@@ -1,4 +1,4 @@
-name: Deploy galaxy preview to smirel.com/galaxy
+name: Deploy homepage to smirel.com
 
 on:
   push:
@@ -24,21 +24,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout production homepage
+      - name: Checkout production site assets
         uses: actions/checkout@v4
         with:
           ref: main
           path: production
           persist-credentials: false
 
-      - name: Checkout pinned production galaxy release
-        uses: actions/checkout@v4
-        with:
-          ref: c5e5db7feebe008f76bdc84cf260cd3280b13fd3
-          path: galaxy-release
-          persist-credentials: false
-
-      - name: Checkout galaxy development branch
+      - name: Checkout current homepage branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
@@ -58,19 +51,23 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p published
+
+          # Keep shared assets and archive data from main, then let the current
+          # galaxy branch own the actual homepage served at https://smirel.com/.
           rsync -a --exclude='.git' production/ published/
+          rsync -a galaxy-source/galaxy-homepage-lab/ published/
 
-          # Keep the production homepage directly at smirel.com/.
-          rsync -a galaxy-release/galaxy-homepage-lab/ published/
-
-          # Keep the moving development build isolated at smirel.com/galaxy/.
+          # Preserve /galaxy/ as a compatibility/testing route, but it now uses
+          # the exact same current branch instead of being the only moving build.
           rm -rf published/galaxy
           mkdir -p published/galaxy
           rsync -a --delete galaxy-source/galaxy-homepage-lab/ published/galaxy/
 
           test -s published/index.html
           test -s published/homepage-star-activity.js
+          test -s published/homepage-star-detail-layer.js
           test -s published/galaxy/index.html
+          test -s published/galaxy/homepage-star-detail-layer.js
           if grep -q 'stellar-homepage' published/index.html; then
             echo 'Unexpected stellar-homepage path in production root index' >&2
             exit 1
@@ -125,7 +122,7 @@ jobs:
           # Execute the exact existing loader transformations during the build,
           # so mobile browsers receive the already-expanded renderer module.
           node "$BUILDER" published "${GITHUB_SHA}-production"
-          node "$BUILDER" published/galaxy "${GITHUB_SHA}-preview"
+          node "$BUILDER" published/galaxy "${GITHUB_SHA}-compat"
 
           # The precomputed star cache and the expensive continuum shader used to
           # run serially. Start both as early as possible and join them only at
@@ -143,13 +140,15 @@ jobs:
           grep -q 'renderer.compileAsync(continuumScene, continuumCamera)' published/galaxy/astra-homepage-runtime.generated.js
           grep -q 'smirel-star-cache-bootstrap' published/index.html
           grep -q 'smirel-star-cache-bootstrap' published/galaxy/index.html
+          grep -q 'homepage-star-detail-layer.js' published/index.html
+          grep -q 'homepage-star-detail-layer.js' published/galaxy/index.html
 
           if grep -q 'astra-homepage-glass-capture-loader.js' published/index.html; then
             echo 'Production root still references the runtime Blob loader' >&2
             exit 1
           fi
           if grep -q 'astra-homepage-glass-capture-loader.js' published/galaxy/index.html; then
-            echo 'Galaxy preview still references the runtime Blob loader' >&2
+            echo 'Galaxy compatibility route still references the runtime Blob loader' >&2
             exit 1
           fi
           if grep -q 'homepage-galaxy-preload.js' published/index.html; then
@@ -157,7 +156,7 @@ jobs:
             exit 1
           fi
           if grep -q 'homepage-galaxy-preload.js' published/galaxy/index.html; then
-            echo 'Galaxy preview still references the temporary preload shim' >&2
+            echo 'Galaxy compatibility route still references the temporary preload shim' >&2
             exit 1
           fi
           if grep -q 'rel="preload" href="./astra-starfield-cache.bin' published/index.html published/galaxy/index.html; then
@@ -166,14 +165,14 @@ jobs:
           fi
 
           cp published/astra-homepage-runtime.generated.js /tmp/astra-homepage-runtime-root.mjs
-          cp published/galaxy/astra-homepage-runtime.generated.js /tmp/astra-homepage-runtime-preview.mjs
+          cp published/galaxy/astra-homepage-runtime.generated.js /tmp/astra-homepage-runtime-compat.mjs
           node --check /tmp/astra-homepage-runtime-root.mjs
-          node --check /tmp/astra-homepage-runtime-preview.mjs
+          node --check /tmp/astra-homepage-runtime-compat.mjs
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload combined homepage and galaxy preview
+      - name: Upload homepage artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: published

@@ -35,12 +35,53 @@ source = replaceOnce(
 const capturePatch = `
 source = replaceOnce(
   source,
+  "  BloomEffect,\\n  EffectComposer,",
+  "  BloomEffect,\\n  SelectiveBloomEffect,\\n  EffectComposer,",
+  'Selective stellar bloom import',
+);
+
+source = replaceOnce(
+  source,
+  /composer\\.addPass\\(new EffectPass\\(camera, bloom, new ToneMappingEffect\\(\\{ mode: ToneMappingMode\\.ACES_FILMIC \\}\\)\\)\\);/,
+  \`const stellarBloom = new SelectiveBloomEffect(scene, camera, {
+  blendFunction: BlendFunction.ADD,
+  intensity: 4.2,
+  luminanceThreshold: 0.38,
+  luminanceSmoothing: 0.18,
+  mipmapBlur: true,
+  radius: 0.48,
+});
+stellarBloom.ignoreBackground = true;
+const stellarBloomPass = new EffectPass(camera, stellarBloom);
+stellarBloomPass.enabled = false;
+composer.addPass(new EffectPass(camera, bloom));
+composer.addPass(stellarBloomPass);
+composer.addPass(new EffectPass(camera, new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC })));\`,
+  'Selective stellar bloom pass',
+);
+
+source = replaceOnce(
+  source,
   /    composer\\.render\\(dt\\);\\n    lastCompositeMs = now;/,
   \`    const stellarBloomActive = document.body.classList.contains('star-flight-active');
-    const stellarBloomThreshold = stellarBloomActive ? 0.38 : CONFIG.bloomThreshold;
-    bloom.luminanceMaterial.uniforms.threshold.value = stellarBloomThreshold;
-    bloom.intensity = stellarBloomActive ? 4.2 : CONFIG.bloomIntensity;
-    bloom.mipmapBlurPass.radius = stellarBloomActive ? 0.48 : CONFIG.bloomRadius;
+    bloom.luminanceMaterial.uniforms.threshold.value = CONFIG.bloomThreshold;
+    bloom.intensity = CONFIG.bloomIntensity;
+    bloom.mipmapBlurPass.radius = CONFIG.bloomRadius;
+
+    const stellarModel = starFlight?.stellarModel || null;
+    const selectedBloomObjects = stellarModel
+      ? [stellarModel.photosphere, stellarModel.chromosphere, stellarModel.corona].filter(Boolean)
+      : [];
+    if (stellarBloomActive && selectedBloomObjects.length > 0) {
+      const selectionChanged = stellarBloom.selection.size !== selectedBloomObjects.length
+        || selectedBloomObjects.some((object) => !stellarBloom.selection.has(object));
+      if (selectionChanged) stellarBloom.selection.set(selectedBloomObjects);
+      stellarBloomPass.enabled = true;
+    } else {
+      if (stellarBloom.selection.size > 0) stellarBloom.selection.clear();
+      stellarBloomPass.enabled = false;
+    }
+
     composer.render(dt);\n    if (!stellarBloomActive) {\n      try {\n        window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n      } catch (error) {\n        console.warn('[homepage-liquid-glass] frame handoff failed', error);\n      }\n    }\n    lastCompositeMs = now;\`,
   'Synchronized homepage glass framebuffer handoff',
 );

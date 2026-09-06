@@ -44,6 +44,21 @@ source = replaceOnce(
   'Synchronized homepage glass framebuffer handoff',
 );
 
+// The detail star is a separate Three.js scene/camera, but it is composited into
+// the SAME HDR EffectComposer and SAME DOM canvas as the galaxy. There is no
+// second rectangular WebGL surface that can flash during ownership handoff.
+source = replaceOnce(
+  source,
+  'composer.addPass(new EffectPass(camera, bloom, new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC })));',
+  \`const detailOverlayScene = new THREE.Scene();
+const detailOverlayCamera = new THREE.PerspectiveCamera(CONFIG.fov, 1, CONFIG.near, CONFIG.far);
+const detailOverlayPass = new RenderPass(detailOverlayScene, detailOverlayCamera);
+detailOverlayPass.clear = false;
+composer.addPass(detailOverlayPass);
+composer.addPass(new EffectPass(camera, bloom, new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC })));\`,
+  'Shared detail star HDR overlay pass',
+);
+
 source = replaceOnce(
   source,
   /const lookTarget = new THREE\\.Vector3\\(\\);\\nconst cameraForward = new THREE\\.Vector3\\(\\);/,
@@ -57,6 +72,8 @@ const starFlight = window.__SMIREL_STAR_FLIGHT_INSTALL__?.({
   canvas,
   pointer,
   reducedMotion,
+  detailOverlayScene,
+  detailOverlayCamera,
 }) || null;
 const cameraForward = new THREE.Vector3();\`,
   'Interactive star runtime install',

@@ -4,15 +4,22 @@
   const catalog = window.__SMIREL_STELLAR_CATALOG__;
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
-  // The bright field is deterministic (seed 0xA57A2D31), so these are authored
-  // identities rather than runtime search hints. About and Blog are composed in
-  // screen space first, then pinned by stable bright-field index.
+  // The bright field is deterministic (seed 0xA57A2D31). Every navigable star
+  // below is therefore an authored identity, never a runtime search hint.
   const FIXED_INDICES = Object.freeze({
     about: 8430,
     'about-identity': 2782,
     'about-work': 5342,
     'about-study': 8421,
     'about-place': 4139,
+
+    projects: 12636,
+    'ai-ledger': 13432,
+    'listing-studio': 1692,
+    'computer-use': 14040,
+    'liquid-glass': 13238,
+    'stock-crawler': 1949,
+    'gan-hemt': 13910,
 
     blog: 5596,
     'building-homepage': 2630,

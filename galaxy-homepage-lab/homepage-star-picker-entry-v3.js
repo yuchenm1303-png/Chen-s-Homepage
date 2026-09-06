@@ -5,7 +5,10 @@
   if (params.get('picker') !== '1') return;
 
   const INSTALL_KEY = '__SMIREL_STAR_FLIGHT_INSTALL__';
-  const BOOT_KEY = '__SMIREL_STAR_PICKER_BOOTSTRAP_V3__';
+  const BOOT_KEY = '__SMIREL_STAR_PICKER_BOOTSTRAP_V4__';
+  const RESET_MARKER = 'smirel:star-picker:lifecycle-v4-reset';
+  const V3_STORAGE_KEY = 'smirel:integrated-star-picker:v3';
+  const V2_STORAGE_KEY = 'smirel:integrated-star-picker:v2';
   if (window[BOOT_KEY]) return;
 
   const boot = {
@@ -15,8 +18,22 @@
     startedAt: performance.now(),
     badge: null,
     timer: 0,
+    baseline: new Map(),
+    resolvedAspect: null,
+    lifecycleReady: false,
   };
   window[BOOT_KEY] = boot;
+
+  // V2/V3 may contain indices captured while the camera still had its constructor
+  // aspect of 1. Reset that contaminated editor state exactly once. Future V3
+  // selections remain persistent after this lifecycle migration.
+  try {
+    if (localStorage.getItem(RESET_MARKER) !== '1') {
+      localStorage.removeItem(V3_STORAGE_KEY);
+      localStorage.removeItem(V2_STORAGE_KEY);
+      localStorage.setItem(RESET_MARKER, '1');
+    }
+  } catch {}
 
   const badge = document.createElement('button');
   badge.type = 'button';
@@ -73,14 +90,103 @@
     return;
   }
 
+  function setViewportProjection(context) {
+    const { camera, canvas } = context || {};
+    if (!camera || !canvas) return;
+    const width = Math.max(1, Math.floor(canvas.clientWidth || window.innerWidth || 1));
+    const height = Math.max(1, Math.floor(canvas.clientHeight || window.innerHeight || 1));
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix?.();
+    boot.resolvedAspect = camera.aspect;
+  }
+
+  function finishPickerLifecycle(controller, context, rawGetSpatialAnchor) {
+    const picker = controller?.starPicker;
+    const positions = context?.brightField?.geometry?.getAttribute?.('position');
+    if (!picker || !positions || typeof rawGetSpatialAnchor !== 'function') return;
+
+    const applyIndex = (objectId, index) => {
+      if (!Number.isInteger(index) || index < 0 || index >= positions.count) return false;
+      const anchor = rawGetSpatialAnchor(objectId);
+      if (!anchor) return false;
+      anchor.index = index;
+      anchor.position?.set?.(positions.getX(index), positions.getY(index), positions.getZ(index));
+      return true;
+    };
+
+    const restoreBaseline = () => {
+      for (const [objectId, index] of boot.baseline) applyIndex(objectId, index);
+    };
+
+    const applyWorkingSelections = () => {
+      const selections = picker.selections;
+      if (!(selections instanceof Map)) return;
+      for (const [objectId, index] of selections) applyIndex(objectId, index);
+    };
+
+    const launch = document.querySelector('.smirel-picker-v2-launch');
+    launch?.addEventListener('click', () => {
+      if (!picker.active) applyWorkingSelections();
+    }, true);
+
+    window.addEventListener('keydown', (event) => {
+      if (event.shiftKey && event.key.toLowerCase() === 'p' && !picker.active) {
+        applyWorkingSelections();
+      }
+    }, true);
+
+    let wasActive = Boolean(picker.active);
+    const observer = new MutationObserver(() => {
+      const isActive = document.body.classList.contains('smirel-star-picker-v2-active');
+      if (wasActive && !isActive) restoreBaseline();
+      wasActive = isActive;
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    const originalSetActive = picker.setActive.bind(picker);
+    picker.setActive = (next) => {
+      if (next) applyWorkingSelections();
+      const result = originalSetActive(next);
+      if (!next) restoreBaseline();
+      return result;
+    };
+
+    // V3 auto-enables during install. End bootstrap in the required OFF = normal
+    // homepage state. Entering edit mode is now an explicit user action.
+    if (picker.active) picker.setActive(false);
+    restoreBaseline();
+    boot.lifecycleReady = boot.baseline.size > 0;
+  }
+
   const probeInstall = function pickerBootstrapProbe(context) {
     boot.invoked = true;
     boot.context = context || null;
+
+    // Root cause fix: the renderer constructs PerspectiveCamera with aspect=1
+    // and normally corrects it in resize() before the first frame. Picker V3 used
+    // to resolve anchors during install, before that resize. Reproduce the normal
+    // viewport projection before V3 is allowed to resolve anything.
+    setViewportProjection(context);
+
     const controller = baseInstall(context);
     boot.controller = controller || null;
+    if (!controller || typeof controller.getSpatialAnchor !== 'function') return controller;
+
+    const rawGetSpatialAnchor = controller.getSpatialAnchor.bind(controller);
+    controller.getSpatialAnchor = (objectId) => {
+      const anchor = rawGetSpatialAnchor(objectId);
+      if (anchor && Number.isInteger(anchor.index) && !boot.baseline.has(objectId)) {
+        // V3 queries each anchor before applying its working selections. The first
+        // observed index is therefore the normal-homepage baseline.
+        boot.baseline.set(objectId, anchor.index);
+      }
+      return anchor;
+    };
+
+    queueMicrotask(() => finishPickerLifecycle(controller, context, rawGetSpatialAnchor));
     return controller;
   };
-  probeInstall.__smirelPickerBootstrapProbeV3 = true;
+  probeInstall.__smirelPickerBootstrapProbeV4 = true;
   window[INSTALL_KEY] = probeInstall;
 
   function describeFailure() {
@@ -98,7 +204,7 @@
     const catalog = Array.isArray(controller.catalog) ? controller.catalog : [];
     const fieldCount = catalog.filter((item) => item?.kind === 'field').length;
     if (!fieldCount) return '选星器错误：主页 field catalog 为空';
-    return '选星器错误：V2 runtime 未完成挂载';
+    return '选星器错误：picker runtime 未完成挂载';
   }
 
   boot.timer = window.setInterval(() => {
@@ -116,7 +222,7 @@
     const v2Wrapped = Boolean(currentInstall?.__smirelIntegratedStarPickerV2);
 
     if (elapsed > 900 && !v2Wrapped) {
-      setStatus('选星器错误：V2 脚本未执行', true);
+      setStatus('选星器错误：picker 脚本未执行', true);
       enableRetry();
       return;
     }

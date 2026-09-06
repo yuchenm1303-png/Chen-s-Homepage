@@ -5,17 +5,19 @@
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
   // Production Blog stars are authored once against the deterministic bright field.
-  // Their indices are stable identities; runtime resolvers must not re-pick them.
+  // These indices were selected against a multi-view projection envelope: several
+  // desktop aspect ratios and the full pointer-driven camera range. Runtime never
+  // re-picks them, so the constellation remains the same authored object on every load.
   const FIXED_INDICES = Object.freeze({
     blog: 5596,
-    'building-homepage': 2630,
-    'opengl-liquid-glass': 2091,
-    'computer-use-design': 12368,
-    'gan-hemt-stability': 13739,
-    'ai-ledger-real-streaming': 3699,
-    'app-performance-optimization': 11690,
-    'compose-parent-bubble-rendering': 9499,
-    'ai-listing-research': 7482,
+    'building-homepage': 518,
+    'opengl-liquid-glass': 8004,
+    'computer-use-design': 11877,
+    'gan-hemt-stability': 2817,
+    'ai-ledger-real-streaming': 14386,
+    'app-performance-optimization': 10179,
+    'compose-parent-bubble-rendering': 7399,
+    'ai-listing-research': 350,
   });
 
   const LOCAL_DEPTH = Object.freeze([18, 32]);
@@ -39,28 +41,28 @@
 
   const layouts = Object.freeze({
     blog: makeFieldLayout({
-      // Screen composition is intentionally open and asymmetric: BLOG remains the
-      // visual hub while four direct spokes establish hierarchy and the remaining
-      // articles continue through short natural branches. There is no closed loop.
-      centre: [-0.5868, -0.4530],
+      // Author the fallback targets from the centre-camera screen projection of the
+      // fixed stars. The silhouette deliberately occupies a broad left/middle field:
+      // BLOG anchors the lower-left while two open branches rise through the free sky.
+      centre: [-0.5673, -0.4530],
       offsets: {
-        'building-homepage': [-0.1709, 0.1828],
-        'opengl-liquid-glass': [-0.1234, 0.3448],
-        'computer-use-design': [-0.1673, 0.7774],
-        'gan-hemt-stability': [0.1081, 0.8141],
-        'ai-ledger-real-streaming': [0.3978, 0.7458],
-        'app-performance-optimization': [0.1890, 0.3788],
-        'compose-parent-bubble-rendering': [0.3111, 0.2099],
-        'ai-listing-research': [0.3874, -0.0592],
+        'building-homepage': [-0.1232, 0.2223],
+        'opengl-liquid-glass': [-0.1267, 0.4649],
+        'computer-use-design': [0.0321, 0.7020],
+        'gan-hemt-stability': [0.4909, 0.8511],
+        'ai-ledger-real-streaming': [0.2659, 0.8328],
+        'app-performance-optimization': [0.4996, 0.4759],
+        'compose-parent-bubble-rendering': [0.2106, 0.2244],
+        'ai-listing-research': [0.1786, -0.1517],
       },
       edges: [
         ['blog', 'building-homepage'],
-        ['blog', 'opengl-liquid-glass'],
-        ['blog', 'app-performance-optimization'],
-        ['blog', 'compose-parent-bubble-rendering'],
+        ['building-homepage', 'opengl-liquid-glass'],
         ['opengl-liquid-glass', 'computer-use-design'],
-        ['computer-use-design', 'gan-hemt-stability'],
-        ['gan-hemt-stability', 'ai-ledger-real-streaming'],
+        ['computer-use-design', 'ai-ledger-real-streaming'],
+        ['ai-ledger-real-streaming', 'gan-hemt-stability'],
+        ['blog', 'compose-parent-bubble-rendering'],
+        ['compose-parent-bubble-rendering', 'app-performance-optimization'],
         ['compose-parent-bubble-rendering', 'ai-listing-research'],
       ],
     }),
@@ -134,11 +136,11 @@
   const style = document.createElement('style');
   style.dataset.smirelFieldConstellationLayout = 'true';
   style.textContent = `
-    /* Labels point into free screen space rather than all expanding toward the
-       same side. This keeps the authored fixed-star silhouette readable. */
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="opengl-liquid-glass"] .smirel-companion-label,
+    /* Point long labels into the free side of the authored screen composition.
+       Left-edge stars intentionally keep their labels on the right so pointer
+       parallax cannot push the copy outside the viewport. */
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="compose-parent-bubble-rendering"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label {
@@ -152,7 +154,6 @@
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-email"] .smirel-companion-label {
       top: -15px;
@@ -161,6 +162,7 @@
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="building-homepage"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="app-performance-optimization"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="compose-parent-bubble-rendering"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-qq"] .smirel-companion-label {
       top: 19px;

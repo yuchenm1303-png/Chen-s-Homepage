@@ -5,20 +5,21 @@
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
   // Production Blog stars are authored once against the deterministic bright field.
-  // This set was selected from the real 14,800-star field against a 5x5 pointer-camera
-  // grid and desktop aspect ratios from 16:10 through 2.0. Every fixed star keeps a
-  // viewport-safe projection envelope, and companion stars stay clear of the other
-  // three primary-field target regions. Runtime never re-picks these identities.
+  // This set was selected from the real 14,800-star field against 25 pointer-camera
+  // positions across desktop aspect ratios from 16:10 through 2.0. The hard filters
+  // include the complete label boxes as well as the star centres, so neither the star
+  // nor its copy can leave the viewport or collide with another Blog label. Runtime
+  // never re-picks these identities.
   const FIXED_INDICES = Object.freeze({
-    blog: 4887,
-    'building-homepage': 12211,
-    'opengl-liquid-glass': 663,
-    'computer-use-design': 11720,
-    'gan-hemt-stability': 836,
-    'ai-ledger-real-streaming': 8312,
+    blog: 1363,
+    'building-homepage': 14646,
+    'opengl-liquid-glass': 6737,
+    'computer-use-design': 3645,
+    'gan-hemt-stability': 14687,
+    'ai-ledger-real-streaming': 4657,
     'app-performance-optimization': 10767,
-    'compose-parent-bubble-rendering': 7845,
-    'ai-listing-research': 5118,
+    'compose-parent-bubble-rendering': 3646,
+    'ai-listing-research': 8,
   });
 
   const LOCAL_DEPTH = Object.freeze([18, 32]);
@@ -43,28 +44,28 @@
   const layouts = Object.freeze({
     blog: makeFieldLayout({
       // Fallback targets mirror the centre-camera projection of the fixed stars.
-      // BLOG stays low; an upper branch climbs through the left/middle sky and a
-      // second branch opens to the right. The graph is deliberately open, never a ring.
-      centre: [-0.5293, -0.5704],
+      // The composition uses the broad left/middle screen field: BLOG sits low while
+      // two irregular open branches rise through separate pockets of free sky.
+      centre: [-0.2248, -0.5473],
       offsets: {
-        'building-homepage': [-0.0439, 0.2462],
-        'opengl-liquid-glass': [-0.0507, 0.6893],
-        'computer-use-design': [0.0047, 0.9518],
-        'gan-hemt-stability': [0.1918, 0.8480],
-        'ai-ledger-real-streaming': [0.5271, 0.6922],
-        'app-performance-optimization': [0.5332, 0.4085],
-        'compose-parent-bubble-rendering': [0.2248, 0.1905],
-        'ai-listing-research': [0.2649, -0.0353],
+        'building-homepage': [-0.3499, 0.8066],
+        'opengl-liquid-glass': [-0.3470, 0.5484],
+        'computer-use-design': [0.2226, 0.7689],
+        'gan-hemt-stability': [0.0294, 0.8854],
+        'ai-ledger-real-streaming': [0.0216, 0.5923],
+        'app-performance-optimization': [0.2287, 0.4064],
+        'compose-parent-bubble-rendering': [-0.2879, 0.2116],
+        'ai-listing-research': [0.1066, 0.1186],
       },
       edges: [
-        ['blog', 'building-homepage'],
-        ['building-homepage', 'opengl-liquid-glass'],
-        ['opengl-liquid-glass', 'computer-use-design'],
-        ['computer-use-design', 'gan-hemt-stability'],
-        ['gan-hemt-stability', 'ai-ledger-real-streaming'],
         ['blog', 'compose-parent-bubble-rendering'],
-        ['compose-parent-bubble-rendering', 'app-performance-optimization'],
-        ['compose-parent-bubble-rendering', 'ai-listing-research'],
+        ['compose-parent-bubble-rendering', 'opengl-liquid-glass'],
+        ['opengl-liquid-glass', 'building-homepage'],
+        ['blog', 'ai-listing-research'],
+        ['ai-listing-research', 'app-performance-optimization'],
+        ['app-performance-optimization', 'ai-ledger-real-streaming'],
+        ['ai-ledger-real-streaming', 'gan-hemt-stability'],
+        ['gan-hemt-stability', 'computer-use-design'],
       ],
     }),
 
@@ -137,10 +138,8 @@
   const style = document.createElement('style');
   style.dataset.smirelFieldConstellationLayout = 'true';
   style.textContent = `
-    /* Label direction follows free screen space around the fixed projection envelope. */
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="opengl-liquid-glass"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
+    /* Label direction is part of the authored projection-safe composition. */
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="app-performance-optimization"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
@@ -152,6 +151,7 @@
     }
 
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="opengl-liquid-glass"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-email"] .smirel-companion-label {
@@ -159,7 +159,6 @@
     }
 
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="building-homepage"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="app-performance-optimization"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="compose-parent-bubble-rendering"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label,

@@ -62,11 +62,6 @@
     let arrivalFov = camera.fov;
     let arrivalDepth = 3.2;
 
-    const homePosition = new THREE.Vector3();
-    const homeQuaternion = new THREE.Quaternion();
-    let homeFov = camera.fov;
-    let homeSnapshotReady = false;
-
     const starPosition = new THREE.Vector3();
     const cameraBack = new THREE.Vector3();
     const cameraRight = new THREE.Vector3();
@@ -96,16 +91,6 @@
       const t = THREE.MathUtils.clamp(value, 0, 1);
       return t * t * t * (t * (t * 6 - 15) + 10);
     }
-
-    function captureHomeCamera(event) {
-      const object = event.detail;
-      if (!object || (object.kind !== 'project' && object.kind !== 'note')) return;
-      homePosition.copy(camera.position);
-      homeQuaternion.copy(camera.quaternion);
-      homeFov = camera.fov;
-      homeSnapshotReady = true;
-    }
-    window.addEventListener('smirel:stellar-object', captureHomeCamera);
 
     function syncRendererSize() {
       const width = Math.max(1, Math.floor(window.innerWidth));
@@ -226,21 +211,6 @@
       detailCamera.updateMatrixWorld(true);
     }
 
-    function applyBackgroundCamera(blend) {
-      const t = THREE.MathUtils.clamp(blend, 0, 1);
-      if (!homeSnapshotReady) {
-        camera.position.copy(arrivalPosition);
-        camera.quaternion.copy(arrivalQuaternion);
-        camera.fov = arrivalFov;
-      } else {
-        camera.position.lerpVectors(arrivalPosition, homePosition, t);
-        camera.quaternion.slerpQuaternions(arrivalQuaternion, homeQuaternion, t);
-        camera.fov = THREE.MathUtils.lerp(arrivalFov, homeFov, t);
-      }
-      camera.updateProjectionMatrix();
-      camera.updateMatrixWorld(true);
-    }
-
     function renderDetailStar() {
       if (!ownsStarLayer || !starGroup?.visible) return;
       syncRendererSize();
@@ -281,7 +251,6 @@
       phase = 'opening';
       phaseStartedAt = now;
       applyDetailCamera(0);
-      applyBackgroundCamera(0);
       renderDetailStar();
       return true;
     }
@@ -306,6 +275,9 @@
 
     const baseUpdate = controller.update.bind(controller);
     controller.update = (now, dt, elapsed) => {
+      // Important ownership boundary: baseUpdate contains the original detail
+      // camera choreography. It remains the sole writer of the galaxy camera.
+      // This wrapper only owns the detached detail-star camera/render layer.
       const baseOwnsCamera = baseUpdate(now, dt, elapsed);
       const arrived = document.body.classList.contains('star-flight-arrived');
 
@@ -332,20 +304,13 @@
 
         starGroup.getWorldPosition(starPosition);
         applyDetailCamera(currentBlend);
-        applyBackgroundCamera(currentBlend);
         renderDetailStar();
       }
 
       if (!arrived && previousArrived && ownsStarLayer) {
-        // The inner detail controller has restored the exact arrival camera and
-        // has already switched the flight controller to returning. Put the same
-        // physical star back on its original scene layer in that exact frame so
-        // the next galaxy render continues without a clone or a projection jump.
-        camera.position.copy(arrivalPosition);
-        camera.quaternion.copy(arrivalQuaternion);
-        camera.fov = arrivalFov;
-        camera.updateProjectionMatrix();
-        camera.updateMatrixWorld(true);
+        // The original detail controller has already restored its exact arrival
+        // pose and started the base return flight. Restore only the star's scene
+        // layer here; never rewrite the galaxy camera during the handoff.
         releaseStarLayer();
         currentBlend = 0;
         phase = 'handoff';
@@ -356,21 +321,18 @@
         phase = 'idle';
         activeObject = null;
         starGroup = null;
-        homeSnapshotReady = false;
       }
 
       if (!arrived && !document.body.classList.contains('star-flight-active') && phase === 'handoff') {
         phase = 'idle';
         activeObject = null;
         starGroup = null;
-        homeSnapshotReady = false;
       }
 
       previousArrived = arrived;
       return baseOwnsCamera || ownsStarLayer;
     };
 
-    detailLayerInstall.__smirelDetailStarLayer = true;
     return controller;
   };
 

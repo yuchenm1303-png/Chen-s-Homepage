@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 3a87f0e0db5e72ded4ca8e79581b94d4f9a7eec6
+          ref: 3ddf76ac6b6d8a922344b8f4bc97726b3e7c3bad
           path: galaxy-release
           persist-credentials: false
 

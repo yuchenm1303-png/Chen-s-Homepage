@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: fd163573174aa589184ca392fc97d762abe54bec
+          ref: ef18cd6e8497ec08376f15e2d6b5055a3d087dd1
           path: galaxy-release
           persist-credentials: false
 
@@ -55,6 +55,7 @@ jobs:
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
           grep -q '__SMIREL_STAR_PICKER_BOOTSTRAP_V4__' published/homepage-star-picker-entry-v3.js
           grep -q 'about: 12089' published/homepage-blog-constellation-layout.js
+          grep -q "'about-study': 1420" published/homepage-blog-constellation-layout.js
           grep -q 'projects: 12636' published/homepage-blog-constellation-layout.js
           grep -q "'computer-use': 9208" published/homepage-blog-constellation-layout.js
           grep -q 'blog: 1363' published/homepage-blog-constellation-layout.js

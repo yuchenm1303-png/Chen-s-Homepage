@@ -4,22 +4,36 @@
   const catalog = window.__SMIREL_STELLAR_CATALOG__;
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
-  // Production Blog stars are authored once against the deterministic bright field.
-  // This set was selected from the real 14,800-star field against 25 pointer-camera
-  // positions across desktop aspect ratios from 16:10 through 2.0. The hard filters
-  // include the complete label boxes as well as the star centres, so neither the star
-  // nor its copy can leave the viewport or collide with another Blog label. Runtime
-  // never re-picks these identities.
+  // Production star identities are authored once against the deterministic
+  // 14,800-star bright field. The picker only chooses indices from that same
+  // field; runtime must never re-pick these authored identities.
   const FIXED_INDICES = Object.freeze({
+    about: 12089,
+    'about-identity': 14726,
+    'about-study': 8036,
+    'about-work': 8587,
+    'about-place': 13626,
+    projects: 12636,
+    'ai-ledger': 1949,
+    'listing-studio': 1692,
+    'computer-use': 9208,
+    'liquid-glass': 13238,
+    'stock-crawler': 14130,
+    'gan-hemt': 4910,
     blog: 1363,
-    'building-homepage': 14646,
-    'opengl-liquid-glass': 6737,
-    'computer-use-design': 3645,
-    'gan-hemt-stability': 14687,
-    'ai-ledger-real-streaming': 4657,
-    'app-performance-optimization': 10767,
+    'building-homepage': 4398,
+    'opengl-liquid-glass': 8389,
+    'computer-use-design': 8953,
+    'gan-hemt-stability': 4346,
+    'ai-ledger-real-streaming': 13910,
+    'app-performance-optimization': 6991,
     'compose-parent-bubble-rendering': 3646,
     'ai-listing-research': 8,
+    contact: 3644,
+    'contact-github': 4921,
+    'contact-email': 623,
+    'contact-phone': 4542,
+    'contact-qq': 10892,
   });
 
   const LOCAL_DEPTH = Object.freeze([18, 32]);
@@ -106,14 +120,16 @@
 
     const target = layout ? absoluteTarget(layout, item) : item.star?.target;
     const isPrimary = item.kind === 'field';
-    const star = target && item.star
+    const star = item.star
       ? Object.freeze({
           ...item.star,
-          target,
-          depth: LOCAL_DEPTH,
-          minBrightness: isPrimary
-            ? Math.min(item.star.minBrightness ?? 1.8, 1.30)
-            : COMPANION_MIN_BRIGHTNESS,
+          ...(layout && target ? {
+            target,
+            depth: LOCAL_DEPTH,
+            minBrightness: isPrimary
+              ? Math.min(item.star.minBrightness ?? 1.8, 1.30)
+              : COMPANION_MIN_BRIGHTNESS,
+          } : {}),
           ...(hasFixedIndex ? { fixedIndex } : {}),
         })
       : item.star;

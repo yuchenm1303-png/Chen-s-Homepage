@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="description" content="邹羽宸的个人主页，记录电气工程、独立开发、图形界面、AI 应用和工程仿真。" />
+  <meta name="description" content="Smirel — personal homepage of 邹羽宸, covering electrical engineering, independent software projects, graphics, AI and simulation." />
   <title>邹羽宸 · Smirel</title>
   <link rel="stylesheet" href="./astra-official-port.css" />
   <link rel="stylesheet" href="./homepage-glass-cards.css" />
@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="./homepage-liquid-motion.css" />
   <link rel="stylesheet" href="./homepage-live-backdrop.css" />
   <link rel="stylesheet" href="./homepage-star-index.css" />
+  <link rel="stylesheet" href="./homepage-language.css?v=20260906b" />
   <link rel="stylesheet" href="./homepage-star-ui-legacy.css" />
   <link rel="stylesheet" href="./homepage-star-detail.css" />
   <link rel="stylesheet" href="./homepage-article-detail.css" />
@@ -27,12 +28,13 @@
   <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js" crossorigin="anonymous" />
   <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/postprocessing@6.39.4/build/index.js" crossorigin="anonymous" />
   <link rel="modulepreload" href="./astra-homepage-glass-capture-loader.js?v=20260906a" />
+  <script src="./homepage-language.js?v=20260906b"></script>
   <script src="./homepage-galaxy-preload.js?v=20260906a"></script>
 </head>
 <body>
   <canvas id="galaxyCanvas" aria-hidden="true"></canvas>
 
-  <main class="home-overlay" aria-label="邹羽宸的个人主页">
+  <main class="home-overlay" aria-label="Personal homepage of 邹羽宸">
     <section class="home-intro liquid-glass-card home-profile-card" data-liquid-glass="v29.5" aria-labelledby="home-title">
       <canvas class="liquid-glass__backdrop" aria-hidden="true"></canvas>
       <canvas class="liquid-glass__optics" aria-hidden="true"></canvas>
@@ -129,10 +131,10 @@
           <h2>Notes &amp; build logs.</h2>
           <p class="home-panel-lede">Debugging notes, project write-ups and things I wanted to keep for later.</p>
           <div class="home-note-list">
-            <button class="home-object-link" type="button" data-star-object="building-homepage"><span>从零搭建个人主页</span><time datetime="2026-08-01">2026.08.01</time><b>◌</b></button>
-            <button class="home-object-link" type="button" data-star-object="opengl-liquid-glass"><span>OpenGL 液态玻璃</span><time datetime="2026-07-28">2026.07.28</time><b>◌</b></button>
-            <button class="home-object-link" type="button" data-star-object="computer-use-design"><span>Computer Use 操作闭环</span><time datetime="2026-07-20">2026.07.20</time><b>◌</b></button>
-            <button class="home-object-link" type="button" data-star-object="gan-hemt-stability"><span>GaN HEMT 数值稳定性</span><time datetime="2026-07-10">2026.07.10</time><b>◌</b></button>
+            <button class="home-object-link" type="button" data-star-object="building-homepage"><span>Building My Homepage</span><time datetime="2026-08-01">2026.08.01</time><b>◌</b></button>
+            <button class="home-object-link" type="button" data-star-object="opengl-liquid-glass"><span>OpenGL Liquid Glass</span><time datetime="2026-07-28">2026.07.28</time><b>◌</b></button>
+            <button class="home-object-link" type="button" data-star-object="computer-use-design"><span>Computer Use: Screen Automation</span><time datetime="2026-07-20">2026.07.20</time><b>◌</b></button>
+            <button class="home-object-link" type="button" data-star-object="gan-hemt-stability"><span>GaN HEMT Numerical Stability</span><time datetime="2026-07-10">2026.07.10</time><b>◌</b></button>
           </div>
         </section>
 
@@ -161,6 +163,7 @@
   <script src="./homepage-star-catalog.js"></script>
   <script src="./homepage-blog-constellation-layout.js"></script>
   <script src="./homepage-project-data.js"></script>
+  <script src="./homepage-content-i18n.js?v=20260906b"></script>
 
   <!-- Keep the original V29.5 optical shader byte-for-byte. The homepage adapter
        now receives each galaxy frame synchronously while the framebuffer is valid. -->

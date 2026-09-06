@@ -111,8 +111,8 @@
       if (key === backContextKey) return;
       backContextKey = key;
       if (field) {
-        back.textContent = `Esc · Back to ${field.title} field`;
-        back.setAttribute('aria-label', `Back to ${field.title} field`);
+        back.textContent = `Esc · Back to ${field.title}`;
+        back.setAttribute('aria-label', `Back to ${field.title}`);
       } else {
         back.textContent = 'Esc · Back to galaxy';
         back.setAttribute('aria-label', 'Back to galaxy');
@@ -134,7 +134,6 @@
       const deck = object.lede
         ? `<p class="stellar-article-deck">${escapeHtml(object.lede)}</p>`
         : '';
-      const objectLabel = object.star?.classLabel || 'Journal star';
 
       return `
         <article class="stellar-article-page">
@@ -145,7 +144,7 @@
             <p class="stellar-article-meta">${metaItems}</p>
           </header>
           <div class="stellar-article-reader">${object.articleHtml}</div>
-          <footer class="stellar-article-footer">Observation ${escapeHtml(object.order || '')} · ${escapeHtml(objectLabel)}</footer>
+          <footer class="stellar-article-footer">${escapeHtml(object.order || '')} · Blog</footer>
         </article>
       `;
     }

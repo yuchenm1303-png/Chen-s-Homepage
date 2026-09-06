@@ -16,8 +16,8 @@
 
     blog: 5596,
     'building-homepage': 2630,
-    'opengl-liquid-glass': 11667,
-    'computer-use-design': 1420,
+    'opengl-liquid-glass': 2091,
+    'computer-use-design': 12368,
     'gan-hemt-stability': 13739,
     'ai-ledger-real-streaming': 3699,
     'app-performance-optimization': 11690,

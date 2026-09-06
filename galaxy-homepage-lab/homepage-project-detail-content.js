@@ -65,29 +65,29 @@
     return `
       <article class="project-archive">
         <section class="project-archive-intro">
-          <p class="project-archive-label">Project thesis</p>
+          <p class="project-archive-label">In short</p>
           <h2 class="project-archive-thesis">${escapeHtml(object.lede || '')}</h2>
           <div class="project-archive-facts">${facts}</div>
         </section>
 
-        ${section('Overview', `<p class="project-archive-summary">${escapeHtml(detail.summary)}</p>`)}
+        ${section('About', `<p class="project-archive-summary">${escapeHtml(detail.summary)}</p>`)}
 
-        ${section('Architecture', `<ol class="project-architecture-list">${architecture}</ol>`)}
+        ${section('How it works', `<ol class="project-architecture-list">${architecture}</ol>`)}
 
         <div class="project-archive-pair">
-          ${section('Key work', listMarkup(detail.highlights, 'project-archive-list'), 'project-archive-half')}
+          ${section('What I built', listMarkup(detail.highlights, 'project-archive-list'), 'project-archive-half')}
           ${section('Challenges', listMarkup(detail.challenges, 'project-archive-list'), 'project-archive-half')}
         </div>
 
-        ${section('Outputs', listMarkup(detail.outputs, 'project-output-list'))}
+        ${section('Current result', listMarkup(detail.outputs, 'project-output-list'))}
 
-        ${section('Technology', `<div class="project-stack-list">${stack}</div>`)}
+        ${section('Stack', `<div class="project-stack-list">${stack}</div>`)}
 
         ${section('Progress', `<ol class="project-progress-list">${stages}</ol>`)}
 
         ${section('Next', `<p class="project-next-copy">${escapeHtml(detail.next)}</p>${links ? `<div class="project-archive-links">${links}</div>` : ''}`, 'project-archive-next')}
 
-        <p class="project-archive-object">Object ${escapeHtml(object.order)} · ${escapeHtml(object.star?.classLabel || 'Stellar archive')}</p>
+        <p class="project-archive-object">Project ${escapeHtml(object.order)} · ${escapeHtml(object.title)}</p>
       </article>
     `;
   }

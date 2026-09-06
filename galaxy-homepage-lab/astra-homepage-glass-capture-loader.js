@@ -54,6 +54,7 @@ source = replaceOnce(
 const detailOverlayCamera = new THREE.PerspectiveCamera(CONFIG.fov, 1, CONFIG.near, CONFIG.far);
 const detailOverlayPass = new RenderPass(detailOverlayScene, detailOverlayCamera);
 detailOverlayPass.clear = false;
+detailOverlayPass.enabled = false;
 composer.addPass(detailOverlayPass);
 composer.addPass(new EffectPass(camera, bloom, new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC })));\`,
   'Shared detail star HDR overlay pass',
@@ -74,6 +75,7 @@ const starFlight = window.__SMIREL_STAR_FLIGHT_INSTALL__?.({
   reducedMotion,
   detailOverlayScene,
   detailOverlayCamera,
+  detailOverlayPass,
 }) || null;
 const cameraForward = new THREE.Vector3();\`,
   'Interactive star runtime install',

@@ -9,37 +9,32 @@
     const controller = baseInstall(context);
     if (!controller) return controller;
 
-    const { THREE, camera, brightField, canvas } = context || {};
-    if (!THREE || !camera || !brightField?.geometry) return controller;
+    const { THREE, camera, canvas } = context || {};
+    if (!THREE || !camera) return controller;
+    if (typeof controller.resolveAnchors !== 'function' || typeof controller.getAnchor !== 'function') {
+      console.error('[homepage-star-constellation] fixed anchor registry unavailable');
+      return controller;
+    }
 
     const catalog = Array.isArray(controller.catalog)
       ? controller.catalog
       : (window.__SMIREL_STELLAR_CATALOG__ || []);
-    const positions = brightField.geometry.getAttribute('position');
-    const brightness = brightField.geometry.getAttribute('starBrightness');
-    const colors = brightField.geometry.getAttribute('starColor');
-    if (!positions || !brightness || !colors) return controller;
-
     const fields = catalog.filter((item) => item.kind === 'field' && item.constellation?.nodes?.length);
     if (!fields.length) return controller;
 
     const objectById = new Map(catalog.map((item) => [item.id, item]));
-    const spatialAnchors = new Map();
     const projected = new Map();
     const fieldButtons = new Map();
     const companionButtons = new Map();
     const edgeElements = new Map();
 
-    let anchorsResolved = false;
+    let overlayBuilt = false;
     let openFieldId = null;
     let persistentFieldId = null;
     let closeTimer = 0;
 
     const scratch = {
-      world: new THREE.Vector3(),
       projected: new THREE.Vector3(),
-      candidateColor: new THREE.Color(),
-      targetColor: new THREE.Color(),
     };
     const projectionViewport = { width: 1, height: 1 };
 
@@ -318,12 +313,6 @@
     }
     syncProjectionViewport();
 
-    function pointInsideExpandedRect(x, y, rect, margin) {
-      if (!rect) return false;
-      return x >= rect.left - margin && x <= rect.right + margin
-        && y >= rect.top - margin && y <= rect.bottom + margin;
-    }
-
     function resetCompanionPresentation(button, clearTransform = false) {
       if (!button) return;
       button.style.opacity = '';
@@ -334,117 +323,6 @@
     function resetEdgePresentation(line) {
       if (!line) return;
       line.style.opacity = '';
-    }
-
-    function resolveSpatialAnchors(viewport = projectionViewport) {
-      if (anchorsResolved || camera.aspect <= 0) return;
-
-      const introRect = document.querySelector('.home-intro')?.getBoundingClientRect() || null;
-      const indexRect = document.querySelector('.home-index')?.getBoundingClientRect() || null;
-      const viewportWidth = viewport.width;
-      const viewportHeight = viewport.height;
-      const usedAnchorIndices = new Set();
-      const chosenProjected = [];
-      const reservedFixedIndices = new Set(
-        catalog
-          .map((object) => object.star?.fixedIndex)
-          .filter((index) => Number.isInteger(index) && index >= 0 && index < positions.count),
-      );
-
-      const bindSpatialAnchor = (object, index) => {
-        const position = new THREE.Vector3().fromBufferAttribute(positions, index);
-        spatialAnchors.set(object.id, { object, index, position });
-        usedAnchorIndices.add(index);
-        scratch.projected.copy(position).project(camera);
-        chosenProjected.push({ x: scratch.projected.x, y: scratch.projected.y });
-      };
-
-      // Fixed constellations are authored objects. Bind them first so dynamically
-      // resolved fields must route around their already-owned screen territory.
-      for (const object of catalog) {
-        const fixedIndex = object.star?.fixedIndex;
-        if (!Number.isInteger(fixedIndex)) continue;
-        if (fixedIndex >= 0 && fixedIndex < positions.count && !usedAnchorIndices.has(fixedIndex)) {
-          bindSpatialAnchor(object, fixedIndex);
-        } else {
-          console.warn(`[homepage-star-constellation] fixed star index unavailable for ${object.id}: ${fixedIndex}`);
-        }
-      }
-
-      for (const object of catalog) {
-        if (Number.isInteger(object.star?.fixedIndex)) continue;
-
-        const target = object.star?.target || [0, 0];
-        const depthRange = object.star?.depth || [13, 38];
-        const requestedBrightness = object.star?.minBrightness ?? 1.8;
-        const brightnessPasses = [requestedBrightness, Math.max(1.35, requestedBrightness - 0.55), 1.05];
-        scratch.targetColor.set(object.star?.tint || '#d8efff');
-
-        let bestIndex = -1;
-        let bestScore = -Infinity;
-        let bestProjectedX = 0;
-        let bestProjectedY = 0;
-
-        for (const minBrightness of brightnessPasses) {
-          for (let i = 0; i < positions.count; i += 1) {
-            if (usedAnchorIndices.has(i) || reservedFixedIndices.has(i)) continue;
-            const b = brightness.getX(i);
-            if (b < minBrightness) continue;
-
-            scratch.world.fromBufferAttribute(positions, i);
-            const depth = -scratch.world.z;
-            if (depth < depthRange[0] || depth > depthRange[1]) continue;
-
-            scratch.projected.copy(scratch.world).project(camera);
-            if (scratch.projected.z < -1 || scratch.projected.z > 1) continue;
-            if (Math.abs(scratch.projected.x) > 0.86 || Math.abs(scratch.projected.y) > 0.82) continue;
-
-            const screenX = (scratch.projected.x * 0.5 + 0.5) * viewportWidth;
-            const screenY = (-scratch.projected.y * 0.5 + 0.5) * viewportHeight;
-            if (pointInsideExpandedRect(screenX, screenY, introRect, 42)) continue;
-            if (pointInsideExpandedRect(screenX, screenY, indexRect, 34)) continue;
-
-            let tooClose = false;
-            for (const previous of chosenProjected) {
-              const px = scratch.projected.x - previous.x;
-              const py = scratch.projected.y - previous.y;
-              if (px * px + py * py < 0.0225) {
-                tooClose = true;
-                break;
-              }
-            }
-            if (tooClose) continue;
-
-            scratch.candidateColor.setRGB(colors.getX(i), colors.getY(i), colors.getZ(i));
-            const colorDistance = Math.sqrt(
-              (scratch.candidateColor.r - scratch.targetColor.r) ** 2
-              + (scratch.candidateColor.g - scratch.targetColor.g) ** 2
-              + (scratch.candidateColor.b - scratch.targetColor.b) ** 2
-            );
-            const dx = scratch.projected.x - target[0];
-            const dy = scratch.projected.y - target[1];
-            const positionPenalty = Math.sqrt(dx * dx + dy * dy);
-            const depthCentre = (depthRange[0] + depthRange[1]) * 0.5;
-            const depthPenalty = Math.abs(depth - depthCentre) / Math.max(depthRange[1] - depthRange[0], 1);
-            const score = b * 0.40 - positionPenalty * 3.55 - colorDistance * 0.70 - depthPenalty * 0.18;
-
-            if (score > bestScore) {
-              bestScore = score;
-              bestIndex = i;
-              bestProjectedX = scratch.projected.x;
-              bestProjectedY = scratch.projected.y;
-            }
-          }
-          if (bestIndex >= 0) break;
-        }
-
-        if (bestIndex < 0) continue;
-        bindSpatialAnchor(object, bestIndex);
-        chosenProjected[chosenProjected.length - 1] = { x: bestProjectedX, y: bestProjectedY };
-      }
-
-      anchorsResolved = true;
-      buildOverlayObjects();
     }
 
     function companionMeta(object) {
@@ -553,16 +431,30 @@
     }
 
     function buildOverlayObjects() {
+      if (overlayBuilt) return true;
+      if (!controller.resolveAnchors()) return false;
+
       for (const field of fields) {
-        if (!spatialAnchors.has(field.id)) continue;
+        if (!controller.getAnchor(field.id)) continue;
         createFieldButton(field);
         const nodes = field.constellation?.nodes || [];
         nodes.forEach((id, index) => {
           const object = objectById.get(id);
-          if (object && spatialAnchors.has(id)) createCompanionButton(field, object, index);
+          if (object && controller.getAnchor(id)) createCompanionButton(field, object, index);
         });
         createEdges(field);
       }
+      overlayBuilt = true;
+      return true;
+    }
+
+    function resolveSpatialAnchors() {
+      return buildOverlayObjects();
+    }
+
+    function getSpatialAnchor(objectId) {
+      if (!resolveSpatialAnchors()) return null;
+      return controller.getAnchor(objectId) || null;
     }
 
     function cancelScheduledClose() {
@@ -585,6 +477,7 @@
     }
 
     function openConstellation(fieldId, persistent = false) {
+      if (!resolveSpatialAnchors()) return false;
       const field = objectById.get(fieldId);
       if (!field?.constellation) return false;
       if (document.body.classList.contains('star-flight-active')) return false;
@@ -638,8 +531,8 @@
     }
 
     function projectAnchor(id, viewport = projectionViewport) {
-      const anchor = spatialAnchors.get(id);
-      if (!anchor) return null;
+      const anchor = controller.getAnchor(id);
+      if (!anchor?.position) return null;
       scratch.projected.copy(anchor.position).project(camera);
       const visible = scratch.projected.z >= -1 && scratch.projected.z <= 1
         && Math.abs(scratch.projected.x) <= 1.20
@@ -745,7 +638,7 @@
     window.addEventListener('resize', syncProjectionViewport, { passive: true });
 
     controller.resolveSpatialAnchors = resolveSpatialAnchors;
-    controller.getSpatialAnchor = (objectId) => spatialAnchors.get(objectId) || null;
+    controller.getSpatialAnchor = getSpatialAnchor;
     controller.getProjectionViewport = () => projectionViewport;
     controller.syncProjectionViewport = syncProjectionViewport;
     controller.constellation = {
@@ -760,7 +653,7 @@
     controller.update = (now, dt, elapsed) => {
       const ownsCamera = baseUpdate(now, dt, elapsed);
       const viewport = syncProjectionViewport();
-      resolveSpatialAnchors(viewport);
+      resolveSpatialAnchors();
       updateFieldButtons(viewport);
 
       if (persistentFieldId && !document.body.classList.contains('star-flight-active')) {

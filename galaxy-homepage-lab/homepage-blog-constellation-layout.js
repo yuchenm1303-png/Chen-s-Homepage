@@ -10,7 +10,7 @@
   const FIXED_INDICES = Object.freeze({
     about: 12089,
     'about-identity': 14726,
-    'about-study': 8036,
+    'about-study': 1420,
     'about-work': 8587,
     'about-place': 13626,
     projects: 12636,

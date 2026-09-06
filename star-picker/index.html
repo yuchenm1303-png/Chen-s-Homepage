@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#05070b" />
+  <title>Smirel · Star Picker</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #05070b;
+      --panel: rgba(8, 11, 17, 0.86);
+      --panel-strong: rgba(10, 14, 22, 0.96);
+      --line: rgba(190, 210, 235, 0.16);
+      --line-strong: rgba(215, 230, 248, 0.28);
+      --text: #f5f7fa;
+      --muted: #8f99a9;
+      --soft: #bac3d0;
+      --accent: #f3d8a5;
+      --accent-2: #a8d8ff;
+      --good: #9de4b8;
+      --warn: #ffd59a;
+      --bad: #ff9f9f;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--bg); }
+    body { color: var(--text); }
+    button, input, textarea { font: inherit; }
+    button { color: inherit; }
+
+    #pickerCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: radial-gradient(circle at 50% 50%, #0a0e17 0%, #05070b 55%, #020305 100%);
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .topbar {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      right: 390px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      min-width: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 12px;
+      font-weight: 750;
+      text-shadow: 0 1px 8px #000;
+    }
+
+    .brand small {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: none;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .mode-switch {
+      pointer-events: auto;
+      display: flex;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(5, 8, 13, 0.72);
+      backdrop-filter: blur(16px);
+    }
+
+    .mode-switch button {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 13px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .mode-switch button.active {
+      background: rgba(255,255,255,0.10);
+      color: var(--text);
+    }
+
+    .panel {
+      position: fixed;
+      z-index: 30;
+      top: 14px;
+      right: 14px;
+      width: 356px;
+      max-height: calc(100vh - 28px);
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--line-strong);
+      border-radius: 18px;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(12,16,24,0.94), rgba(6,9,14,0.92));
+      box-shadow: 0 24px 80px rgba(0,0,0,.42);
+      backdrop-filter: blur(24px) saturate(1.1);
+    }
+
+    .panel-head {
+      padding: 16px 17px 13px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-head h1 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .panel-head p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .source-line {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--soft);
+    }
+
+    .status-pill {
+      padding: 4px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      white-space: nowrap;
+    }
+
+    .status-pill.good { color: var(--good); border-color: rgba(157,228,184,.24); }
+    .status-pill.bad { color: var(--bad); border-color: rgba(255,159,159,.24); }
+
+    .panel-scroll {
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.22) transparent;
+    }
+
+    .section {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: var(--soft);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .help {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      margin-top: 11px;
+    }
+
+    .btn {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 7px 9px;
+      background: rgba(255,255,255,.035);
+      color: var(--soft);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      transition: border-color .16s ease, background .16s ease, color .16s ease;
+    }
+
+    .btn:hover { background: rgba(255,255,255,.075); border-color: var(--line-strong); color: var(--text); }
+    .btn.primary { border-color: rgba(243,216,165,.30); color: #fff2d6; background: rgba(243,216,165,.075); }
+    .btn.danger { color: #ffb5b5; }
+
+    .filters {
+      display: grid;
+      gap: 10px;
+    }
+
+    .filter-row {
+      display: grid;
+      grid-template-columns: 92px 1fr 44px;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .filter-row output { text-align: right; color: var(--soft); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; accent-color: #d8e9ff; }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .toggle-row input { accent-color: #d8e9ff; }
+
+    .roles {
+      display: grid;
+      gap: 6px;
+    }
+
+    .role-row {
+      display: grid;
+      grid-template-columns: 24px minmax(0,1fr) auto;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 8px 8px 8px 7px;
+      background: rgba(255,255,255,.018);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .role-row:hover { background: rgba(255,255,255,.045); }
+    .role-row.active { border-color: rgba(243,216,165,.42); background: rgba(243,216,165,.07); }
+    .role-row.assigned .role-num { color: var(--accent); border-color: rgba(243,216,165,.36); }
+
+    .role-num {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .role-copy { min-width: 0; }
+    .role-copy strong { display: block; font-size: 11px; line-height: 1.25; color: var(--text); }
+    .role-copy small { display: block; margin-top: 3px; font-size: 9px; color: var(--muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+    .role-index {
+      min-width: 44px;
+      text-align: right;
+      color: var(--soft);
+      font: 700 10px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .role-safety {
+      display: block;
+      margin-top: 2px;
+      font-size: 8px;
+      font-family: inherit;
+      font-weight: 700;
+    }
+    .role-safety.good { color: var(--good); }
+    .role-safety.warn { color: var(--warn); }
+    .role-safety.bad { color: var(--bad); }
+
+    .export-box {
+      width: 100%;
+      height: 116px;
+      resize: none;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(0,0,0,.24);
+      color: #cbd6e4;
+      font: 10px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      outline: none;
+    }
+
+    .marker-layer, .reserved-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 12;
+      pointer-events: none;
+    }
+
+    .selection-marker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      min-width: 24px;
+      height: 24px;
+      padding: 0 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      border: 1px solid rgba(255,238,201,.72);
+      border-radius: 999px;
+      background: rgba(8,10,14,.78);
+      box-shadow: 0 0 18px rgba(255,222,165,.20);
+      color: #fff0d3;
+      font-size: 9px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .selection-marker span { color: #aab5c4; font: 700 8px/1 ui-monospace, monospace; }
+
+    .hover-tip {
+      position: fixed;
+      z-index: 40;
+      pointer-events: none;
+      display: none;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid var(--line-strong);
+      background: rgba(5,8,12,.92);
+      color: var(--text);
+      font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      box-shadow: 0 10px 30px rgba(0,0,0,.28);
+      white-space: nowrap;
+    }
+
+    .reserved-zone {
+      position: absolute;
+      display: none;
+      border: 1px dashed rgba(166,198,228,.26);
+      background: rgba(97,138,179,.035);
+      border-radius: 14px;
+    }
+    .reserved-layer.show .reserved-zone { display: block; }
+    .reserved-zone.profile { left: 3%; top: 4.5%; width: 26%; height: 23%; }
+    .reserved-zone.explore { right: 4%; bottom: 5%; width: 25%; height: 35%; }
+    .reserved-zone::after {
+      content: attr(data-label);
+      position: absolute;
+      left: 8px;
+      top: 7px;
+      color: rgba(175,198,221,.48);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .statusbar {
+      position: fixed;
+      z-index: 18;
+      left: 18px;
+      bottom: 16px;
+      right: 390px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      pointer-events: none;
+      color: #9ca8b7;
+      font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      text-shadow: 0 1px 8px #000;
+    }
+
+    .statusbar strong { color: #eef3f8; font-weight: 700; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 48px;
+      z-index: 60;
+      transform: translate(-50%, 12px);
+      padding: 9px 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: rgba(7,10,15,.94);
+      color: var(--text);
+      font-size: 11px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 880px) {
+      .panel { width: min(340px, calc(100vw - 20px)); top: 10px; right: 10px; max-height: calc(100vh - 20px); }
+      .topbar { right: 18px; top: auto; bottom: 16px; left: 16px; }
+      .brand small { display: none; }
+      .statusbar { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="pickerCanvas" aria-label="Smirel 3D star picker"></canvas>
+
+  <div class="topbar">
+    <div class="brand">SMIREL / STAR PICKER <small>production bright field · 14,800 fixed stars</small></div>
+    <div class="mode-switch" aria-label="Camera mode">
+      <button type="button" class="active" data-camera-mode="orbit">3D 自由视角</button>
+      <button type="button" data-camera-mode="home">主页投影视角</button>
+    </div>
+  </div>
+
+  <aside class="panel" aria-label="Star picker controls">
+    <div class="panel-head">
+      <h1>在真实三维星场里选星</h1>
+      <p>拖拽旋转、右键平移、滚轮缩放。轻点一颗星会把它绑定到当前角色；切到“主页投影视角”后，鼠标移动与正式主页相机完全一致。</p>
+      <div class="source-line">
+        <span>source <code id="sourceRelease"></code> · seed 0xA57A2D31</span>
+        <span class="status-pill" id="selfCheck">校验中</span>
+      </div>
+    </div>
+
+    <div class="panel-scroll">
+      <section class="section">
+        <div class="section-title"><span>01 / 操作</span><span id="modeHint">Orbit</span></div>
+        <p class="help">当前高亮角色：<strong id="activeRoleName">BLOG 主星</strong>。点击星点后会自动跳到下一个未选择角色。拖动不会误选。</p>
+        <div class="toolbar">
+          <button class="btn" id="resetView" type="button">重置视角</button>
+          <button class="btn" id="focusActive" type="button">聚焦当前星</button>
+          <button class="btn" id="loadProduction" type="button">载入当前正式星</button>
+          <button class="btn danger" id="clearAll" type="button">清空全部</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><span>02 / 筛选</span><span>只影响工具显示</span></div>
+        <div class="filters">
+          <label class="filter-row">最低亮度<input id="minBrightness" type="range" min="0.45" max="2.8" step="0.05" value="0.72"><output id="minBrightnessOut">0.72</output></label>
+          <label class="filter-row">最近深度<input id="minDepth" type="range" min="3" max="45" step="1" value="10"><output id="minDepthOut">10</output></label>
+          <label class="filter-row">最远深度<input id="maxDepth" type="range" min="8" max="50" step="1" value="36"><output id="maxDepthOut">36</output></label>
+          <label class="filter-row">点选半径<input id="pickRadius" type="range" min="7" max="26" step="1" value="14"><output id="pickRadiusOut">14px</output></label>
+        </div>
+        <label class="toggle-row"><span>非候选星淡化</span><input id="dimFiltered" type="checkbox" checked></label>
+        <label class="toggle-row"><span>显示当前选择连线</span><input id="showLinks" type="checkbox" checked></label>
+        <label class="toggle-row"><span>显示主页保留区域</span><input id="showReserved" type="checkbox"></label>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><span>03 / Blog 星位</span><span id="assignedCount">0 / 9</span></div>
+        <div class="roles" id="roles"></div>
+      </section>
+
+      <section class="section" style="border-bottom:0">
+        <div class="section-title"><span>04 / 导出</span><span>直接发给我即可</span></div>
+        <textarea class="export-box" id="exportBox" readonly></textarea>
+        <div class="toolbar">
+          <button class="btn primary" id="copyResult" type="button">复制选星结果</button>
+          <button class="btn" id="copyLink" type="button">复制分享链接</button>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <div class="reserved-layer" id="reservedLayer" aria-hidden="true">
+    <div class="reserved-zone profile" data-label="Profile reserved"></div>
+    <div class="reserved-zone explore" data-label="Explore reserved"></div>
+  </div>
+  <div class="marker-layer" id="markerLayer" aria-hidden="true"></div>
+  <div class="hover-tip" id="hoverTip"></div>
+
+  <div class="statusbar">
+    <span id="cameraStatus">camera —</span>
+    <span><strong>左拖</strong>旋转 · <strong>右拖</strong>平移 · <strong>滚轮</strong>缩放 · <strong>轻点</strong>选星</span>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

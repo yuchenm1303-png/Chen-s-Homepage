@@ -30,11 +30,10 @@
     }
 
     const positions = brightField.geometry.getAttribute('position');
-    const brightness = brightField.geometry.getAttribute('starBrightness');
     const colors = brightField.geometry.getAttribute('starColor');
     const opacity = brightField.geometry.getAttribute('starOpacity');
-    if (!positions || !brightness || !colors || !opacity) {
-      console.warn('[homepage-star-flight] bright-star attributes unavailable');
+    if (!positions || !colors || !opacity) {
+      console.warn('[homepage-star-flight] fixed-star attributes unavailable');
       return null;
     }
 
@@ -44,10 +43,9 @@
     const FINAL_FOV = 47;
 
     const anchors = new Map();
-    const usedAnchorIndices = new Set();
     const anchorButtons = new Map();
     let visibleKind = 'project';
-    let anchorsResolved = false;
+    let anchorsBound = false;
 
     const state = {
       mode: 'idle',
@@ -75,13 +73,11 @@
 
     const scratch = {
       projected: new THREE.Vector3(),
-      world: new THREE.Vector3(),
       forward: new THREE.Vector3(),
       travel: new THREE.Vector3(),
       side: new THREE.Vector3(),
       up: new THREE.Vector3(0, 1, 0),
       look: new THREE.Vector3(),
-      candidateColor: new THREE.Color(),
       targetColor: new THREE.Color(),
       modelColor: new THREE.Color(),
     };
@@ -245,27 +241,27 @@
       return out;
     }
 
-    function pointInsideExpandedRect(x, y, rect, margin) {
-      if (!rect) return false;
-      return x >= rect.left - margin && x <= rect.right + margin
-        && y >= rect.top - margin && y <= rect.bottom + margin;
-    }
+    function bindFixedAnchors() {
+      if (anchorsBound) return anchors.size === catalog.length;
 
-    function chooseAnchors() {
-      if (anchorsResolved || camera.aspect <= 0) return;
+      const claimedIndices = new Map();
+      let valid = true;
 
-      const introRect = document.querySelector('.home-intro')?.getBoundingClientRect() || null;
-      const indexRect = document.querySelector('.home-index')?.getBoundingClientRect() || null;
-      const viewportWidth = Math.max(window.innerWidth, 1);
-      const viewportHeight = Math.max(window.innerHeight, 1);
-      const chosenProjected = [];
-      const reservedFixedIndices = new Set(
-        catalog
-          .map((object) => object.star?.fixedIndex)
-          .filter((index) => Number.isInteger(index) && index >= 0 && index < positions.count),
-      );
+      for (const object of catalog) {
+        const index = object.star?.fixedIndex;
+        if (!Number.isInteger(index) || index < 0 || index >= positions.count) {
+          console.error(`[homepage-star-flight] missing authored fixedIndex for ${object.id}`);
+          valid = false;
+          continue;
+        }
 
-      const bindAnchor = (object, index) => {
+        const claimedBy = claimedIndices.get(index);
+        if (claimedBy) {
+          console.error(`[homepage-star-flight] duplicate fixedIndex ${index}: ${claimedBy} / ${object.id}`);
+          valid = false;
+          continue;
+        }
+
         const position = new THREE.Vector3().fromBufferAttribute(positions, index);
         const naturalColor = new THREE.Color(
           colors.getX(index),
@@ -278,93 +274,18 @@
           position,
           naturalColor,
           originalOpacity: opacity.getX(index),
+          fixed: true,
         });
-        usedAnchorIndices.add(index);
-        scratch.projected.copy(position).project(camera);
-        chosenProjected.push({ x: scratch.projected.x, y: scratch.projected.y });
-      };
-
-      for (const object of catalog) {
-        const fixedIndex = object.star?.fixedIndex;
-        if (Number.isInteger(fixedIndex)) {
-          if (fixedIndex >= 0 && fixedIndex < positions.count && !usedAnchorIndices.has(fixedIndex)) {
-            bindAnchor(object, fixedIndex);
-            continue;
-          }
-          console.warn(`[homepage-star-flight] fixed star index unavailable for ${object.id}: ${fixedIndex}`);
-        }
-
-        const target = object.star?.target || [0, 0];
-        const depthRange = object.star?.depth || [13, 38];
-        const requestedBrightness = object.star?.minBrightness ?? 1.8;
-        const brightnessPasses = [requestedBrightness, Math.max(1.35, requestedBrightness - 0.55), 1.05];
-        scratch.targetColor.set(object.star?.tint || '#d8efff');
-
-        let bestIndex = -1;
-        let bestScore = -Infinity;
-        let bestProjectedX = 0;
-        let bestProjectedY = 0;
-
-        for (const minBrightness of brightnessPasses) {
-          for (let i = 0; i < positions.count; i += 1) {
-            if (usedAnchorIndices.has(i) || reservedFixedIndices.has(i)) continue;
-            const b = brightness.getX(i);
-            if (b < minBrightness) continue;
-
-            scratch.world.fromBufferAttribute(positions, i);
-            const depth = -scratch.world.z;
-            if (depth < depthRange[0] || depth > depthRange[1]) continue;
-
-            scratch.projected.copy(scratch.world).project(camera);
-            if (scratch.projected.z < -1 || scratch.projected.z > 1) continue;
-            if (Math.abs(scratch.projected.x) > 0.86 || Math.abs(scratch.projected.y) > 0.82) continue;
-
-            const screenX = (scratch.projected.x * 0.5 + 0.5) * viewportWidth;
-            const screenY = (-scratch.projected.y * 0.5 + 0.5) * viewportHeight;
-            if (pointInsideExpandedRect(screenX, screenY, introRect, 42)) continue;
-            if (pointInsideExpandedRect(screenX, screenY, indexRect, 34)) continue;
-
-            let tooClose = false;
-            for (const previous of chosenProjected) {
-              const px = scratch.projected.x - previous.x;
-              const py = scratch.projected.y - previous.y;
-              if (px * px + py * py < 0.0225) {
-                tooClose = true;
-                break;
-              }
-            }
-            if (tooClose) continue;
-
-            scratch.candidateColor.setRGB(colors.getX(i), colors.getY(i), colors.getZ(i));
-            const colorDistance = Math.sqrt(
-              (scratch.candidateColor.r - scratch.targetColor.r) ** 2
-              + (scratch.candidateColor.g - scratch.targetColor.g) ** 2
-              + (scratch.candidateColor.b - scratch.targetColor.b) ** 2
-            );
-            const dx = scratch.projected.x - target[0];
-            const dy = scratch.projected.y - target[1];
-            const positionPenalty = Math.sqrt(dx * dx + dy * dy);
-            const depthCentre = (depthRange[0] + depthRange[1]) * 0.5;
-            const depthPenalty = Math.abs(depth - depthCentre) / Math.max(depthRange[1] - depthRange[0], 1);
-            const score = b * 0.40 - positionPenalty * 3.55 - colorDistance * 0.70 - depthPenalty * 0.18;
-
-            if (score > bestScore) {
-              bestScore = score;
-              bestIndex = i;
-              bestProjectedX = scratch.projected.x;
-              bestProjectedY = scratch.projected.y;
-            }
-          }
-          if (bestIndex >= 0) break;
-        }
-
-        if (bestIndex < 0) continue;
-        bindAnchor(object, bestIndex);
-        chosenProjected[chosenProjected.length - 1] = { x: bestProjectedX, y: bestProjectedY };
+        claimedIndices.set(index, object.id);
       }
 
-      anchorsResolved = true;
+      anchorsBound = true;
+      if (anchors.size !== catalog.length) valid = false;
+      if (!valid) {
+        console.error('[homepage-star-flight] authored anchor registry is incomplete; refusing to substitute stars');
+      }
       updateAnchorButtons();
+      return valid;
     }
 
     let starGroup = null;
@@ -607,10 +528,10 @@
     }
 
     function beginFlight(objectId) {
-      if (state.mode !== 'idle') return;
-      chooseAnchors();
+      if (state.mode !== 'idle') return false;
+      if (!bindFixedAnchors()) return false;
       const anchor = anchors.get(objectId);
-      if (!anchor) return;
+      if (!anchor) return false;
 
       if (document.body.classList.contains('home-panel-open')) {
         document.querySelector('.home-panel-close')?.click();
@@ -667,10 +588,11 @@
       document.body.classList.remove('star-flight-arrived');
       updateAnchorButtons();
       window.dispatchEvent(new CustomEvent('smirel:stellar-object', { detail: state.activeObject }));
+      return true;
     }
 
     function beginReturn() {
-      if (state.mode !== 'arrived') return;
+      if (state.mode !== 'arrived') return false;
       state.mode = 'returning';
       state.startedAt = performance.now();
       state.duration = RETURN_DURATION_MS;
@@ -678,6 +600,7 @@
       state.returnStartQuaternion.copy(camera.quaternion);
       state.returnStartFov = camera.fov;
       document.body.classList.remove('star-flight-arrived');
+      return true;
     }
 
     backButton.addEventListener('click', beginReturn);
@@ -808,10 +731,21 @@
       get catalog() {
         return catalog;
       },
+      resolveAnchors: bindFixedAnchors,
+      getAnchor(objectId) {
+        bindFixedAnchors();
+        return anchors.get(objectId) || null;
+      },
+      get fixedAnchorRegistry() {
+        bindFixedAnchors();
+        return Object.freeze(Object.fromEntries(
+          [...anchors].map(([id, anchor]) => [id, anchor.index]),
+        ));
+      },
       openObject: beginFlight,
       setVisibleKind,
       update(now, dt, elapsed) {
-        chooseAnchors();
+        bindFixedAnchors();
 
         if (state.mode === 'idle') {
           updateAnchorButtons();

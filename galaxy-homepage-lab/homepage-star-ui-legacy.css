@@ -1,0 +1,164 @@
+/* Restore the lighter pre-field stellar marker language without touching
+   constellation geometry, animation, camera ownership, or interaction state. */
+
+body .smirel-field-star {
+  width: 58px;
+  height: 58px;
+  margin: -29px 0 0 -29px;
+  color: rgba(242,248,255,.94);
+}
+
+body .smirel-field-star::before {
+  inset: 13px;
+  border-color: color-mix(in srgb, var(--field-color) 42%, transparent);
+  transform: scale(.72);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--field-color) 14%, transparent),
+    inset 0 0 10px rgba(255,255,255,.06);
+  transition:
+    transform .30s cubic-bezier(.2,.8,.2,1),
+    border-color .30s ease,
+    box-shadow .30s ease;
+}
+
+body .smirel-field-star::after {
+  width: 3px;
+  height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  box-shadow: 0 0 10px var(--field-color);
+}
+
+body .smirel-field-star:hover::before,
+body .smirel-field-star:focus-visible::before,
+body .smirel-field-star.is-preview::before {
+  transform: scale(1);
+  border-color: color-mix(in srgb, var(--field-color) 82%, white 18%);
+  box-shadow:
+    0 0 26px color-mix(in srgb, var(--field-color) 28%, transparent),
+    inset 0 0 13px rgba(255,255,255,.10);
+}
+
+body .smirel-field-star__label {
+  left: 52px;
+  top: 20px;
+  gap: 8px;
+  opacity: .62;
+  transform: translateX(0);
+  text-shadow: 0 1px 12px #000, 0 0 18px #000;
+  transition: opacity .22s ease, transform .22s ease;
+}
+
+body .smirel-field-star__label strong {
+  color: rgba(242,248,255,.94);
+  font: 600 9px/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .14em;
+}
+
+body .smirel-field-star__label small {
+  color: rgba(255,255,255,.44);
+  font: 600 8px/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .12em;
+}
+
+body .smirel-field-star:hover .smirel-field-star__label,
+body .smirel-field-star:focus-visible .smirel-field-star__label,
+body .smirel-field-star.is-preview .smirel-field-star__label {
+  opacity: .96;
+}
+
+body .smirel-field-star:hover .smirel-field-star__label strong,
+body .smirel-field-star:focus-visible .smirel-field-star__label strong,
+body .smirel-field-star.is-preview .smirel-field-star__label strong {
+  color: rgba(242,248,255,.94);
+}
+
+body .smirel-companion-star {
+  width: 38px;
+  height: 38px;
+  margin: -19px 0 0 -19px;
+}
+
+body .smirel-companion-star::before {
+  inset: 11px;
+  border-color: color-mix(in srgb, var(--companion-color) 40%, transparent);
+  transform: scale(.62);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--companion-color) 15%, transparent);
+}
+
+body .smirel-companion-star::after {
+  width: 3px;
+  height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  box-shadow: 0 0 9px var(--companion-color);
+}
+
+body .smirel-companion-star.is-open::before {
+  transform: scale(1);
+}
+
+body .smirel-companion-star:hover::before,
+body .smirel-companion-star:focus-visible::before {
+  border-color: color-mix(in srgb, var(--companion-color) 82%, white 18%);
+  box-shadow: 0 0 21px color-mix(in srgb, var(--companion-color) 28%, transparent);
+}
+
+body .smirel-companion-label {
+  left: 34px;
+  top: 10px;
+  opacity: .74;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+body .smirel-companion-label strong {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  color: rgba(248,251,255,.92);
+  font: 620 9px/1.05 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .105em;
+}
+
+body .smirel-companion-label small {
+  color: rgba(255,255,255,.42);
+  font: 560 7.5px/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .11em;
+}
+
+body.star-field-open .smirel-companion-label {
+  opacity: .74;
+}
+
+body .smirel-companion-star:hover .smirel-companion-label,
+body .smirel-companion-star:focus-visible .smirel-companion-label,
+body.star-field-open .smirel-companion-star:hover .smirel-companion-label,
+body.star-field-open .smirel-companion-star:focus-visible .smirel-companion-label {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  body .smirel-field-star {
+    width: 58px;
+    height: 58px;
+    margin: -29px 0 0 -29px;
+  }
+
+  body .smirel-field-star__label {
+    left: 52px;
+    top: 20px;
+    opacity: .72;
+  }
+
+  body .smirel-field-star__label strong {
+    font-size: 9px;
+  }
+
+  body .smirel-companion-label strong {
+    font-size: 8px;
+  }
+
+  body .smirel-companion-label small {
+    display: none;
+  }
+}

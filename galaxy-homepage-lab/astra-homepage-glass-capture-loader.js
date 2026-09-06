@@ -37,10 +37,10 @@ source = replaceOnce(
   source,
   /    composer\\.render\\(dt\\);\\n    lastCompositeMs = now;/,
   \`    const stellarBloomActive = document.body.classList.contains('star-flight-active');
-    const stellarBloomThreshold = stellarBloomActive ? 0.18 : CONFIG.bloomThreshold;
+    const stellarBloomThreshold = stellarBloomActive ? 0.38 : CONFIG.bloomThreshold;
     bloom.luminanceMaterial.uniforms.threshold.value = stellarBloomThreshold;
     bloom.intensity = stellarBloomActive ? 4.2 : CONFIG.bloomIntensity;
-    bloom.mipmapBlurPass.radius = stellarBloomActive ? 0.92 : CONFIG.bloomRadius;
+    bloom.mipmapBlurPass.radius = stellarBloomActive ? 0.48 : CONFIG.bloomRadius;
     composer.render(dt);\n    if (!stellarBloomActive) {\n      try {\n        window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n      } catch (error) {\n        console.warn('[homepage-liquid-glass] frame handoff failed', error);\n      }\n    }\n    lastCompositeMs = now;\`,
   'Synchronized homepage glass framebuffer handoff',
 );

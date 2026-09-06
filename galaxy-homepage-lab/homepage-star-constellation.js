@@ -9,7 +9,7 @@
     const controller = baseInstall(context);
     if (!controller) return controller;
 
-    const { THREE, camera, brightField } = context || {};
+    const { THREE, camera, brightField, canvas } = context || {};
     if (!THREE || !camera || !brightField?.geometry) return controller;
 
     const catalog = Array.isArray(controller.catalog)
@@ -41,6 +41,7 @@
       candidateColor: new THREE.Color(),
       targetColor: new THREE.Color(),
     };
+    const projectionViewport = { width: 1, height: 1 };
 
     const style = document.createElement('style');
     style.dataset.smirelConstellation = 'true';
@@ -301,9 +302,21 @@
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.classList.add('smirel-constellation-map');
     svg.setAttribute('aria-hidden', 'true');
-    svg.setAttribute('viewBox', `0 0 ${Math.max(window.innerWidth, 1)} ${Math.max(window.innerHeight, 1)}`);
+    svg.setAttribute('viewBox', '0 0 1 1');
     svg.setAttribute('preserveAspectRatio', 'none');
     document.body.appendChild(svg);
+
+    function syncProjectionViewport() {
+      const width = Math.max(1, Math.floor(canvas?.clientWidth || window.innerWidth || 1));
+      const height = Math.max(1, Math.floor(canvas?.clientHeight || window.innerHeight || 1));
+      if (projectionViewport.width !== width || projectionViewport.height !== height) {
+        projectionViewport.width = width;
+        projectionViewport.height = height;
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      }
+      return projectionViewport;
+    }
+    syncProjectionViewport();
 
     function pointInsideExpandedRect(x, y, rect, margin) {
       if (!rect) return false;
@@ -323,20 +336,44 @@
       line.style.opacity = '';
     }
 
-    /* Keep this resolver byte-for-byte equivalent in behavior to the base flight
-       resolver. That makes a DOM constellation node and the star that openObject()
-       later approaches the same bright-field point, not two visually similar stars. */
-    function resolveSpatialAnchors() {
+    function resolveSpatialAnchors(viewport = projectionViewport) {
       if (anchorsResolved || camera.aspect <= 0) return;
 
       const introRect = document.querySelector('.home-intro')?.getBoundingClientRect() || null;
       const indexRect = document.querySelector('.home-index')?.getBoundingClientRect() || null;
-      const viewportWidth = Math.max(window.innerWidth, 1);
-      const viewportHeight = Math.max(window.innerHeight, 1);
+      const viewportWidth = viewport.width;
+      const viewportHeight = viewport.height;
       const usedAnchorIndices = new Set();
       const chosenProjected = [];
+      const reservedFixedIndices = new Set(
+        catalog
+          .map((object) => object.star?.fixedIndex)
+          .filter((index) => Number.isInteger(index) && index >= 0 && index < positions.count),
+      );
+
+      const bindSpatialAnchor = (object, index) => {
+        const position = new THREE.Vector3().fromBufferAttribute(positions, index);
+        spatialAnchors.set(object.id, { object, index, position });
+        usedAnchorIndices.add(index);
+        scratch.projected.copy(position).project(camera);
+        chosenProjected.push({ x: scratch.projected.x, y: scratch.projected.y });
+      };
+
+      // Fixed constellations are authored objects. Bind them first so dynamically
+      // resolved fields must route around their already-owned screen territory.
+      for (const object of catalog) {
+        const fixedIndex = object.star?.fixedIndex;
+        if (!Number.isInteger(fixedIndex)) continue;
+        if (fixedIndex >= 0 && fixedIndex < positions.count && !usedAnchorIndices.has(fixedIndex)) {
+          bindSpatialAnchor(object, fixedIndex);
+        } else {
+          console.warn(`[homepage-star-constellation] fixed star index unavailable for ${object.id}: ${fixedIndex}`);
+        }
+      }
 
       for (const object of catalog) {
+        if (Number.isInteger(object.star?.fixedIndex)) continue;
+
         const target = object.star?.target || [0, 0];
         const depthRange = object.star?.depth || [13, 38];
         const requestedBrightness = object.star?.minBrightness ?? 1.8;
@@ -350,7 +387,7 @@
 
         for (const minBrightness of brightnessPasses) {
           for (let i = 0; i < positions.count; i += 1) {
-            if (usedAnchorIndices.has(i)) continue;
+            if (usedAnchorIndices.has(i) || reservedFixedIndices.has(i)) continue;
             const b = brightness.getX(i);
             if (b < minBrightness) continue;
 
@@ -402,13 +439,8 @@
         }
 
         if (bestIndex < 0) continue;
-        spatialAnchors.set(object.id, {
-          object,
-          index: bestIndex,
-          position: new THREE.Vector3().fromBufferAttribute(positions, bestIndex),
-        });
-        usedAnchorIndices.add(bestIndex);
-        chosenProjected.push({ x: bestProjectedX, y: bestProjectedY });
+        bindSpatialAnchor(object, bestIndex);
+        chosenProjected[chosenProjected.length - 1] = { x: bestProjectedX, y: bestProjectedY };
       }
 
       anchorsResolved = true;
@@ -605,7 +637,7 @@
       return openConstellation(fieldId, true);
     }
 
-    function projectAnchor(id) {
+    function projectAnchor(id, viewport = projectionViewport) {
       const anchor = spatialAnchors.get(id);
       if (!anchor) return null;
       scratch.projected.copy(anchor.position).project(camera);
@@ -617,14 +649,14 @@
         return null;
       }
       const point = {
-        x: (scratch.projected.x * 0.5 + 0.5) * window.innerWidth,
-        y: (-scratch.projected.y * 0.5 + 0.5) * window.innerHeight,
+        x: (scratch.projected.x * 0.5 + 0.5) * viewport.width,
+        y: (-scratch.projected.y * 0.5 + 0.5) * viewport.height,
       };
       projected.set(id, point);
       return point;
     }
 
-    function updateFieldButtons() {
+    function updateFieldButtons(viewport) {
       const suppress = document.body.classList.contains('star-flight-active')
         || document.body.classList.contains('star-field-open')
         || document.body.classList.contains('star-field-transition');
@@ -637,7 +669,7 @@
           button.style.pointerEvents = 'none';
           continue;
         }
-        const point = projectAnchor(field.id);
+        const point = projectAnchor(field.id, viewport);
         if (!point) {
           button.style.opacity = '0';
           button.style.pointerEvents = 'none';
@@ -649,7 +681,7 @@
       }
     }
 
-    function updateCompanionsAndEdges() {
+    function updateCompanionsAndEdges(viewport) {
       if (!openFieldId) {
         for (const button of companionButtons.values()) resetCompanionPresentation(button);
         for (const line of edgeElements.values()) resetEdgePresentation(line);
@@ -668,9 +700,9 @@
         if (!activeNodes.has(id)) resetCompanionPresentation(button);
       }
 
-      projectAnchor(field.id);
+      projectAnchor(field.id, viewport);
       for (const id of nodeIds) {
-        const point = projectAnchor(id);
+        const point = projectAnchor(id, viewport);
         const button = companionButtons.get(id);
         if (!button) continue;
         if (!point || mapHidden) {
@@ -692,8 +724,8 @@
         activeEdgeKeys.add(key);
         const line = edgeElements.get(key);
         if (!line) return;
-        const from = projected.get(edge[0]) || projectAnchor(edge[0]);
-        const to = projected.get(edge[1]) || projectAnchor(edge[1]);
+        const from = projected.get(edge[0]) || projectAnchor(edge[0], viewport);
+        const to = projected.get(edge[1]) || projectAnchor(edge[1], viewport);
         if (!from || !to || mapHidden) {
           line.style.opacity = '0';
           return;
@@ -710,12 +742,12 @@
       }
     }
 
-    window.addEventListener('resize', () => {
-      svg.setAttribute('viewBox', `0 0 ${Math.max(window.innerWidth, 1)} ${Math.max(window.innerHeight, 1)}`);
-    }, { passive: true });
+    window.addEventListener('resize', syncProjectionViewport, { passive: true });
 
     controller.resolveSpatialAnchors = resolveSpatialAnchors;
     controller.getSpatialAnchor = (objectId) => spatialAnchors.get(objectId) || null;
+    controller.getProjectionViewport = () => projectionViewport;
+    controller.syncProjectionViewport = syncProjectionViewport;
     controller.constellation = {
       open: openConstellation,
       close: closeConstellation,
@@ -727,13 +759,14 @@
     const baseUpdate = controller.update.bind(controller);
     controller.update = (now, dt, elapsed) => {
       const ownsCamera = baseUpdate(now, dt, elapsed);
-      resolveSpatialAnchors();
-      updateFieldButtons();
+      const viewport = syncProjectionViewport();
+      resolveSpatialAnchors(viewport);
+      updateFieldButtons(viewport);
 
       if (persistentFieldId && !document.body.classList.contains('star-flight-active')) {
         if (openFieldId !== persistentFieldId) openConstellation(persistentFieldId, true);
       }
-      updateCompanionsAndEdges();
+      updateCompanionsAndEdges(viewport);
       return ownsCamera;
     };
 

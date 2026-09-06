@@ -4,11 +4,21 @@
   const catalog = window.__SMIREL_STELLAR_CATALOG__;
   if (!Array.isArray(catalog) || catalog.__smirelFieldLayouts) return;
 
-  // Companion stars are authored in field-local coordinates. The field primary owns
-  // the absolute screen target; every companion target is derived from that centre.
-  // This keeps a constellation together as one object instead of scattering its
-  // children across unrelated regions of the galaxy.
-  const LOCAL_DEPTH = Object.freeze([22, 32]);
+  // Production Blog stars are authored once against the deterministic bright field.
+  // Their indices are stable identities; runtime resolvers must not re-pick them.
+  const FIXED_INDICES = Object.freeze({
+    blog: 5596,
+    'building-homepage': 2630,
+    'opengl-liquid-glass': 2091,
+    'computer-use-design': 12368,
+    'gan-hemt-stability': 13739,
+    'ai-ledger-real-streaming': 3699,
+    'app-performance-optimization': 11690,
+    'compose-parent-bubble-rendering': 9499,
+    'ai-listing-research': 7482,
+  });
+
+  const LOCAL_DEPTH = Object.freeze([18, 32]);
   const COMPANION_MIN_BRIGHTNESS = 0.82;
 
   function freezePair(pair) {
@@ -29,30 +39,33 @@
 
   const layouts = Object.freeze({
     blog: makeFieldLayout({
-      centre: [-0.48, -0.56],
+      // Screen composition is intentionally open and asymmetric: BLOG remains the
+      // visual hub while four direct spokes establish hierarchy and the remaining
+      // articles continue through short natural branches. There is no closed loop.
+      centre: [-0.5868, -0.4530],
       offsets: {
-        'ai-ledger-real-streaming': [-0.16, 0.16],
-        'building-homepage': [0.04, 0.20],
-        'opengl-liquid-glass': [0.22, 0.12],
-        'computer-use-design': [0.34, -0.02],
-        'app-performance-optimization': [0.22, -0.20],
-        'compose-parent-bubble-rendering': [0.02, -0.24],
-        'gan-hemt-stability': [-0.18, -0.16],
-        'ai-listing-research': [-0.32, 0.00],
+        'building-homepage': [-0.1709, 0.1828],
+        'opengl-liquid-glass': [-0.1234, 0.3448],
+        'computer-use-design': [-0.1673, 0.7774],
+        'gan-hemt-stability': [0.1081, 0.8141],
+        'ai-ledger-real-streaming': [0.3978, 0.7458],
+        'app-performance-optimization': [0.1890, 0.3788],
+        'compose-parent-bubble-rendering': [0.3111, 0.2099],
+        'ai-listing-research': [0.3874, -0.0592],
       },
       edges: [
-        ['blog', 'ai-ledger-real-streaming'],
-        ['ai-ledger-real-streaming', 'building-homepage'],
-        ['building-homepage', 'opengl-liquid-glass'],
+        ['blog', 'building-homepage'],
+        ['blog', 'opengl-liquid-glass'],
+        ['blog', 'app-performance-optimization'],
+        ['blog', 'compose-parent-bubble-rendering'],
         ['opengl-liquid-glass', 'computer-use-design'],
-        ['computer-use-design', 'app-performance-optimization'],
-        ['app-performance-optimization', 'compose-parent-bubble-rendering'],
-        ['compose-parent-bubble-rendering', 'gan-hemt-stability'],
-        ['gan-hemt-stability', 'ai-listing-research'],
-        ['ai-listing-research', 'blog'],
+        ['computer-use-design', 'gan-hemt-stability'],
+        ['gan-hemt-stability', 'ai-ledger-real-streaming'],
+        ['compose-parent-bubble-rendering', 'ai-listing-research'],
       ],
     }),
 
+    // Keep the production Contact composition exactly as it was in the pinned release.
     contact: makeFieldLayout({
       centre: [0.54, 0.46],
       offsets: {
@@ -83,24 +96,25 @@
   const enriched = catalog.map((item) => {
     const fieldId = item.kind === 'field' ? item.id : item.parentField;
     const layout = layouts[fieldId];
-    if (!layout) return item;
+    const fixedIndex = FIXED_INDICES[item.id];
+    const hasFixedIndex = Number.isInteger(fixedIndex);
+    if (!layout && !hasFixedIndex) return item;
 
-    const target = absoluteTarget(layout, item);
+    const target = layout ? absoluteTarget(layout, item) : item.star?.target;
     const isPrimary = item.kind === 'field';
     const star = target && item.star
       ? Object.freeze({
           ...item.star,
           target,
           depth: LOCAL_DEPTH,
-          // Primary stars stay visibly dominant. Companion markers may use slightly
-          // dimmer real stars so geometry wins over brightness during anchor search.
           minBrightness: isPrimary
             ? Math.min(item.star.minBrightness ?? 1.8, 1.30)
             : COMPANION_MIN_BRIGHTNESS,
+          ...(hasFixedIndex ? { fixedIndex } : {}),
         })
       : item.star;
 
-    if (isPrimary) {
+    if (isPrimary && layout) {
       const constellation = Object.freeze({
         ...item.constellation,
         edges: layout.edges,
@@ -120,10 +134,11 @@
   const style = document.createElement('style');
   style.dataset.smirelFieldConstellationLayout = 'true';
   style.textContent = `
-    /* Labels point away from each constellation's centre so the silhouette and
-       connector lines remain readable in both hover preview and local-field view. */
+    /* Labels point into free screen space rather than all expanding toward the
+       same side. This keeps the authored fixed-star silhouette readable. */
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="opengl-liquid-glass"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="compose-parent-bubble-rendering"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label {
@@ -133,20 +148,26 @@
       text-align: right;
     }
 
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="building-homepage"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="opengl-liquid-glass"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-ledger-real-streaming"] .smirel-companion-label,
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="ai-listing-research"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-github"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-email"] .smirel-companion-label {
       top: -15px;
     }
 
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="building-homepage"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="app-performance-optimization"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="blog"][data-companion-id="compose-parent-bubble-rendering"] .smirel-companion-label,
-    .smirel-companion-star[data-parent-field="blog"][data-companion-id="gan-hemt-stability"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-phone"] .smirel-companion-label,
     .smirel-companion-star[data-parent-field="contact"][data-companion-id="contact-qq"] .smirel-companion-label {
       top: 19px;
+    }
+
+    .smirel-companion-star[data-parent-field="blog"][data-companion-id="computer-use-design"] .smirel-companion-label {
+      top: -25px;
     }
   `;
   document.head.appendChild(style);

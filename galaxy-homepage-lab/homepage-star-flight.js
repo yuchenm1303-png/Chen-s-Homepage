@@ -259,8 +259,41 @@
       const viewportWidth = Math.max(window.innerWidth, 1);
       const viewportHeight = Math.max(window.innerHeight, 1);
       const chosenProjected = [];
+      const reservedFixedIndices = new Set(
+        catalog
+          .map((object) => object.star?.fixedIndex)
+          .filter((index) => Number.isInteger(index) && index >= 0 && index < positions.count),
+      );
+
+      const bindAnchor = (object, index) => {
+        const position = new THREE.Vector3().fromBufferAttribute(positions, index);
+        const naturalColor = new THREE.Color(
+          colors.getX(index),
+          colors.getY(index),
+          colors.getZ(index),
+        );
+        anchors.set(object.id, {
+          object,
+          index,
+          position,
+          naturalColor,
+          originalOpacity: opacity.getX(index),
+        });
+        usedAnchorIndices.add(index);
+        scratch.projected.copy(position).project(camera);
+        chosenProjected.push({ x: scratch.projected.x, y: scratch.projected.y });
+      };
 
       for (const object of catalog) {
+        const fixedIndex = object.star?.fixedIndex;
+        if (Number.isInteger(fixedIndex)) {
+          if (fixedIndex >= 0 && fixedIndex < positions.count && !usedAnchorIndices.has(fixedIndex)) {
+            bindAnchor(object, fixedIndex);
+            continue;
+          }
+          console.warn(`[homepage-star-flight] fixed star index unavailable for ${object.id}: ${fixedIndex}`);
+        }
+
         const target = object.star?.target || [0, 0];
         const depthRange = object.star?.depth || [13, 38];
         const requestedBrightness = object.star?.minBrightness ?? 1.8;
@@ -274,7 +307,7 @@
 
         for (const minBrightness of brightnessPasses) {
           for (let i = 0; i < positions.count; i += 1) {
-            if (usedAnchorIndices.has(i)) continue;
+            if (usedAnchorIndices.has(i) || reservedFixedIndices.has(i)) continue;
             const b = brightness.getX(i);
             if (b < minBrightness) continue;
 
@@ -326,22 +359,8 @@
         }
 
         if (bestIndex < 0) continue;
-        const position = new THREE.Vector3().fromBufferAttribute(positions, bestIndex);
-        const naturalColor = new THREE.Color(
-          colors.getX(bestIndex),
-          colors.getY(bestIndex),
-          colors.getZ(bestIndex),
-        );
-        const anchor = {
-          object,
-          index: bestIndex,
-          position,
-          naturalColor,
-          originalOpacity: opacity.getX(bestIndex),
-        };
-        anchors.set(object.id, anchor);
-        usedAnchorIndices.add(bestIndex);
-        chosenProjected.push({ x: bestProjectedX, y: bestProjectedY });
+        bindAnchor(object, bestIndex);
+        chosenProjected[chosenProjected.length - 1] = { x: bestProjectedX, y: bestProjectedY };
       }
 
       anchorsResolved = true;

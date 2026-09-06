@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 92d19ccd14eca640f3c7e949f3d88fc12d9b51fa
+          ref: c6570323c697a5813df897495be4d08126a0ece4
           path: galaxy-release
           persist-credentials: false
 
@@ -50,8 +50,9 @@ jobs:
           test -s published/homepage-star-activity.js
           test -s published/homepage-star-picker-entry-v3.js
           test -s published/homepage-star-picker-v3.js
-          grep -q 'homepage-star-picker-entry-v3.js?build=' published/index.html
+          grep -q 'homepage-star-picker-entry-v3.js?build=93c984f4' published/index.html
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
+          grep -q '__SMIREL_STAR_PICKER_BOOTSTRAP_V4__' published/homepage-star-picker-entry-v3.js
           if grep -q 'stellar-homepage' published/index.html; then
             echo 'Unexpected stellar-homepage path in production root index' >&2
             exit 1

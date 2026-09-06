@@ -156,42 +156,48 @@
         float coolVeil = smoothstep(0.72, 0.94, broadThermal)
           * smoothstep(0.12, 0.84, animatedNoise * 0.5 + 0.5);
 
-        vec3 coldColor = uBaseColor * vec3(0.10, 0.14, 0.22);
-        vec3 hotStoneColor = uBaseColor * vec3(0.58, 0.70, 0.90);
-        vec3 brightColor = mix(uBaseColor, vec3(1.0, 0.91, 0.72), 0.28) * 1.52;
-        vec3 whiteHotColor = mix(uBaseColor, vec3(1.0), 0.82) * 2.20;
+        // A stellar photosphere must remain emissive even in its relatively
+        // cool cells. The previous floor was so low that the shader read as
+        // charred stone once the model was reduced in screen space.
+        vec3 coldColor = uBaseColor * vec3(0.30, 0.38, 0.52);
+        vec3 hotStoneColor = uBaseColor * vec3(0.80, 0.92, 1.08);
+        vec3 brightColor = mix(uBaseColor, vec3(1.0, 0.91, 0.72), 0.32) * 1.95;
+        vec3 whiteHotColor = mix(uBaseColor, vec3(1.0), 0.84) * 2.85;
 
         vec3 heatedStone = mix(coldColor, hotStoneColor, stoneHeat);
         heatedStone *= stoneTexture;
         heatedStone += hotStoneColor
           * pow(invertedHeat, 2.0)
-          * (0.12 + activity * 0.08);
+          * (0.18 + activity * 0.10);
 
         vec3 lava = brightColor
           * lavaTexture
           * pow(detailedLava, 0.54)
-          * (0.78 + activity * 0.34);
+          * (0.88 + activity * 0.38);
 
         vec3 body = heatedStone + lava;
-        body = mix(body, brightColor, hotIslands * (0.12 + activity * 0.12));
-        body += whiteHotColor * whiteHotIslands * (0.13 + activity * 0.14);
-        body += whiteHotColor * hotFilaments * (0.08 + activity * 0.10);
-        body *= 1.0 - coolVeil * (0.09 + activity * 0.05);
+        body = mix(body, brightColor, hotIslands * (0.16 + activity * 0.14));
+        body += whiteHotColor * whiteHotIslands * (0.18 + activity * 0.17);
+        body += whiteHotColor * hotFilaments * (0.11 + activity * 0.11);
+        body *= 1.0 - coolVeil * (0.045 + activity * 0.025);
 
-        // Preserve visible fine structure even outside the hottest patches.
+        // Preserve visible fine structure without allowing the darker half of
+        // the granulation to collapse back into a coal-like albedo.
         float microGranulation = microA * 0.62 + microB * 0.38;
-        float microContrast = (microGranulation - 0.5) * (0.18 + activity * 0.05);
+        float microContrast = (microGranulation - 0.5) * (0.14 + activity * 0.04);
         body *= 1.0 + microContrast;
+        vec3 radianceFloor = uBaseColor * (0.30 + thermalGrain * 0.10);
+        body = max(body, radianceFloor);
 
         vec3 viewDir = normalize(cameraPosition - vWorldPosition);
         float facing = max(dot(normalize(vWorldNormal), viewDir), 0.0);
         float limb = pow(facing, 0.30);
         float incandescentRim = pow(1.0 - facing, 6.0);
-        body *= mix(0.44, 1.0, limb);
-        body += brightColor * incandescentRim * (0.050 + activity * 0.035);
+        body *= mix(0.68, 1.04, limb);
+        body += brightColor * incandescentRim * (0.11 + activity * 0.075);
 
         float pulse = 0.996 + (0.003 + activity * 0.004) * sin(phaseTime * 0.88);
-        gl_FragColor = vec4(body * pulse, 1.0);
+        gl_FragColor = vec4(body * pulse * 1.34, 1.0);
       }
     `;
 
@@ -212,10 +218,10 @@
         vec3 p = normalize(vLocalPosition);
         float plume = noise3(p * 5.4 + vec3(phaseTime * 0.021, -phaseTime * 0.015, phaseTime * 0.012));
         float broken = smoothstep(0.34, 0.82, noise3(p * 11.5 + vec3(-phaseTime * 0.028, phaseTime * 0.019, 3.7)));
-        float alpha = fresnel * (0.018 + plume * (0.040 + 0.035 * activity))
+        float alpha = fresnel * (0.035 + plume * (0.070 + 0.050 * activity))
           * mix(0.62, 1.0, broken) * uStrength;
         vec3 color = mix(uBaseColor, vec3(0.88, 0.96, 1.0), 0.30)
-          * (0.82 + plume * (0.20 + 0.10 * activity));
+          * (1.05 + plume * (0.28 + 0.12 * activity));
         gl_FragColor = vec4(color, alpha);
       }
     `;
@@ -236,8 +242,8 @@
         float rim = pow(1.0 - facing, 7.0);
         vec3 p = normalize(vLocalPosition);
         float mottling = noise3(p * 12.0 + vec3(phaseTime * 0.032, -phaseTime * 0.020, phaseTime * 0.025));
-        float alpha = rim * (0.018 + mottling * (0.028 + 0.025 * activity));
-        vec3 color = mix(uBaseColor, vec3(1.0, 0.76, 0.48), 0.18) * (0.88 + mottling * 0.16);
+        float alpha = rim * (0.045 + mottling * (0.070 + 0.050 * activity));
+        vec3 color = mix(uBaseColor, vec3(1.0, 0.76, 0.48), 0.18) * (1.15 + mottling * 0.20);
         gl_FragColor = vec4(color, alpha);
       }
     `;

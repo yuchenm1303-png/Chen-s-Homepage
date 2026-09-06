@@ -49,7 +49,7 @@ source = replaceOnce(
 // second rectangular WebGL surface that can flash during ownership handoff.
 source = replaceOnce(
   source,
-  'composer.addPass(new EffectPass(camera, bloom, new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC })));',
+  /composer\\.addPass\\(new EffectPass\\(camera, bloom, new ToneMappingEffect\\(\\{ mode: ToneMappingMode\\.ACES_FILMIC \\}\\)\\)\\);/,
   \`const detailOverlayScene = new THREE.Scene();
 const detailOverlayCamera = new THREE.PerspectiveCamera(CONFIG.fov, 1, CONFIG.near, CONFIG.far);
 const detailOverlayPass = new RenderPass(detailOverlayScene, detailOverlayCamera);

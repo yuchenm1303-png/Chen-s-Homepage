@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 17336b49ae9eea9112a91bc1261809c5a22ee09c
+          ref: 4b895a6556e03a53df269f440ced974ddc9a4254
           path: galaxy-release
           persist-credentials: false
 
@@ -48,7 +48,8 @@ jobs:
           rsync -a galaxy-release/galaxy-homepage-lab/ published/
           test -s published/index.html
           test -s published/homepage-star-activity.js
-          test -s published/homepage-star-picker.js
+          test -s published/homepage-star-picker-v2.js
+          grep -q 'homepage-star-picker-v2.js' published/index.html
           if grep -q 'stellar-homepage' published/index.html; then
             echo 'Unexpected stellar-homepage path in production root index' >&2
             exit 1

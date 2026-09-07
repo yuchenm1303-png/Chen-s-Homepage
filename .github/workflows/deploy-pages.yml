@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 9cd1e96467e91d5675c8888e8ae80bd7639502e2
+          ref: abbd13b8d8b2d6bf709e921a1032da1df4e1a88c
           path: galaxy-release
           persist-credentials: false
 
@@ -48,11 +48,19 @@ jobs:
           rsync -a galaxy-release/galaxy-homepage-lab/ published/
           test -s published/index.html
           test -s published/homepage-star-activity.js
+          test -s published/homepage-star-emission-boost.js
           test -s published/homepage-star-picker-entry-v3.js
           test -s published/homepage-star-picker-v3.js
           test -s published/homepage-blog-constellation-layout.js
           grep -q 'homepage-star-picker-entry-v3.js?build=93c984f4' published/index.html
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
+          grep -q 'homepage-star-emission-boost.js?build=0c5457d9' published/index.html
+          grep -q 'astra-homepage-glass-capture-loader.js?build=6e273823' published/index.html
+          grep -q 'CORE_REPLACEMENT' published/homepage-star-emission-boost.js
+          if grep -q 'SelectiveBloomEffect' published/astra-homepage-glass-capture-loader.js; then
+            echo 'Depth-dependent SelectiveBloomEffect must not enter the depthless composer' >&2
+            exit 1
+          fi
           grep -q '__SMIREL_STAR_PICKER_BOOTSTRAP_V4__' published/homepage-star-picker-entry-v3.js
           grep -q 'about: 12089' published/homepage-blog-constellation-layout.js
           grep -q "'about-study': 1420" published/homepage-blog-constellation-layout.js

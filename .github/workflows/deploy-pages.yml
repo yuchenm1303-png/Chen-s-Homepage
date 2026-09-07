@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 73018e6627208aa6ce7f2fc83039ee69457fd6a8
+          ref: 3f8b8708a9b59e4abf392bffae6ee842a5b2c1e7
           path: galaxy-release
           persist-credentials: false
 
@@ -80,7 +80,7 @@ jobs:
           grep -q 'homepage-star-temporal-stability.js?build=5acaac50' published/index.html
           grep -q 'homepage-detail-star-ui.js?build=adf10184' published/index.html
           grep -q 'homepage-article-star-ui.css?build=21ba3f4e' published/index.html
-          grep -q 'homepage-project-overview-scale-v3.css' published/index.html
+          grep -q 'homepage-project-overview-scale-v3.css?build=e80a0bba' published/index.html
           grep -q 'homepage-project-ui-polish-v4.css?build=3598df03' published/index.html
           grep -q 'Versioned project UI polish' published/homepage-project-ui-polish-v4.css
           grep -q 'homepage-language.js?build=restore-20260907' published/index.html
@@ -155,6 +155,7 @@ jobs:
           grep -q 'grid-template-columns: repeat(4, minmax(0, 1fr))' published/homepage-project-overview-scale-v3.css
           grep -q 'font-size: clamp(56px, 4vw, 66px)' published/homepage-project-overview-scale-v3.css
           grep -q 'font-size: clamp(34px, 2.35vw, 40px)' published/homepage-project-overview-scale-v3.css
+          grep -q 'font-size: clamp(13px, .84vw, 14px)' published/homepage-project-overview-scale-v3.css
           if grep -q 'stellarBloomActive ? 4.2' published/astra-homepage-glass-capture-loader.js; then
             echo 'Global flight bloom amplification must not return' >&2
             exit 1

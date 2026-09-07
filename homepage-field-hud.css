@@ -11,8 +11,8 @@ body .smirel-field-hud {
   max-width: calc(100vw - 64px) !important;
 
   display: grid !important;
-  grid-template-columns: 42px minmax(0, auto) !important;
-  grid-template-rows: 42px !important;
+  grid-template-columns: 40px minmax(0, auto) !important;
+  grid-template-rows: 40px !important;
   column-gap: 14px !important;
   row-gap: 0 !important;
   align-items: center !important;
@@ -43,8 +43,13 @@ body .smirel-field-copy {
   position: static !important;
 }
 
-/* The existing localized button text is visually replaced by a single arrow.
-   Its accessible name remains untouched in the DOM. */
+/*
+   Return control root fix:
+   the previous Unicode arrow was aligned by font metrics, not by its visible
+   geometry, so its optical center drifted inside the circle. The icon below is
+   drawn from two CSS primitives on an explicit 14 x 12 optical box. This makes
+   the arrow mathematically centered and independent of OS/browser font glyphs.
+*/
 body .smirel-field-back {
   grid-column: 1 !important;
   grid-row: 1 !important;
@@ -52,22 +57,25 @@ body .smirel-field-back {
   justify-self: start !important;
 
   position: relative !important;
-  width: 42px !important;
-  height: 42px !important;
-  min-width: 42px !important;
-  min-height: 42px !important;
+  width: 40px !important;
+  height: 36px !important;
+  min-width: 40px !important;
+  min-height: 36px !important;
   margin: 0 !important;
   padding: 0 !important;
 
   overflow: hidden !important;
-  border: 1px solid rgba(255, 255, 255, 0.17) !important;
-  border-radius: 50% !important;
-  background: rgba(7, 10, 15, 0.30) !important;
+  border: 1px solid rgba(229, 238, 248, 0.14) !important;
+  border-radius: 12px !important;
+  background:
+    linear-gradient(180deg, rgba(245, 249, 255, 0.060) 0%, rgba(245, 249, 255, 0.020) 48%, rgba(245, 249, 255, 0.010) 100%),
+    rgba(5, 8, 12, 0.30) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.055),
-    0 8px 28px rgba(0, 0, 0, 0.16) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(115%) !important;
-  backdrop-filter: blur(14px) saturate(115%) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.075),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+    0 7px 22px rgba(0, 0, 0, 0.16) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(118%) !important;
+  backdrop-filter: blur(16px) saturate(118%) !important;
 
   color: transparent !important;
   font-size: 0 !important;
@@ -83,33 +91,71 @@ body .smirel-field-back {
     transform 220ms cubic-bezier(.2,.8,.2,1) !important;
 }
 
+/* Arrow shaft: explicit optical center, no font glyph involved. */
 body .smirel-field-back::before {
-  content: "←" !important;
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: rgba(247, 250, 255, 0.78);
-  font: 400 18px/1 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  transform: translateY(-0.5px);
-  transition: color 180ms ease, transform 220ms cubic-bezier(.2,.8,.2,1);
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 13px !important;
+  height: 1.25px !important;
+  border-radius: 999px !important;
+  background: rgba(242, 247, 253, 0.78) !important;
+  transform: translate(-43%, -50%) !important;
+  transform-origin: center !important;
+  transition:
+    background-color 180ms ease,
+    transform 220ms cubic-bezier(.2,.8,.2,1) !important;
+}
+
+/* Arrow head: shares the same geometric center as the shaft. */
+body .smirel-field-back::after {
+  content: "" !important;
+  position: absolute !important;
+  left: calc(50% - 5px) !important;
+  top: 50% !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-left: 1.25px solid rgba(242, 247, 253, 0.78) !important;
+  border-bottom: 1.25px solid rgba(242, 247, 253, 0.78) !important;
+  transform: translate(-50%, -50%) rotate(45deg) !important;
+  transform-origin: 50% 50% !important;
+  transition:
+    border-color 180ms ease,
+    transform 220ms cubic-bezier(.2,.8,.2,1) !important;
 }
 
 body .smirel-field-back:hover,
 body .smirel-field-back:focus-visible {
-  border-color: rgba(255, 255, 255, 0.34) !important;
-  background: rgba(17, 22, 30, 0.42) !important;
+  border-color: rgba(232, 241, 251, 0.28) !important;
+  background:
+    linear-gradient(180deg, rgba(245, 249, 255, 0.090) 0%, rgba(245, 249, 255, 0.034) 52%, rgba(245, 249, 255, 0.018) 100%),
+    rgba(7, 11, 17, 0.38) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    0 10px 32px rgba(0, 0, 0, 0.22) !important;
-  transform: translateX(-2px) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.105),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.24),
+    0 8px 26px rgba(0, 0, 0, 0.20),
+    0 0 0 1px rgba(174, 211, 244, 0.022) !important;
+  transform: translateY(-1px) !important;
   outline: none !important;
 }
 
 body .smirel-field-back:hover::before,
 body .smirel-field-back:focus-visible::before {
-  color: rgba(255, 255, 255, 1);
-  transform: translate(-1px, -0.5px);
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+body .smirel-field-back:hover::after,
+body .smirel-field-back:focus-visible::after {
+  border-color: rgba(255, 255, 255, 0.98) !important;
+}
+
+body .smirel-field-back:active {
+  transform: translateY(0) scale(0.96) !important;
+  border-color: rgba(232, 241, 251, 0.22) !important;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.18),
+    0 4px 14px rgba(0, 0, 0, 0.14) !important;
 }
 
 body .smirel-field-title {
@@ -132,16 +178,17 @@ body .smirel-field-title {
     left: 24px !important;
     top: 24px !important;
     max-width: calc(100vw - 48px) !important;
-    grid-template-columns: 40px minmax(0, auto) !important;
-    grid-template-rows: 40px !important;
+    grid-template-columns: 38px minmax(0, auto) !important;
+    grid-template-rows: 38px !important;
     column-gap: 12px !important;
   }
 
   body .smirel-field-back {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
+    width: 38px !important;
+    height: 34px !important;
+    min-width: 38px !important;
+    min-height: 34px !important;
+    border-radius: 11px !important;
   }
 
   body .smirel-field-title {
@@ -154,20 +201,21 @@ body .smirel-field-title {
     left: 16px !important;
     top: 16px !important;
     max-width: calc(100vw - 32px) !important;
-    grid-template-columns: 38px minmax(0, auto) !important;
-    grid-template-rows: 38px !important;
+    grid-template-columns: 36px minmax(0, auto) !important;
+    grid-template-rows: 36px !important;
     column-gap: 11px !important;
   }
 
   body .smirel-field-back {
-    width: 38px !important;
-    height: 38px !important;
-    min-width: 38px !important;
-    min-height: 38px !important;
+    width: 36px !important;
+    height: 32px !important;
+    min-width: 36px !important;
+    min-height: 32px !important;
+    border-radius: 10px !important;
   }
 
   body .smirel-field-back::before {
-    font-size: 17px;
+    width: 12px !important;
   }
 
   body .smirel-field-title {
@@ -177,7 +225,8 @@ body .smirel-field-title {
 
 @media (prefers-reduced-motion: reduce) {
   body .smirel-field-back,
-  body .smirel-field-back::before {
+  body .smirel-field-back::before,
+  body .smirel-field-back::after {
     transition-duration: 0.01ms !important;
   }
 }

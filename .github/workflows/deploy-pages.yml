@@ -46,7 +46,11 @@ jobs:
           mkdir -p published
           rsync -a --exclude='.git' production/ published/
           rsync -a galaxy-release/galaxy-homepage-lab/ published/
+          test -s production/homepage-field-hud.css
+          cp production/homepage-field-hud.css published/homepage-field-hud.css
+          sed -i '/homepage-star-detail.css/a\  <link rel="stylesheet" href="./homepage-field-hud.css?build=prod-20260907" />' published/index.html
           test -s published/index.html
+          test -s published/homepage-field-hud.css
           test -s published/homepage-star-activity.js
           test -s published/homepage-star-emission-boost.js
           test -s published/homepage-star-temporal-stability.js
@@ -67,6 +71,8 @@ jobs:
           node --check published/homepage-language.js
           node --check published/homepage-content-i18n.js
           node --check published/homepage-project-language-bridge.js
+          grep -q 'homepage-field-hud.css?build=prod-20260907' published/index.html
+          grep -q 'compact atlas-style HUD' published/homepage-field-hud.css
           grep -q 'homepage-star-picker-entry-v3.js?build=93c984f4' published/index.html
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
           grep -q 'homepage-star-emission-boost.js?build=aaec8612' published/index.html

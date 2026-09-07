@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 3f8b8708a9b59e4abf392bffae6ee842a5b2c1e7
+          ref: 75f38045b3a9f7082fb56d91a776fcac099f2c39
           path: galaxy-release
           persist-credentials: false
 
@@ -61,13 +61,14 @@ jobs:
           test -s published/homepage-project-detail.css
           test -s published/homepage-project-overview-scale-v3.css
           test -s published/homepage-detail-star-ui.js
-          test -s published/homepage-article-star-ui.css
+          test -s published/astra-homepage-glass-capture-loader.js
           test -s published/homepage-language.js
           test -s published/homepage-language.css
           test -s published/homepage-content-i18n.js
           test -s published/homepage-project-language-bridge.js
           test -s published/homepage-project-ui-polish-v4.css
           node --check published/homepage-detail-star-ui.js
+          node --check published/astra-homepage-glass-capture-loader.js
           node --check published/homepage-star-temporal-stability.js
           node --check published/homepage-language.js
           node --check published/homepage-content-i18n.js
@@ -78,8 +79,8 @@ jobs:
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
           grep -q 'homepage-star-emission-boost.js?build=aaec8612' published/index.html
           grep -q 'homepage-star-temporal-stability.js?build=5acaac50' published/index.html
-          grep -q 'homepage-detail-star-ui.js?build=adf10184' published/index.html
-          grep -q 'homepage-article-star-ui.css?build=21ba3f4e' published/index.html
+          grep -q 'homepage-detail-star-ui.js?build=v3-7ce523fc' published/index.html
+          grep -q 'astra-homepage-glass-capture-loader.js?build=ui-v3-bb0e85de' published/index.html
           grep -q 'homepage-project-overview-scale-v3.css?build=e80a0bba' published/index.html
           grep -q 'homepage-project-ui-polish-v4.css?build=3598df03' published/index.html
           grep -q 'Versioned project UI polish' published/homepage-project-ui-polish-v4.css
@@ -87,7 +88,6 @@ jobs:
           grep -q 'homepage-content-i18n.js?build=restore-20260907' published/index.html
           grep -q 'homepage-project-language-bridge.js?build=restore-20260907' published/index.html
           grep -q 'smirel-language-toggle' published/homepage-language.js
-          grep -q 'astra-homepage-glass-capture-loader.js?build=e338f7e9' published/index.html
           grep -q 'CLOSE_APPROACH_START = 0.82' published/homepage-star-emission-boost.js
           grep -q 'CLOSE_APPROACH_FULL = 0.985' published/homepage-star-emission-boost.js
           grep -q 'CORE_MAX_BOOST = 1.85' published/homepage-star-emission-boost.js
@@ -102,24 +102,25 @@ jobs:
           grep -q 'DETAIL_CORONA_SPIN_RAD_S = -0.006' published/homepage-star-temporal-stability.js
           grep -q 'bloom.intensity = CONFIG.bloomIntensity' published/astra-homepage-glass-capture-loader.js
           grep -q 'bloom.mipmapBlurPass.radius = CONFIG.bloomRadius' published/astra-homepage-glass-capture-loader.js
-          grep -q '__smirelDetailStarUiV2' published/homepage-detail-star-ui.js
+          grep -q 'starFlight?.renderDetailStarUi?.(renderer)' published/astra-homepage-glass-capture-loader.js
+          grep -q '__smirelDetailStarUiV3' published/homepage-detail-star-ui.js
           grep -q 'function detailModeReady' published/homepage-detail-star-ui.js
           grep -q "controller.activeObject?.kind === 'project' ? 0.37 : 0.35" published/homepage-detail-star-ui.js
-          grep -q 'CAMERA_RELEASE_MS = 560' published/homepage-detail-star-ui.js
-          grep -q 'UI_DEPTH = 6.0' published/homepage-detail-star-ui.js
-          grep -q 'camera.quaternion.slerpQuaternions' published/homepage-detail-star-ui.js
-          grep -q 'group.visible = false' published/homepage-detail-star-ui.js
-          grep -q 'sourceGroup.visible = true' published/homepage-detail-star-ui.js
-          grep -q 'detailCameraDetached' published/homepage-detail-star-ui.js
-          grep -q 'function squareRect' published/homepage-detail-star-ui.js
+          grep -q 'const uiScene = new THREE.Scene()' published/homepage-detail-star-ui.js
+          grep -q 'new THREE.PerspectiveCamera(UI_FOV, 1' published/homepage-detail-star-ui.js
+          grep -q 'uiCamera.aspect = 1' published/homepage-detail-star-ui.js
+          grep -q 'restoreArrivalCamera' published/homepage-detail-star-ui.js
           grep -q 'uiGroup = group.clone(true)' published/homepage-detail-star-ui.js
-          grep -q 'scene.add(uiGroup)' published/homepage-detail-star-ui.js
-          grep -q 'same geometry/material references' published/homepage-detail-star-ui.js
-          grep -q 'uiGroup.position.copy(camera.position)' published/homepage-detail-star-ui.js
+          grep -q 'uiScene.add(uiGroup)' published/homepage-detail-star-ui.js
           grep -q 'uiGroup.scale.setScalar' published/homepage-detail-star-ui.js
-          grep -q 'aspect-ratio: 1 / 1' published/homepage-article-star-ui.css
+          grep -q 'renderer.setViewport(x, y, size, size)' published/homepage-detail-star-ui.js
+          grep -q 'renderer.setScissor(x, y, size, size)' published/homepage-detail-star-ui.js
+          grep -q 'renderer.render(uiScene, uiCamera)' published/homepage-detail-star-ui.js
+          grep -q 'controller.renderDetailStarUi' published/homepage-detail-star-ui.js
+          grep -q "state === 'extracting' || state === 'rejoining'" published/homepage-detail-star-ui.js
+          grep -q 'function squareRect' published/homepage-detail-star-ui.js
           if grep -q 'new THREE.WebGLRenderer' published/homepage-detail-star-ui.js; then
-            echo 'Detail UI must reuse the galaxy renderer instead of creating a second WebGL context' >&2
+            echo 'Detail UI must reuse the galaxy WebGLRenderer instead of creating a second WebGL context' >&2
             exit 1
           fi
           if grep -q 'cloneMaterial' published/homepage-detail-star-ui.js; then
@@ -130,12 +131,16 @@ jobs:
             echo 'Detail UI must not create a second EffectComposer' >&2
             exit 1
           fi
-          if grep -q 'HalfFloatType' published/homepage-detail-star-ui.js; then
-            echo 'Detail UI must not allocate a half-float postprocess target' >&2
+          if grep -q 'CAMERA_RELEASE_MS' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI must not move the galaxy camera after handoff' >&2
             exit 1
           fi
-          if grep -q 'multisampling' published/homepage-detail-star-ui.js; then
-            echo 'Detail UI must not allocate composer multisampling' >&2
+          if grep -q 'UI_DEPTH' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI must not place the star off-axis in the galaxy camera' >&2
+            exit 1
+          fi
+          if grep -q 'scene.add(uiGroup)' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI model must stay in its independent UI scene' >&2
             exit 1
           fi
           if grep -q 'homepage-article-star-ui.js' published/index.html; then

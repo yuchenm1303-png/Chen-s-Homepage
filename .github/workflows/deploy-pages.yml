@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 708a4484941ee7a5f784a5286581e93262fdd987
+          ref: 739b2c7cd9fde24e99e6f2397c9fafa8c116948e
           path: galaxy-release
           persist-credentials: false
 
@@ -60,13 +60,13 @@ jobs:
           test -s published/homepage-project-detail-content.js
           test -s published/homepage-project-detail.css
           test -s published/homepage-project-overview-scale-v3.css
-          test -s published/homepage-article-star-ui.js
+          test -s published/homepage-detail-star-ui.js
           test -s published/homepage-article-star-ui.css
           test -s published/homepage-language.js
           test -s published/homepage-language.css
           test -s published/homepage-content-i18n.js
           test -s published/homepage-project-language-bridge.js
-          node --check published/homepage-article-star-ui.js
+          node --check published/homepage-detail-star-ui.js
           node --check published/homepage-star-temporal-stability.js
           node --check published/homepage-language.js
           node --check published/homepage-content-i18n.js
@@ -77,7 +77,7 @@ jobs:
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
           grep -q 'homepage-star-emission-boost.js?build=aaec8612' published/index.html
           grep -q 'homepage-star-temporal-stability.js?build=5acaac50' published/index.html
-          grep -q 'homepage-article-star-ui.js?build=f813b6df' published/index.html
+          grep -q 'homepage-detail-star-ui.js?build=7e10fb11' published/index.html
           grep -q 'homepage-article-star-ui.css?build=21ba3f4e' published/index.html
           grep -q 'homepage-project-overview-scale-v3.css' published/index.html
           grep -q 'homepage-language.js?build=restore-20260907' published/index.html
@@ -99,28 +99,39 @@ jobs:
           grep -q 'DETAIL_CORONA_SPIN_RAD_S = -0.006' published/homepage-star-temporal-stability.js
           grep -q 'bloom.intensity = CONFIG.bloomIntensity' published/astra-homepage-glass-capture-loader.js
           grep -q 'bloom.mipmapBlurPass.radius = CONFIG.bloomRadius' published/astra-homepage-glass-capture-loader.js
-          grep -q '__smirelArticleStarUiV3' published/homepage-article-star-ui.js
-          grep -q 'function squareRect' published/homepage-article-star-ui.js
-          grep -q 'renderer.setSize(size, size, false)' published/homepage-article-star-ui.js
-          grep -q 'uiCamera.aspect = 1' published/homepage-article-star-ui.js
-          grep -q 'uiNode.scale.setScalar' published/homepage-article-star-ui.js
-          grep -q 'MAX_DPR = 1.0' published/homepage-article-star-ui.js
-          grep -q 'OWNED_FRAME_INTERVAL_MS = 1000 / 30' published/homepage-article-star-ui.js
-          grep -q 'renderer.render(uiScene, uiCamera)' published/homepage-article-star-ui.js
-          grep -q 'THREE.ACESFilmicToneMapping' published/homepage-article-star-ui.js
+          grep -q '__smirelDetailStarUiV1' published/homepage-detail-star-ui.js
+          grep -q 'function detailModeReady' published/homepage-detail-star-ui.js
+          grep -q "controller.activeObject?.kind === 'project' ? 0.37 : 0.35" published/homepage-detail-star-ui.js
+          grep -q 'CAMERA_RELEASE_MS = 560' published/homepage-detail-star-ui.js
+          grep -q 'camera.quaternion.slerpQuaternions' published/homepage-detail-star-ui.js
+          grep -q 'group.visible = false' published/homepage-detail-star-ui.js
+          grep -q 'sourceGroup.visible = true' published/homepage-detail-star-ui.js
+          grep -q 'detailCameraDetached' published/homepage-detail-star-ui.js
+          grep -q 'function squareRect' published/homepage-detail-star-ui.js
+          grep -q 'renderer.setSize(size, size, false)' published/homepage-detail-star-ui.js
+          grep -q 'uiCamera.aspect = 1' published/homepage-detail-star-ui.js
+          grep -q 'uiNode.scale.setScalar' published/homepage-detail-star-ui.js
+          grep -q 'MAX_DPR = 1.0' published/homepage-detail-star-ui.js
+          grep -q 'OWNED_FRAME_INTERVAL_MS = 1000 / 30' published/homepage-detail-star-ui.js
+          grep -q 'renderer.render(uiScene, uiCamera)' published/homepage-detail-star-ui.js
+          grep -q 'THREE.ACESFilmicToneMapping' published/homepage-detail-star-ui.js
           grep -q 'aspect-ratio: 1 / 1' published/homepage-article-star-ui.css
           grep -q '0 0 9px 2px' published/homepage-article-star-ui.css
           grep -q '0 0 18px 5px' published/homepage-article-star-ui.css
-          if grep -q 'EffectComposer' published/homepage-article-star-ui.js; then
-            echo 'Article UI must not create a second EffectComposer' >&2
+          if grep -q 'EffectComposer' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI must not create a second EffectComposer' >&2
             exit 1
           fi
-          if grep -q 'HalfFloatType' published/homepage-article-star-ui.js; then
-            echo 'Article UI must not allocate a half-float postprocess target' >&2
+          if grep -q 'HalfFloatType' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI must not allocate a half-float postprocess target' >&2
             exit 1
           fi
-          if grep -q 'multisampling' published/homepage-article-star-ui.js; then
-            echo 'Article UI must not allocate composer multisampling' >&2
+          if grep -q 'multisampling' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI must not allocate composer multisampling' >&2
+            exit 1
+          fi
+          if grep -q 'homepage-article-star-ui.js' published/index.html; then
+            echo 'Legacy note-only star UI runtime must not be loaded' >&2
             exit 1
           fi
           grep -q 'data-project-detail-open' published/homepage-project-detail-content.js

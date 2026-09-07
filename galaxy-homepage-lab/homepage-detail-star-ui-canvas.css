@@ -1,0 +1,28 @@
+.smirel-detail-star-canvas-layer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 512px;
+  height: 512px;
+  z-index: 8;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform-origin: 0 0;
+  contain: strict;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.smirel-detail-star-canvas-layer.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.smirel-detail-star-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

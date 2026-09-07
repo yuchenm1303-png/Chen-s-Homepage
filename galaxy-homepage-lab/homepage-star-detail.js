@@ -192,6 +192,12 @@
         openProgress = 0;
         activeObject = null;
         phase = 'idle';
+
+        // The shell identity belongs to one completed arrival. Clearing it on
+        // departure lets project/article owners invalidate their DOM cache, so
+        // re-entering the same star cannot leave the generic fallback markup in place.
+        delete shell.dataset.starKind;
+        delete shell.dataset.starId;
       }
 
       previousArrived = arrived;

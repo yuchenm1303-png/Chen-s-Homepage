@@ -4,6 +4,9 @@
    removed from the visual hierarchy instead of being restyled again. */
 
 body .smirel-field-hud {
+  --field-nav-size: clamp(32px, 2.55vw, 40px);
+  --field-back-width: calc(var(--field-nav-size) + 4px);
+
   left: clamp(32px, 3.45vw, 56px) !important;
   top: clamp(28px, 3.5vh, 40px) !important;
   width: auto !important;
@@ -11,8 +14,8 @@ body .smirel-field-hud {
   max-width: calc(100vw - 64px) !important;
 
   display: grid !important;
-  grid-template-columns: 40px minmax(0, auto) !important;
-  grid-template-rows: 40px !important;
+  grid-template-columns: var(--field-back-width) minmax(0, auto) !important;
+  grid-template-rows: var(--field-nav-size) !important;
   column-gap: 14px !important;
   row-gap: 0 !important;
   align-items: center !important;
@@ -33,34 +36,45 @@ body .smirel-field-subtitle {
   content: none !important;
 }
 
+/*
+   Alignment root fix:
+   the control and title previously used independent heights (36/34/32px for
+   the button versus a responsive 32–40px title line box). Grid centering only
+   aligned those outer boxes, so their visible top/bottom edges still drifted.
+   Both elements now share one responsive navigation line size.
+*/
 body .smirel-field-copy {
   grid-column: 2 !important;
   grid-row: 1 !important;
+  align-self: stretch !important;
   min-width: 0 !important;
   max-width: none !important;
+  height: var(--field-nav-size) !important;
   padding: 0 !important;
   margin: 0 !important;
   position: static !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 /*
    Return control root fix:
    the previous Unicode arrow was aligned by font metrics, not by its visible
    geometry, so its optical center drifted inside the circle. The icon below is
-   drawn from two CSS primitives on an explicit 14 x 12 optical box. This makes
-   the arrow mathematically centered and independent of OS/browser font glyphs.
+   drawn from two CSS primitives on an explicit optical box. This makes the
+   arrow mathematically centered and independent of OS/browser font glyphs.
 */
 body .smirel-field-back {
   grid-column: 1 !important;
   grid-row: 1 !important;
-  align-self: center !important;
+  align-self: stretch !important;
   justify-self: start !important;
 
   position: relative !important;
-  width: 40px !important;
-  height: 36px !important;
-  min-width: 40px !important;
-  min-height: 36px !important;
+  width: var(--field-back-width) !important;
+  height: var(--field-nav-size) !important;
+  min-width: var(--field-back-width) !important;
+  min-height: var(--field-nav-size) !important;
   margin: 0 !important;
   padding: 0 !important;
 
@@ -161,11 +175,12 @@ body .smirel-field-back:active {
 body .smirel-field-title {
   margin: 0 !important;
   max-width: none !important;
+  height: var(--field-nav-size) !important;
   color: rgba(250, 252, 255, 0.975) !important;
   font-family: "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
-  font-size: clamp(32px, 2.55vw, 40px) !important;
+  font-size: var(--field-nav-size) !important;
   font-weight: 610 !important;
-  line-height: 1 !important;
+  line-height: var(--field-nav-size) !important;
   letter-spacing: -0.045em !important;
   white-space: nowrap !important;
   text-shadow:
@@ -175,51 +190,33 @@ body .smirel-field-title {
 
 @media (max-width: 820px) {
   body .smirel-field-hud {
+    --field-nav-size: clamp(30px, 5.4vw, 36px);
     left: 24px !important;
     top: 24px !important;
     max-width: calc(100vw - 48px) !important;
-    grid-template-columns: 38px minmax(0, auto) !important;
-    grid-template-rows: 38px !important;
     column-gap: 12px !important;
   }
 
   body .smirel-field-back {
-    width: 38px !important;
-    height: 34px !important;
-    min-width: 38px !important;
-    min-height: 34px !important;
     border-radius: 11px !important;
-  }
-
-  body .smirel-field-title {
-    font-size: clamp(30px, 5.4vw, 36px) !important;
   }
 }
 
 @media (max-width: 520px) {
   body .smirel-field-hud {
+    --field-nav-size: clamp(28px, 8.8vw, 34px);
     left: 16px !important;
     top: 16px !important;
     max-width: calc(100vw - 32px) !important;
-    grid-template-columns: 36px minmax(0, auto) !important;
-    grid-template-rows: 36px !important;
     column-gap: 11px !important;
   }
 
   body .smirel-field-back {
-    width: 36px !important;
-    height: 32px !important;
-    min-width: 36px !important;
-    min-height: 32px !important;
     border-radius: 10px !important;
   }
 
   body .smirel-field-back::before {
     width: 12px !important;
-  }
-
-  body .smirel-field-title {
-    font-size: clamp(28px, 8.8vw, 34px) !important;
   }
 }
 

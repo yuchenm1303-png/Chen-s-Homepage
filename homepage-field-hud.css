@@ -1,221 +1,183 @@
 /* Stellar field masthead — compact atlas-style HUD.
-   The field controller owns state/text. This file only defines presentation.
-   The goal is one coherent corner masthead, not a detached back button plus
-   oversized heading. */
+   Root fix for production: the local-field corner only needs two things —
+   one intentional return control and the field title. Everything else is
+   removed from the visual hierarchy instead of being restyled again. */
 
 body .smirel-field-hud {
-  --field-hud-text: rgba(249, 251, 254, 0.96);
-  --field-hud-copy: rgba(232, 239, 247, 0.64);
-  --field-hud-meta: rgba(232, 239, 247, 0.42);
-  --field-hud-rule: rgba(255, 255, 255, 0.16);
-
-  left: clamp(34px, 3.65vw, 58px) !important;
-  top: clamp(28px, 3.6vh, 42px) !important;
-  width: min(430px, calc(100vw - 68px)) !important;
+  left: clamp(32px, 3.45vw, 56px) !important;
+  top: clamp(28px, 3.5vh, 40px) !important;
+  width: auto !important;
   min-width: 0 !important;
-  max-width: none !important;
+  max-width: calc(100vw - 64px) !important;
 
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) !important;
-  grid-template-rows: auto auto auto !important;
-  gap: 0 !important;
-  align-items: start !important;
+  grid-template-columns: 42px minmax(0, auto) !important;
+  grid-template-rows: 42px !important;
+  column-gap: 14px !important;
+  row-gap: 0 !important;
+  align-items: center !important;
   padding: 0 !important;
 
-  color: var(--field-hud-text) !important;
+  color: rgba(250, 252, 255, 0.97) !important;
   filter: none !important;
   isolation: isolate;
 }
 
-/* Soft local contrast only; no visible card or panel edge. */
-body .smirel-field-hud::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  left: -26px;
-  top: -24px;
-  width: min(500px, calc(100vw - 20px));
-  height: 190px;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at 18% 24%, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.34) 38%, rgba(0, 0, 0, 0.08) 68%, rgba(0, 0, 0, 0) 86%);
-  filter: blur(10px);
+/* No corner card, atlas metadata, field number, description or decorative rail. */
+body .smirel-field-hud::before,
+body .smirel-field-hud::after,
+body .smirel-field-copy::after,
+body .smirel-field-kicker,
+body .smirel-field-subtitle {
+  display: none !important;
+  content: none !important;
 }
 
-/* One quiet navigation baseline instead of the generic bordered pill. */
+body .smirel-field-copy {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: static !important;
+}
+
+/* The existing localized button text is visually replaced by a single arrow.
+   Its accessible name remains untouched in the DOM. */
 body .smirel-field-back {
   grid-column: 1 !important;
   grid-row: 1 !important;
+  align-self: center !important;
   justify-self: start !important;
-  align-self: start !important;
 
-  margin: 0 0 20px !important;
-  padding: 0 0 8px !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  height: auto !important;
+  position: relative !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
 
-  border: 0 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18) !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.17) !important;
+  border-radius: 50% !important;
+  background: rgba(7, 10, 15, 0.30) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 8px 28px rgba(0, 0, 0, 0.16) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(115%) !important;
+  backdrop-filter: blur(14px) saturate(115%) !important;
 
-  color: rgba(242, 247, 252, 0.58) !important;
-  font: 620 10px/1.1 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
-  letter-spacing: 0.085em !important;
-  text-transform: none !important;
-  white-space: nowrap !important;
-  cursor: pointer;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+  cursor: pointer !important;
 
   transition:
-    color 160ms ease,
-    border-color 160ms ease,
-    transform 200ms cubic-bezier(.2,.8,.2,1) !important;
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 220ms ease,
+    transform 220ms cubic-bezier(.2,.8,.2,1) !important;
+}
+
+body .smirel-field-back::before {
+  content: "←" !important;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(247, 250, 255, 0.78);
+  font: 400 18px/1 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  transform: translateY(-0.5px);
+  transition: color 180ms ease, transform 220ms cubic-bezier(.2,.8,.2,1);
 }
 
 body .smirel-field-back:hover,
 body .smirel-field-back:focus-visible {
-  color: rgba(255, 255, 255, 0.98) !important;
-  border-color: rgba(255, 255, 255, 0.48) !important;
+  border-color: rgba(255, 255, 255, 0.34) !important;
+  background: rgba(17, 22, 30, 0.42) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 10px 32px rgba(0, 0, 0, 0.22) !important;
   transform: translateX(-2px) !important;
   outline: none !important;
 }
 
-body .smirel-field-copy {
-  grid-column: 1 !important;
-  grid-row: 2 !important;
-  position: relative;
-  min-width: 0 !important;
-  max-width: 420px;
-  padding: 0 52px 0 0 !important;
-}
-
-/* Field number becomes a restrained coordinate marker. */
-body .smirel-field-copy::after {
-  position: absolute;
-  right: 0;
-  top: 2px;
-  color: rgba(239, 245, 251, 0.28);
-  font: 600 10px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
-  letter-spacing: 0.16em;
-}
-
-body[data-star-field="about"] .smirel-field-copy::after { content: "01"; }
-body[data-star-field="projects"] .smirel-field-copy::after { content: "02"; }
-body[data-star-field="blog"] .smirel-field-copy::after { content: "03"; }
-body[data-star-field="contact"] .smirel-field-copy::after { content: "04"; }
-
-body .smirel-field-kicker {
-  display: flex !important;
-  align-items: center;
-  gap: 9px;
-  margin: 0 0 9px !important;
-  color: var(--field-hud-meta) !important;
-  font: 650 10px/1.1 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
-  letter-spacing: 0.12em !important;
-  text-transform: uppercase !important;
-}
-
-body .smirel-field-kicker::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  flex: 0 0 auto;
-  border: 1px solid rgba(214, 232, 249, 0.55);
-  border-radius: 999px;
-  box-shadow:
-    0 0 0 3px rgba(188, 221, 251, 0.04),
-    0 0 12px rgba(172, 215, 255, 0.18);
+body .smirel-field-back:hover::before,
+body .smirel-field-back:focus-visible::before {
+  color: rgba(255, 255, 255, 1);
+  transform: translate(-1px, -0.5px);
 }
 
 body .smirel-field-title {
   margin: 0 !important;
   max-width: none !important;
-  color: var(--field-hud-text) !important;
+  color: rgba(250, 252, 255, 0.975) !important;
   font-family: "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
-  font-size: clamp(40px, 3vw, 46px) !important;
-  font-weight: 620 !important;
-  line-height: 1.02 !important;
+  font-size: clamp(32px, 2.55vw, 40px) !important;
+  font-weight: 610 !important;
+  line-height: 1 !important;
   letter-spacing: -0.045em !important;
-  text-wrap: balance;
+  white-space: nowrap !important;
   text-shadow:
-    0 2px 16px rgba(0, 0, 0, 0.86),
-    0 0 28px rgba(141, 198, 255, 0.035) !important;
-}
-
-body .smirel-field-subtitle {
-  grid-column: 1 !important;
-  grid-row: 3 !important;
-  position: relative;
-  margin: 13px 0 0 !important;
-  max-width: 35ch !important;
-  padding: 11px 0 0 !important;
-  color: var(--field-hud-copy) !important;
-  font: 470 clamp(12.5px, 0.9vw, 14px)/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
-  letter-spacing: 0.004em !important;
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.92) !important;
-}
-
-body .smirel-field-subtitle::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 76px;
-  height: 1px;
-  background: linear-gradient(to right, rgba(255,255,255,0.28), rgba(255,255,255,0));
+    0 2px 16px rgba(0, 0, 0, 0.82),
+    0 0 24px rgba(176, 214, 255, 0.035) !important;
 }
 
 @media (max-width: 820px) {
   body .smirel-field-hud {
-    left: 28px !important;
-    top: 28px !important;
-    width: min(390px, calc(100vw - 56px)) !important;
+    left: 24px !important;
+    top: 24px !important;
+    max-width: calc(100vw - 48px) !important;
+    grid-template-columns: 40px minmax(0, auto) !important;
+    grid-template-rows: 40px !important;
+    column-gap: 12px !important;
+  }
+
+  body .smirel-field-back {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
   }
 
   body .smirel-field-title {
-    font-size: clamp(38px, 6vw, 44px) !important;
-  }
-
-  body .smirel-field-subtitle {
-    max-width: 34ch !important;
-    font-size: 13px !important;
+    font-size: clamp(30px, 5.4vw, 36px) !important;
   }
 }
 
 @media (max-width: 520px) {
   body .smirel-field-hud {
-    left: 18px !important;
-    top: 18px !important;
-    width: calc(100vw - 36px) !important;
+    left: 16px !important;
+    top: 16px !important;
+    max-width: calc(100vw - 32px) !important;
+    grid-template-columns: 38px minmax(0, auto) !important;
+    grid-template-rows: 38px !important;
+    column-gap: 11px !important;
   }
 
   body .smirel-field-back {
-    margin-bottom: 17px !important;
-    font-size: 9px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
   }
 
-  body .smirel-field-copy {
-    padding-right: 34px !important;
+  body .smirel-field-back::before {
+    font-size: 17px;
   }
 
   body .smirel-field-title {
-    font-size: clamp(36px, 11vw, 42px) !important;
-  }
-
-  body .smirel-field-subtitle {
-    display: block !important;
-    max-width: 31ch !important;
-    margin-top: 11px !important;
-    font-size: 12px !important;
+    font-size: clamp(28px, 8.8vw, 34px) !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body .smirel-field-back {
+  body .smirel-field-back,
+  body .smirel-field-back::before {
     transition-duration: 0.01ms !important;
   }
 }

@@ -1,17 +1,17 @@
-/* Project overview cover composition.
-   Root fix: keep the project title anchored exactly where it is, but stop using
-   the whole viewport as the header grid. The stellar model now shares one compact
-   title cluster instead of being pushed to the far-right edge. The rest of the
-   overview stays editorial, one-screen, and intentionally card-free. */
+/* Project overview desktop composition.
+   Root fix: keep the project identity in its original upper-right position with
+   the stellar model, then give the overview one calm reading column. Metadata is
+   a horizontal rail instead of a competing panel, so the page reads as one cover
+   rather than several disconnected islands. */
 
 @media (min-width: 1181px) {
   .star-detail-shell[data-star-kind="project"] .star-detail-header {
-    left: clamp(72px, 5.8vw, 108px);
-    right: auto;
-    top: clamp(68px, 8.2vh, 88px);
-    width: min(700px, 57vw);
-    grid-template-columns: minmax(0, 1fr) clamp(164px, 10.5vw, 184px);
-    gap: clamp(24px, 2.1vw, 34px);
+    left: auto;
+    right: clamp(46px, 4.4vw, 76px);
+    top: clamp(58px, 7.2vh, 76px);
+    width: min(680px, 43vw);
+    grid-template-columns: minmax(0, 1fr) clamp(174px, 11vw, 192px);
+    gap: clamp(26px, 2.2vw, 36px);
     align-items: center;
   }
 
@@ -19,223 +19,233 @@
     position: relative;
     max-width: none;
     min-width: 0;
-    padding: 0;
-    border-right: 0;
-    text-align: left;
+    padding: 0 clamp(22px, 1.7vw, 28px) 0 0;
+    border-right: 1px solid rgba(255,255,255,.105);
+    text-align: right;
   }
 
   .star-detail-shell[data-star-kind="project"] .star-detail-heading::after {
-    content: '';
-    display: block;
-    width: min(420px, 92%);
-    height: 1px;
-    margin-top: 17px;
-    background: linear-gradient(90deg, rgba(255,255,255,.16), rgba(255,255,255,.035) 72%, transparent);
+    content: none;
   }
 
   .star-detail-shell[data-star-kind="project"] .star-detail-star-slot {
-    width: clamp(164px, 10.5vw, 184px);
-    justify-self: start;
+    width: clamp(174px, 11vw, 192px);
+    justify-self: end;
   }
 
   .star-detail-shell[data-star-kind="project"] .star-detail-kicker {
-    font-size: 10px;
-    letter-spacing: .19em;
+    color: rgba(255,255,255,.36);
+    font-size: 9.5px;
+    letter-spacing: .18em;
   }
 
   .star-detail-shell[data-star-kind="project"] .star-detail-title {
-    max-width: none;
-    margin: 10px 0 0;
-    font-size: clamp(66px, 5vw, 82px);
-    line-height: .94;
-    letter-spacing: -.055em;
+    max-width: 10.5ch;
+    margin: 9px 0 0 auto;
+    font-size: clamp(56px, 4vw, 66px);
+    line-height: .96;
+    letter-spacing: -.052em;
     text-wrap: balance;
   }
 
   .star-detail-shell[data-star-kind="project"] .star-detail-subtitle {
-    max-width: 52ch;
-    margin: 16px 0 0;
-    color: rgba(255,255,255,.51);
-    font-size: clamp(13px, .86vw, 14.5px);
-    line-height: 1.55;
+    max-width: 40ch;
+    margin: 13px 0 0 auto;
+    color: rgba(255,255,255,.48);
+    font-size: clamp(12px, .78vw, 13px);
+    line-height: 1.52;
   }
 
   .project-overview {
-    left: clamp(72px, 5.8vw, 108px);
-    top: clamp(308px, 34.5vh, 350px);
-    width: min(1230px, 74vw);
-    grid-template-columns: minmax(0, 1.5fr) minmax(300px, .72fr);
+    left: clamp(72px, 5.7vw, 100px);
+    top: clamp(244px, 28.2vh, 276px);
+    width: min(940px, 59vw);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      "kicker facts"
-      "thesis facts"
-      "summary facts"
-      "points points";
-    column-gap: clamp(64px, 5.4vw, 92px);
+      "kicker"
+      "thesis"
+      "summary"
+      "facts"
+      "points";
+    column-gap: 0;
+    align-items: start;
   }
 
   .project-overview-kicker {
-    color: rgba(255,255,255,.39);
-    font-size: 10.5px;
-    letter-spacing: .13em;
+    color: rgba(255,255,255,.40);
+    font-size: 10px;
+    letter-spacing: .14em;
   }
 
   .project-overview-thesis {
-    max-width: 29ch;
+    max-width: 21ch;
     margin-top: 14px;
-    font-size: clamp(27px, 1.95vw, 33px);
-    line-height: 1.22;
+    font-size: clamp(34px, 2.35vw, 40px);
+    line-height: 1.17;
     font-weight: 520;
-    letter-spacing: -.028em;
+    letter-spacing: -.034em;
   }
 
   .project-overview-summary {
-    max-width: 63ch;
+    max-width: 54ch;
     margin-top: 20px;
-    color: rgba(255,255,255,.70);
-    font-size: clamp(16.5px, 1.02vw, 18px);
+    color: rgba(255,255,255,.68);
+    font-size: clamp(16.5px, 1.04vw, 18px);
     line-height: 1.72;
+    letter-spacing: -.008em;
   }
 
   .project-overview-facts {
-    margin-top: 1px;
-    padding: 4px 0 4px clamp(28px, 2vw, 34px);
-    border-left-color: rgba(255,255,255,.13);
+    grid-area: facts;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+    margin-top: clamp(28px, 3.4vh, 34px);
+    padding: 0;
+    border-top: 1px solid rgba(255,255,255,.13);
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    border-left: 0;
   }
 
   .project-overview-fact {
-    grid-template-columns: 68px minmax(0, 1fr);
-    gap: 18px;
-    padding-bottom: 18px;
+    display: block;
+    min-width: 0;
+    padding: 16px 18px 17px 0;
   }
 
   .project-overview-fact + .project-overview-fact {
-    padding-top: 18px;
-    padding-bottom: 18px;
-    border-top-color: rgba(255,255,255,.09);
+    padding: 16px 18px 17px;
+    border-top: 0;
+    border-left: 1px solid rgba(255,255,255,.075);
+  }
+
+  .project-overview-fact:last-child {
+    padding-right: 0;
   }
 
   .project-overview-fact span {
-    color: rgba(255,255,255,.34);
-    font-size: 10.5px;
-    letter-spacing: .05em;
+    display: block;
+    margin-bottom: 7px;
+    color: rgba(255,255,255,.31);
+    font-size: 9.5px;
+    line-height: 1.2;
+    letter-spacing: .055em;
   }
 
   .project-overview-fact strong {
-    color: rgba(255,255,255,.84);
-    font-size: clamp(14.5px, .92vw, 16px);
-    line-height: 1.48;
+    display: block;
+    color: rgba(255,255,255,.82);
+    font-size: clamp(13.5px, .86vw, 14.5px);
+    line-height: 1.46;
+    font-weight: 550;
   }
 
   .project-overview-points {
-    margin-top: clamp(38px, 4.6vh, 50px);
-    border-top-color: rgba(255,255,255,.14);
-    border-bottom: 1px solid rgba(255,255,255,.055);
+    margin-top: clamp(30px, 3.7vh, 38px);
+    border-top: 1px solid rgba(255,255,255,.12);
+    border-bottom: 1px solid rgba(255,255,255,.045);
   }
 
   .project-overview-points li {
-    min-height: 92px;
-    padding: 22px 24px 17px 46px;
-    color: rgba(255,255,255,.74);
-    font-size: clamp(14.5px, .92vw, 15.5px);
+    min-height: 82px;
+    padding: 20px 18px 16px 42px;
+    color: rgba(255,255,255,.72);
+    font-size: clamp(14px, .88vw, 15px);
     line-height: 1.5;
   }
 
   .project-overview-points li + li {
-    border-left-color: rgba(255,255,255,.085);
+    border-left-color: rgba(255,255,255,.07);
   }
 
   .project-overview-points li::before {
-    top: 24px;
-    color: rgba(255,255,255,.31);
-    font-size: 10px;
+    top: 22px;
+    color: rgba(255,255,255,.28);
+    font-size: 9.5px;
   }
 
   .project-overview-more {
-    right: clamp(50px, 4.6vw, 80px);
-    bottom: clamp(38px, 4.8vh, 54px);
-    grid-template-columns: 1fr 42px;
-    width: 228px;
-    gap: 24px;
-    padding-top: 15px;
-    border-top-color: rgba(255,255,255,.24);
-    color: rgba(255,255,255,.76);
-    font-size: 13px;
+    right: clamp(46px, 4.4vw, 76px);
+    bottom: clamp(34px, 4.5vh, 48px);
+    grid-template-columns: 1fr 40px;
+    width: 208px;
+    gap: 20px;
+    padding-top: 14px;
+    border-top-color: rgba(255,255,255,.21);
+    color: rgba(255,255,255,.74);
+    font-size: 12px;
   }
 
   .project-overview-more b {
-    width: 42px;
-    height: 42px;
-    border-color: rgba(255,255,255,.19);
-    background: rgba(255,255,255,.018);
-    font-size: 12px;
+    width: 40px;
+    height: 40px;
+    border-color: rgba(255,255,255,.17);
+    background: rgba(255,255,255,.015);
+    font-size: 11px;
   }
 }
 
 @media (min-width: 1181px) and (max-height: 820px) {
   .star-detail-shell[data-star-kind="project"] .star-detail-header {
-    top: 54px;
-    width: min(620px, 55vw);
-    grid-template-columns: minmax(0, 1fr) 154px;
-    gap: 24px;
+    top: 48px;
+    width: min(620px, 42vw);
+    grid-template-columns: minmax(0, 1fr) 158px;
+    gap: 26px;
   }
 
   .star-detail-shell[data-star-kind="project"] .star-detail-star-slot {
-    width: 154px;
+    width: 158px;
   }
 
   .star-detail-shell[data-star-kind="project"] .star-detail-title {
-    font-size: clamp(56px, 4.3vw, 68px);
+    font-size: clamp(50px, 3.6vw, 58px);
   }
 
   .star-detail-shell[data-star-kind="project"] .star-detail-subtitle {
-    margin-top: 12px;
-    font-size: 12px;
-  }
-
-  .star-detail-shell[data-star-kind="project"] .star-detail-heading::after {
-    margin-top: 13px;
+    margin-top: 10px;
+    font-size: 11.5px;
   }
 
   .project-overview {
-    top: 248px;
-    width: min(1160px, 72vw);
-    grid-template-columns: minmax(0, 1.5fr) minmax(270px, .7fr);
-    column-gap: 58px;
+    top: 214px;
+    width: min(880px, 58vw);
   }
 
   .project-overview-thesis {
     margin-top: 10px;
-    font-size: clamp(24px, 1.75vw, 29px);
-    line-height: 1.18;
+    font-size: clamp(29px, 2.05vw, 34px);
+    line-height: 1.16;
   }
 
   .project-overview-summary {
-    margin-top: 15px;
+    margin-top: 14px;
     font-size: 15.5px;
     line-height: 1.58;
   }
 
-  .project-overview-fact {
-    padding-bottom: 12px;
+  .project-overview-facts {
+    margin-top: 20px;
   }
 
+  .project-overview-fact,
   .project-overview-fact + .project-overview-fact {
     padding-top: 12px;
     padding-bottom: 12px;
   }
 
   .project-overview-fact strong {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .project-overview-points {
-    margin-top: 24px;
+    margin-top: 22px;
   }
 
   .project-overview-points li {
-    min-height: 64px;
+    min-height: 62px;
     padding-top: 15px;
-    padding-bottom: 12px;
+    padding-bottom: 11px;
     font-size: 13px;
   }
 

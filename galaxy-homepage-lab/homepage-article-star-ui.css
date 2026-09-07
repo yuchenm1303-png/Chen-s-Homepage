@@ -1,0 +1,33 @@
+.stellar-article-star-ui-layer {
+  position: fixed;
+  z-index: 8;
+  pointer-events: none;
+  opacity: 0;
+  overflow: visible;
+  contain: layout style;
+  isolation: isolate;
+  aspect-ratio: 1 / 1;
+  will-change: left, top, width, height, opacity;
+}
+
+.stellar-article-star-ui-layer.is-active {
+  opacity: 1;
+}
+
+.stellar-article-star-ui-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  pointer-events: none;
+}
+
+body:not(.star-flight-arrived) .stellar-article-star-ui-layer {
+  opacity: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stellar-article-star-ui-layer {
+    will-change: auto;
+  }
+}

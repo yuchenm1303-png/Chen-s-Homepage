@@ -3,7 +3,7 @@
 
   const INSTALL_KEY = '__SMIREL_STAR_FLIGHT_INSTALL__';
   const baseInstall = window[INSTALL_KEY];
-  if (typeof baseInstall !== 'function' || baseInstall.__smirelReadableProjectDetail) return;
+  if (typeof baseInstall !== 'function' || baseInstall.__smirelProjectOverviewDetail) return;
 
   const escapeHtml = (value) => String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -14,8 +14,17 @@
 
   const EDITORIAL_COPY = Object.freeze({
     'ai-ledger': {
-      intro: '一个在 Android 上长期迭代的个人 AI 助手。',
-      summary: '我从 2026 年 3 月开始做这个项目。它以聊天为入口，也能调用搜索、行情、提醒和设备能力；在需要操作手机时，会读取当前界面，再通过无障碍服务完成点击、输入和返回等动作。',
+      intro: '一个能聊天，也能在手机上动手做事的 Android AI 助手。',
+      summary: '除了聊天，它还能调用搜索、行情、提醒等工具，并在需要时读取当前界面，通过无障碍服务完成简单操作。',
+      type: 'Android AI 助手',
+      role: 'Android / Agent',
+      status: '持续开发',
+      points: [
+        '流式聊天与多模型切换',
+        '搜索、行情、提醒等工具',
+        '读取屏幕后执行手机操作',
+        '原生 Compose + OpenGL 界面',
+      ],
       work: [
         '原生 Android 客户端，支持流式聊天、多模型切换、记忆和工具调用。',
         '把搜索、天气、汇率、行情、提醒、账本和设备控制放进同一套工具系统。',
@@ -29,8 +38,17 @@
       ],
     },
     'listing-studio': {
-      intro: '把供应商商品链接整理成可检查、可执行的 Makro 上架任务。',
-      summary: '这是我为 Makro Seller Center 做的一套 Windows 桌面工具。输入 1688 或供应商链接后，它会抓取商品信息、整理缺失字段，先生成一份可检查的填写方案，再打开受控 Edge 完成表单和图片；最后提交仍交给人工确认。',
+      intro: '把一个供应商商品链接，变成可以检查后再执行的 Makro 上架任务。',
+      summary: '输入 1688 或供应商链接后，程序会整理商品信息和缺失字段，先生成上架草稿；确认无误后，再由受控 Edge 写入 Makro Seller Center。',
+      type: 'Windows 电商工具',
+      role: '产品 / Python / 自动化',
+      status: '持续开发',
+      points: [
+        '输入一个商品链接',
+        '自动整理规格与图片',
+        '先审阅草稿，再写入后台',
+        '支持单商品和批量任务',
+      ],
       work: [
         '单个和批量商品都能在同一个桌面工作台里处理。',
         '浏览器登录状态可复用，失败任务可以恢复，不必每次从头开始。',
@@ -44,8 +62,17 @@
       ],
     },
     'computer-use': {
-      intro: '让手机自动化根据当前界面做决定，而不是照着固定脚本走。',
-      summary: '项目会持续读取屏幕，让视觉模型判断下一步，再把动作交给 Android 无障碍服务执行。每一步之后都会重新截图确认，因此弹窗、键盘或页面变化出现时，流程可以根据现场继续。',
+      intro: '让手机自动化根据眼前的界面做决定，而不是照着固定脚本走。',
+      summary: '系统持续读取当前屏幕，让视觉模型决定下一步，再交给 Android 无障碍服务执行；每一步之后都会重新确认界面。',
+      type: 'Android 自动化',
+      role: 'Android / Agent',
+      status: '持续开发',
+      points: [
+        '截图后判断下一步动作',
+        '点击、输入、滑动与返回',
+        '每一步执行后重新确认',
+        '关键操作保留人工确认',
+      ],
       work: [
         '完成截图、判断、点击、输入、滑动和结果确认的完整循环。',
         '处理弹窗、键盘、加载层和短暂遮挡等常见中断。',
@@ -59,8 +86,17 @@
       ],
     },
     'liquid-glass': {
-      intro: '把网页里的液态玻璃视觉迁到原生 Android，而不是重新画一套近似版。',
-      summary: '这个项目主要解决两个问题：一是保留原网页的透明材质、折射和按压反馈，二是在手机上把 GPU 开销控制住。现在核心界面已经转到 Jetpack Compose，并保留 Android 13+ 的 Shader 路径和低版本降级方案。',
+      intro: '把网页里的液态玻璃效果迁到原生 Android，同时把性能控制住。',
+      summary: '保留折射、边缘高光、暗核和按压反馈，并把界面迁到 Jetpack Compose；高版本走 Shader，旧版本使用更轻的降级方案。',
+      type: 'Android UI / 渲染',
+      role: '设计 / Compose / 性能',
+      status: '迭代中',
+      points: [
+        'WebView 迁到原生 Compose',
+        '统一背景采样减少重复模糊',
+        'AGSL 实现折射与边缘效果',
+        '不同 Android 版本可降级',
+      ],
       work: [
         '把主要页面和交互从 WebView 迁到原生 Compose。',
         '统一背景采样，减少多个玻璃组件重复模糊同一帧。',
@@ -74,8 +110,17 @@
       ],
     },
     'stock-crawler': {
-      intro: '给 App 提供稳定、统一的 A 股行情数据，而不是让手机自己抓网页。',
-      summary: '这是一个独立部署的 FastAPI 服务。它把多个公开行情源整理成统一接口，提供指数、个股、分时、盘口、历史走势和集合竞价数据，并用缓存和备用数据源处理上游波动。',
+      intro: '给 App 提供统一的 A 股行情接口，不让手机自己抓网页。',
+      summary: '这是一个独立部署的 FastAPI 服务，把多个公开行情源整理成同一套接口，并用缓存和备用数据源处理上游波动。',
+      type: 'A 股数据服务',
+      role: '后端 / 数据源 / 缓存',
+      status: '运行中',
+      points: [
+        '指数、个股与板块统一接口',
+        '分时、盘口与历史走势',
+        '最近查看股票提高刷新频率',
+        '缓存与备用数据源降级',
+      ],
       work: [
         '统一主要指数、约 5000 只 A 股和板块数据的字段格式。',
         '提供报价、分时、盘口、逐笔、历史走势和集合竞价接口。',
@@ -89,8 +134,17 @@
       ],
     },
     'gan-hemt': {
-      intro: '用 Sentaurus 做增强型 GaN HEMT 的高压、温度和重离子联合扫描。',
-      summary: '项目关注漏极电压、栅压、结温和 LET 共同变化时的器件电流与安全工作区。除了 Id–Vd 曲线，还会把结果整理成 Tj–Vg 合格域和二维、三维工程图，用于后续报告和校核。',
+      intro: '用 Sentaurus 看 GaN HEMT 在高压、温度和重离子条件下会发生什么。',
+      summary: '扫描漏极电压、栅压、结温和 LET，记录器件电流与收敛情况，再把结果整理成 Id–Vd 曲线和安全工作区。',
+      type: 'GaN HEMT 仿真',
+      role: '建模 / 求解 / 可视化',
+      status: '仿真中',
+      points: [
+        '器件结构与高场区域加密',
+        'Vd / Vg / 温度 / LET 联合扫描',
+        '异常曲线与收敛问题复算',
+        '输出安全工作区和工程图',
+      ],
       work: [
         '建立器件结构、网格和主要物理模型，并重点加密高场区域。',
         '扫描 Vd、Vg、温度和 LET，记录收敛与异常结果。',
@@ -105,17 +159,84 @@
     },
   });
 
-  const listMarkup = (items, className, numbered = false) => {
-    const tag = numbered ? 'ol' : 'ul';
-    return `<${tag} class="${className}">${(items || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</${tag}>`;
-  };
+  const listMarkup = (items, className) => (
+    `<ul class="${className}">${(items || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+  );
 
   const section = (label, body, extraClass = '') => `
-    <section class="project-archive-section ${extraClass}">
-      <h3 class="project-archive-label">${escapeHtml(label)}</h3>
-      <div class="project-archive-section-body">${body}</div>
+    <section class="project-detail-section ${extraClass}">
+      <h3 class="project-detail-section-label">${escapeHtml(label)}</h3>
+      <div class="project-detail-section-body">${body}</div>
     </section>
   `;
+
+  const detailFactsMarkup = (detail) => [
+    ['类型', detail.type],
+    ['时间', detail.period],
+    ['负责', detail.role],
+    ['状态', detail.status],
+  ].map(([label, value]) => `
+    <div class="project-detail-fact">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+    </div>
+  `).join('');
+
+  const progressMarkup = (stages) => `
+    <ol class="project-detail-progress">
+      ${(stages || []).map(([item, state], index) => {
+        const stateLabel = state === 'done' ? '已完成' : state === 'active' ? '进行中' : '下一步';
+        return `
+          <li class="is-${escapeHtml(state)}">
+            <span>${String(index + 1).padStart(2, '0')}</span>
+            <p>${escapeHtml(item)}</p>
+            <b>${stateLabel}</b>
+          </li>
+        `;
+      }).join('')}
+    </ol>
+  `;
+
+  function detailedMarkup(object, copy) {
+    const detail = object.projectDetail;
+    const stack = (detail.stack || []).map((item) => `<span>${escapeHtml(item)}</span>`).join('');
+    const links = (object.links || []).map((link) => (
+      `<a class="project-detail-link" href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)} ↗</a>`
+    )).join('');
+
+    return `
+      <div class="project-detail-document">
+        <button class="project-detail-close" type="button" data-project-detail-close>← 返回项目概览</button>
+
+        <header class="project-detail-intro">
+          <p class="project-detail-kicker">项目详情</p>
+          <h2>${escapeHtml(copy.intro)}</h2>
+          <p>${escapeHtml(detail.summary || copy.summary)}</p>
+          <div class="project-detail-facts">${detailFactsMarkup(detail)}</div>
+        </header>
+
+        <div class="project-detail-two-column">
+          ${section('我做了什么', listMarkup(copy.work, 'project-detail-list'))}
+          ${section('实现方式', listMarkup(copy.implementation, 'project-detail-list'))}
+        </div>
+
+        ${section('系统结构', listMarkup(detail.architecture, 'project-detail-numbered'))}
+
+        <div class="project-detail-two-column">
+          ${section('主要工作', listMarkup(detail.highlights, 'project-detail-list'))}
+          ${section('难点', listMarkup(detail.challenges, 'project-detail-list'))}
+        </div>
+
+        ${section('产出', listMarkup(detail.outputs, 'project-detail-output'))}
+
+        ${section('技术栈', `<div class="project-detail-stack">${stack}</div>`)}
+
+        ${section('进度', progressMarkup(detail.stages))}
+
+        ${section('接下来', `<p class="project-detail-next">${escapeHtml(detail.next || '')}</p>${links ? `<div class="project-detail-links">${links}</div>` : ''}`)}
+      </div>
+    `;
+  }
 
   function projectMarkup(object) {
     const detail = object.projectDetail;
@@ -124,50 +245,54 @@
     const copy = EDITORIAL_COPY[object.id] || {
       intro: object.lede || object.title || '',
       summary: detail.summary || '',
+      type: detail.type || '项目',
+      role: detail.role || '',
+      status: detail.status || '',
+      points: (detail.highlights || []).slice(0, 4),
       work: detail.highlights || [],
       implementation: detail.architecture || [],
     };
 
-    const facts = [
-      ['类型', detail.type],
+    const overviewFacts = [
+      ['类型', copy.type],
       ['时间', detail.period],
-      ['负责', detail.role],
-      ['状态', detail.status],
+      ['我负责', copy.role],
+      ['状态', copy.status],
     ].map(([label, value]) => `
-      <div class="project-archive-fact">
+      <div class="project-overview-fact">
         <span>${escapeHtml(label)}</span>
         <strong>${escapeHtml(value)}</strong>
       </div>
     `).join('');
 
-    const stack = (detail.stack || []).map((item) => `<span>${escapeHtml(item)}</span>`).join('');
-    const links = (object.links || []).map((link) => (
-      `<a class="project-archive-link" href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)} ↗</a>`
-    )).join('');
+    const points = (copy.points || []).slice(0, 4).map((item) => `
+      <li>${escapeHtml(item)}</li>
+    `).join('');
 
     return `
-      <article class="project-archive">
-        <section class="project-archive-intro">
-          <p class="project-archive-eyebrow">项目简介</p>
-          <h2 class="project-archive-thesis">${escapeHtml(copy.intro)}</h2>
-          <p class="project-archive-summary">${escapeHtml(copy.summary)}</p>
-          <div class="project-archive-facts">${facts}</div>
+      <article class="project-view">
+        <section class="project-overview" aria-label="项目概览">
+          <p class="project-overview-kicker">项目概览</p>
+          <h2 class="project-overview-thesis">${escapeHtml(copy.intro)}</h2>
+          <p class="project-overview-summary">${escapeHtml(copy.summary)}</p>
+
+          <div class="project-overview-facts">${overviewFacts}</div>
+
+          <ul class="project-overview-points">${points}</ul>
+
+          <button class="project-overview-more" type="button" data-project-detail-open aria-expanded="false">
+            <span>查看更多详情</span><b aria-hidden="true">↗</b>
+          </button>
         </section>
 
-        <div class="project-archive-columns">
-          ${section('做了什么', listMarkup(copy.work, 'project-archive-list'))}
-          ${section('怎么实现', listMarkup(copy.implementation, 'project-architecture-list', true))}
-        </div>
-
-        <footer class="project-archive-footer">
-          <div class="project-stack-list" aria-label="技术栈">${stack}</div>
-          ${links ? `<div class="project-archive-links">${links}</div>` : ''}
-        </footer>
+        <section class="project-detail-overlay" data-project-detail-overlay hidden aria-hidden="true">
+          ${detailedMarkup(object, copy)}
+        </section>
       </article>
     `;
   }
 
-  const readableInstall = function installReadableProjectDetail(context) {
+  const overviewInstall = function installProjectOverviewDetail(context) {
     const controller = baseInstall(context);
     if (!controller) return controller;
 
@@ -175,8 +300,41 @@
     const main = shell?.querySelector('.star-detail-main');
     let renderedId = null;
 
+    const closeExpandedDetail = () => {
+      if (!shell || !main) return;
+      const overlay = main.querySelector('[data-project-detail-overlay]');
+      const openButton = main.querySelector('[data-project-detail-open]');
+      if (!overlay || overlay.hidden) return;
+
+      shell.classList.remove('project-detail-expanded');
+      overlay.hidden = true;
+      overlay.setAttribute('aria-hidden', 'true');
+      openButton?.setAttribute('aria-expanded', 'false');
+      openButton?.focus({ preventScroll: true });
+    };
+
+    const bindDetailControls = () => {
+      if (!shell || !main) return;
+      const openButton = main.querySelector('[data-project-detail-open]');
+      const closeButton = main.querySelector('[data-project-detail-close]');
+      const overlay = main.querySelector('[data-project-detail-overlay]');
+      if (!openButton || !closeButton || !overlay) return;
+
+      openButton.addEventListener('click', () => {
+        overlay.hidden = false;
+        overlay.setAttribute('aria-hidden', 'false');
+        overlay.scrollTop = 0;
+        shell.classList.add('project-detail-expanded');
+        openButton.setAttribute('aria-expanded', 'true');
+        closeButton.focus({ preventScroll: true });
+      });
+
+      closeButton.addEventListener('click', closeExpandedDetail);
+    };
+
     const renderIfNeeded = () => {
       if (!shell || !main || shell.dataset.starKind !== 'project') {
+        shell?.classList.remove('project-detail-expanded');
         renderedId = null;
         return;
       }
@@ -186,7 +344,9 @@
       const object = (window.__SMIREL_STELLAR_CATALOG__ || []).find((item) => item.id === id);
       if (!object?.projectDetail) return;
 
+      shell.classList.remove('project-detail-expanded');
       main.innerHTML = projectMarkup(object);
+      bindDetailControls();
       renderedId = id;
     };
 
@@ -200,6 +360,6 @@
     return controller;
   };
 
-  readableInstall.__smirelReadableProjectDetail = true;
-  window[INSTALL_KEY] = readableInstall;
+  overviewInstall.__smirelProjectOverviewDetail = true;
+  window[INSTALL_KEY] = overviewInstall;
 })();

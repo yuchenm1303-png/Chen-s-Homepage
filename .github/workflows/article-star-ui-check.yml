@@ -24,6 +24,11 @@ jobs:
           grep -q 'homepage-article-star-ui.css' galaxy-homepage-lab/index.html
           grep -q 'homepage-article-star-ui.js?build=638d8be0' galaxy-homepage-lab/index.html
           grep -q 'projectWorldStarRect' galaxy-homepage-lab/homepage-article-star-ui.js
+          grep -q 'squareRect' galaxy-homepage-lab/homepage-article-star-ui.js
+          grep -q 'uiCamera.aspect = 1' galaxy-homepage-lab/homepage-article-star-ui.js
+          grep -q 'renderer.setSize(size, size, false)' galaxy-homepage-lab/homepage-article-star-ui.js
+          grep -q 'composer.setSize(size, size)' galaxy-homepage-lab/homepage-article-star-ui.js
+          grep -q 'aspect-ratio: 1 / 1' galaxy-homepage-lab/homepage-article-star-ui.css
           grep -q "state = 'extracting'" galaxy-homepage-lab/homepage-article-star-ui.js
           grep -q "state = 'rejoining'" galaxy-homepage-lab/homepage-article-star-ui.js
           grep -q 'sourceGroup.visible = false' galaxy-homepage-lab/homepage-article-star-ui.js

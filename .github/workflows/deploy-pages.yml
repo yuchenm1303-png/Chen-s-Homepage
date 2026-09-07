@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 14337f0511ca752e2aef313f8b9c01804c0e47f1
+          ref: a8eccac1477cfaf468a8fe0e5823be8b7313604e
           path: galaxy-release
           persist-credentials: false
 
@@ -54,6 +54,7 @@ jobs:
           test -s published/homepage-blog-constellation-layout.js
           test -s published/homepage-project-detail-content.js
           test -s published/homepage-project-detail.css
+          test -s published/homepage-project-overview-scale-v3.css
           test -s published/homepage-article-star-ui.js
           test -s published/homepage-article-star-ui.css
           node --check published/homepage-article-star-ui.js
@@ -62,6 +63,7 @@ jobs:
           grep -q 'homepage-star-emission-boost.js?build=aaec8612' published/index.html
           grep -q 'homepage-article-star-ui.js?build=4e57d6e9' published/index.html
           grep -q 'homepage-article-star-ui.css' published/index.html
+          grep -q 'homepage-project-overview-scale-v3.css' published/index.html
           grep -q 'astra-homepage-glass-capture-loader.js?build=e338f7e9' published/index.html
           grep -q 'CLOSE_APPROACH_START = 0.82' published/homepage-star-emission-boost.js
           grep -q 'CLOSE_APPROACH_FULL = 0.985' published/homepage-star-emission-boost.js
@@ -86,6 +88,8 @@ jobs:
           grep -q 'grid-template-areas:' published/homepage-project-detail.css
           grep -q 'counter-reset: project-overview-point' published/homepage-project-detail.css
           grep -q 'width: 190px' published/homepage-project-detail.css
+          grep -q 'width: min(1110px,66vw)' published/homepage-project-overview-scale-v3.css
+          grep -q 'font-size: clamp(47px,3.15vw,56px)' published/homepage-project-overview-scale-v3.css
           if grep -q 'stellarBloomActive ? 4.2' published/astra-homepage-glass-capture-loader.js; then
             echo 'Global flight bloom amplification must not return' >&2
             exit 1

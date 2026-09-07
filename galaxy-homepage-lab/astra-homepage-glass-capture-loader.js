@@ -43,7 +43,7 @@ source = replaceOnce(
     bloom.luminanceMaterial.uniforms.threshold.value = CONFIG.bloomThreshold;
     bloom.intensity = CONFIG.bloomIntensity;
     bloom.mipmapBlurPass.radius = CONFIG.bloomRadius;
-    composer.render(dt);\n    if (!starFlightActive) {\n      try {\n        window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n      } catch (error) {\n        console.warn('[homepage-liquid-glass] frame handoff failed', error);\n      }\n    }\n    lastCompositeMs = now;\`,
+    composer.render(dt);\n    // Detail stars use their own centered scene/camera but the SAME WebGLRenderer.\n    // Render that tiny square viewport after the galaxy composer so UI stars stay\n    // perfectly circular without allocating a second canvas or WebGL context.\n    try {\n      starFlight?.renderDetailStarUi?.(renderer);\n    } catch (error) {\n      console.warn('[homepage-detail-star-ui] shared-renderer overlay failed', error);\n    }\n    if (!starFlightActive) {\n      try {\n        window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n      } catch (error) {\n        console.warn('[homepage-liquid-glass] frame handoff failed', error);\n      }\n    }\n    lastCompositeMs = now;\`,
   'Synchronized homepage glass framebuffer handoff',
 );
 

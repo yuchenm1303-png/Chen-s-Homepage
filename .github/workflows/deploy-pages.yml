@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 71a2ed066f1c5b5c4b148b6aa36f891d5cabf424
+          ref: 24ad36ad529e3dc25e4361267fe7151ce16a6236
           path: galaxy-release
           persist-credentials: false
 
@@ -52,6 +52,8 @@ jobs:
           test -s published/homepage-star-picker-entry-v3.js
           test -s published/homepage-star-picker-v3.js
           test -s published/homepage-blog-constellation-layout.js
+          test -s published/homepage-project-detail-content.js
+          test -s published/homepage-project-detail.css
           grep -q 'homepage-star-picker-entry-v3.js?build=93c984f4' published/index.html
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
           grep -q 'homepage-star-emission-boost.js?build=aaec8612' published/index.html
@@ -65,6 +67,11 @@ jobs:
           grep -q 'uEmissionBoost' published/homepage-star-emission-boost.js
           grep -q 'bloom.intensity = CONFIG.bloomIntensity' published/astra-homepage-glass-capture-loader.js
           grep -q 'bloom.mipmapBlurPass.radius = CONFIG.bloomRadius' published/astra-homepage-glass-capture-loader.js
+          grep -q 'data-project-detail-open' published/homepage-project-detail-content.js
+          grep -q 'data-project-detail-overlay' published/homepage-project-detail-content.js
+          grep -q 'project-detail-expanded' published/homepage-project-detail-content.js
+          grep -q 'height: 100dvh' published/homepage-project-detail.css
+          grep -q 'project-overview-more' published/homepage-project-detail.css
           if grep -q 'stellarBloomActive ? 4.2' published/astra-homepage-glass-capture-loader.js; then
             echo 'Global flight bloom amplification must not return' >&2
             exit 1

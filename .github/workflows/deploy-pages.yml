@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 8dbed3b9a444c68ef1821fc7db1aa06eb3959e8b
+          ref: 08c29e3fb3e01aed20142fbf23f4dac76ee8ada8
           path: galaxy-release
           persist-credentials: false
 
@@ -58,8 +58,15 @@ jobs:
           test -s published/homepage-project-overview-scale-v3.css
           test -s published/homepage-article-star-ui.js
           test -s published/homepage-article-star-ui.css
+          test -s published/homepage-language.js
+          test -s published/homepage-language.css
+          test -s published/homepage-content-i18n.js
+          test -s published/homepage-project-language-bridge.js
           node --check published/homepage-article-star-ui.js
           node --check published/homepage-star-temporal-stability.js
+          node --check published/homepage-language.js
+          node --check published/homepage-content-i18n.js
+          node --check published/homepage-project-language-bridge.js
           grep -q 'homepage-star-picker-entry-v3.js?build=93c984f4' published/index.html
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
           grep -q 'homepage-star-emission-boost.js?build=aaec8612' published/index.html
@@ -67,6 +74,10 @@ jobs:
           grep -q 'homepage-article-star-ui.js?build=4e57d6e9' published/index.html
           grep -q 'homepage-article-star-ui.css' published/index.html
           grep -q 'homepage-project-overview-scale-v3.css' published/index.html
+          grep -q 'homepage-language.js?build=restore-20260907' published/index.html
+          grep -q 'homepage-content-i18n.js?build=restore-20260907' published/index.html
+          grep -q 'homepage-project-language-bridge.js?build=restore-20260907' published/index.html
+          grep -q 'smirel-language-toggle' published/homepage-language.js
           grep -q 'astra-homepage-glass-capture-loader.js?build=e338f7e9' published/index.html
           grep -q 'CLOSE_APPROACH_START = 0.82' published/homepage-star-emission-boost.js
           grep -q 'CLOSE_APPROACH_FULL = 0.985' published/homepage-star-emission-boost.js

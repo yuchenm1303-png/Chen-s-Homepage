@@ -1,8 +1,8 @@
 /* Project overview desktop composition.
-   Root fix: keep the project identity in its original upper-right position with
-   the stellar model, then give the overview one calm reading column. Metadata is
-   a horizontal rail instead of a competing panel, so the page reads as one cover
-   rather than several disconnected islands. */
+   Keep the project identity in the upper-right with the stellar model. The lower
+   information area is split into two visual grammars: metadata reads as a calm
+   data rail, while the four capabilities read as editorial milestones. The two
+   should not resemble stacked tables. */
 
 @media (min-width: 1181px) {
   .star-detail-shell[data-star-kind="project"] .star-detail-header {
@@ -96,28 +96,54 @@
     letter-spacing: -.008em;
   }
 
+  /* Metadata: one continuous rail with local separators, not four boxed cells. */
   .project-overview-facts {
     grid-area: facts;
+    position: relative;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: stretch;
-    margin-top: clamp(28px, 3.4vh, 34px);
+    margin-top: clamp(30px, 3.6vh, 36px);
     padding: 0;
-    border-top: 1px solid rgba(255,255,255,.13);
-    border-bottom: 1px solid rgba(255,255,255,.07);
-    border-left: 0;
+    border: 0;
+  }
+
+  .project-overview-facts::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 1px;
+    background: linear-gradient(90deg,
+      rgba(255,255,255,.18),
+      rgba(255,255,255,.11) 56%,
+      rgba(255,255,255,.035));
+    pointer-events: none;
   }
 
   .project-overview-fact {
+    position: relative;
     display: block;
     min-width: 0;
-    padding: 16px 18px 17px 0;
+    padding: 20px clamp(20px, 1.55vw, 26px) 20px 0;
   }
 
   .project-overview-fact + .project-overview-fact {
-    padding: 16px 18px 17px;
-    border-top: 0;
-    border-left: 1px solid rgba(255,255,255,.075);
+    padding: 20px clamp(20px, 1.55vw, 26px) 20px clamp(20px, 1.55vw, 26px);
+    border: 0;
+  }
+
+  .project-overview-fact + .project-overview-fact::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 18px;
+    bottom: 18px;
+    width: 1px;
+    background: linear-gradient(180deg,
+      transparent,
+      rgba(255,255,255,.095) 26%,
+      rgba(255,255,255,.095) 74%,
+      transparent);
   }
 
   .project-overview-fact:last-child {
@@ -126,63 +152,137 @@
 
   .project-overview-fact span {
     display: block;
-    margin-bottom: 7px;
-    color: rgba(255,255,255,.31);
+    margin-bottom: 9px;
+    color: rgba(255,255,255,.34);
     font-size: 9.5px;
+    font-weight: 650;
     line-height: 1.2;
-    letter-spacing: .055em;
+    letter-spacing: .075em;
   }
 
   .project-overview-fact strong {
     display: block;
-    color: rgba(255,255,255,.82);
-    font-size: clamp(13.5px, .86vw, 14.5px);
-    line-height: 1.46;
-    font-weight: 550;
+    color: rgba(255,255,255,.88);
+    font-size: clamp(14.5px, .94vw, 16px);
+    line-height: 1.42;
+    font-weight: 570;
+    letter-spacing: -.012em;
   }
 
+  /* Capabilities: separate editorial milestones. Each item owns its own short
+     top rule and breathing room instead of inheriting the metadata table look. */
   .project-overview-points {
-    margin-top: clamp(30px, 3.7vh, 38px);
-    border-top: 1px solid rgba(255,255,255,.12);
-    border-bottom: 1px solid rgba(255,255,255,.045);
+    margin-top: clamp(22px, 2.8vh, 28px);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(18px, 1.8vw, 28px);
+    padding: 0;
+    border: 0;
   }
 
   .project-overview-points li {
-    min-height: 82px;
-    padding: 20px 18px 16px 42px;
-    color: rgba(255,255,255,.72);
-    font-size: clamp(14px, .88vw, 15px);
-    line-height: 1.5;
+    position: relative;
+    min-height: 92px;
+    padding: 23px 10px 16px 38px;
+    border-top: 1px solid rgba(255,255,255,.10);
+    color: rgba(255,255,255,.78);
+    background: linear-gradient(180deg, rgba(255,255,255,.014), transparent 68%);
+    font-size: clamp(14.5px, .92vw, 15.5px);
+    font-weight: 520;
+    line-height: 1.46;
+    letter-spacing: -.01em;
   }
 
   .project-overview-points li + li {
-    border-left-color: rgba(255,255,255,.07);
+    border-left: 0;
   }
 
   .project-overview-points li::before {
-    top: 22px;
-    color: rgba(255,255,255,.28);
+    left: 0;
+    top: 27px;
+    color: rgba(255,255,255,.31);
     font-size: 9.5px;
+    font-weight: 700;
   }
 
+  .project-overview-points li::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: -1px;
+    width: 34px;
+    height: 1px;
+    background: rgba(255,255,255,.38);
+  }
+
+  /* Bottom-right action: refined glass control. It shares a baseline with the
+     language switch (styled in homepage-language.css) so the corner reads as one
+     deliberate action dock rather than two unrelated floating widgets. */
   .project-overview-more {
     right: clamp(46px, 4.4vw, 76px);
     bottom: clamp(34px, 4.5vh, 48px);
-    grid-template-columns: 1fr 40px;
-    width: 208px;
-    gap: 20px;
-    padding-top: 14px;
-    border-top-color: rgba(255,255,255,.21);
-    color: rgba(255,255,255,.74);
-    font-size: 12px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    width: 220px;
+    height: 50px;
+    gap: 0;
+    padding: 0 9px 0 17px;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 15px;
+    color: rgba(255,255,255,.84);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)),
+      rgba(4,7,12,.38);
+    -webkit-backdrop-filter: blur(15px) saturate(118%);
+    backdrop-filter: blur(15px) saturate(118%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.07),
+      0 14px 36px rgba(0,0,0,.24);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .005em;
+    transition: border-color .22s ease, background .22s ease, color .22s ease, transform .22s ease;
+  }
+
+  .project-overview-more > span {
+    min-width: 0;
+    white-space: nowrap;
   }
 
   .project-overview-more b {
-    width: 40px;
-    height: 40px;
-    border-color: rgba(255,255,255,.17);
-    background: rgba(255,255,255,.015);
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    margin-left: auto;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 11px;
+    color: rgba(255,255,255,.72);
+    background: rgba(255,255,255,.045);
     font-size: 11px;
+    font-weight: 520;
+    transition: border-color .22s ease, background .22s ease, color .22s ease, transform .22s ease;
+  }
+
+  .project-overview-more:hover,
+  .project-overview-more:focus-visible {
+    color: #fff;
+    border-color: rgba(255,255,255,.26);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.026)),
+      rgba(5,9,15,.46);
+    transform: translateY(-1px);
+    outline: none;
+  }
+
+  .project-overview-more:hover b,
+  .project-overview-more:focus-visible b {
+    color: #fff;
+    border-color: rgba(255,255,255,.25);
+    background: rgba(255,255,255,.075);
+    transform: translate(2px,-1px);
   }
 }
 
@@ -230,26 +330,41 @@
 
   .project-overview-fact,
   .project-overview-fact + .project-overview-fact {
-    padding-top: 12px;
-    padding-bottom: 12px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .project-overview-fact + .project-overview-fact::before {
+    top: 13px;
+    bottom: 13px;
   }
 
   .project-overview-fact strong {
-    font-size: 13px;
+    font-size: 13.5px;
   }
 
   .project-overview-points {
-    margin-top: 22px;
+    margin-top: 16px;
+    gap: 18px;
   }
 
   .project-overview-points li {
-    min-height: 62px;
-    padding-top: 15px;
-    padding-bottom: 11px;
+    min-height: 64px;
+    padding-top: 17px;
+    padding-bottom: 10px;
     font-size: 13px;
   }
 
   .project-overview-points li::before {
-    top: 17px;
+    top: 20px;
+  }
+
+  .project-overview-more {
+    height: 46px;
+  }
+
+  .project-overview-more b {
+    width: 30px;
+    height: 30px;
   }
 }

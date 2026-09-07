@@ -36,12 +36,14 @@ const capturePatch = `
 source = replaceOnce(
   source,
   /    composer\\.render\\(dt\\);\\n    lastCompositeMs = now;/,
-  \`    const stellarBloomActive = document.body.classList.contains('star-flight-active');
-    const stellarBloomThreshold = stellarBloomActive ? 0.38 : CONFIG.bloomThreshold;
-    bloom.luminanceMaterial.uniforms.threshold.value = stellarBloomThreshold;
-    bloom.intensity = stellarBloomActive ? 4.2 : CONFIG.bloomIntensity;
-    bloom.mipmapBlurPass.radius = stellarBloomActive ? 0.48 : CONFIG.bloomRadius;
-    composer.render(dt);\n    if (!stellarBloomActive) {\n      try {\n        window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n      } catch (error) {\n        console.warn('[homepage-liquid-glass] frame handoff failed', error);\n      }\n    }\n    lastCompositeMs = now;\`,
+  \`    const starFlightActive = document.body.classList.contains('star-flight-active');
+    // Galaxy bloom is a scene invariant. Never switch the shared post-process
+    // into a stronger stellar preset when flight starts: that makes every point
+    // star bloom at once. The detailed target star owns its HDR emission locally.
+    bloom.luminanceMaterial.uniforms.threshold.value = CONFIG.bloomThreshold;
+    bloom.intensity = CONFIG.bloomIntensity;
+    bloom.mipmapBlurPass.radius = CONFIG.bloomRadius;
+    composer.render(dt);\n    if (!starFlightActive) {\n      try {\n        window.__SMIREL_HOMEPAGE_GLASS_SYNC__?.(now);\n      } catch (error) {\n        console.warn('[homepage-liquid-glass] frame handoff failed', error);\n      }\n    }\n    lastCompositeMs = now;\`,
   'Synchronized homepage glass framebuffer handoff',
 );
 
@@ -172,7 +174,7 @@ source = replaceOnce(
   source,
   /    continuumCache\\.aspect = continuumUniforms\\.uAspect\\.value;\\n    continuumCache\\.width =/,
   \`    continuumCache.aspect = continuumUniforms.uAspect.value;
-    continuumCache.tanHalfFov = continuumUniforms.uTanHalfFov.value;
+    continuumCache.tanHalfFov = continuumTanHalfFov;
     continuumCache.width =\`,
   'Interactive star FOV cache state',
 );

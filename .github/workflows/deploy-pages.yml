@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 75f38045b3a9f7082fb56d91a776fcac099f2c39
+          ref: 507cd759ff39df5fe067135e10c1af7e106a818c
           path: galaxy-release
           persist-credentials: false
 
@@ -61,6 +61,7 @@ jobs:
           test -s published/homepage-project-detail.css
           test -s published/homepage-project-overview-scale-v3.css
           test -s published/homepage-detail-star-ui.js
+          test -s published/homepage-detail-star-ui-viewport-fix.js
           test -s published/astra-homepage-glass-capture-loader.js
           test -s published/homepage-language.js
           test -s published/homepage-language.css
@@ -68,6 +69,7 @@ jobs:
           test -s published/homepage-project-language-bridge.js
           test -s published/homepage-project-ui-polish-v4.css
           node --check published/homepage-detail-star-ui.js
+          node --check published/homepage-detail-star-ui-viewport-fix.js
           node --check published/astra-homepage-glass-capture-loader.js
           node --check published/homepage-star-temporal-stability.js
           node --check published/homepage-language.js
@@ -80,6 +82,7 @@ jobs:
           grep -q 'homepage-star-emission-boost.js?build=aaec8612' published/index.html
           grep -q 'homepage-star-temporal-stability.js?build=5acaac50' published/index.html
           grep -q 'homepage-detail-star-ui.js?build=v3-7ce523fc' published/index.html
+          grep -q 'homepage-detail-star-ui-viewport-fix.js?build=41310ff6' published/index.html
           grep -q 'astra-homepage-glass-capture-loader.js?build=ui-v3-bb0e85de' published/index.html
           grep -q 'homepage-project-overview-scale-v3.css?build=e80a0bba' published/index.html
           grep -q 'homepage-project-ui-polish-v4.css?build=3598df03' published/index.html
@@ -104,6 +107,9 @@ jobs:
           grep -q 'bloom.mipmapBlurPass.radius = CONFIG.bloomRadius' published/astra-homepage-glass-capture-loader.js
           grep -q 'starFlight?.renderDetailStarUi?.(renderer)' published/astra-homepage-glass-capture-loader.js
           grep -q '__smirelDetailStarUiV3' published/homepage-detail-star-ui.js
+          grep -q '__smirelDetailStarUiViewportFix' published/homepage-detail-star-ui-viewport-fix.js
+          grep -q 'renderer.getPixelRatio' published/homepage-detail-star-ui-viewport-fix.js
+          grep -q 'args\[0\] / correction' published/homepage-detail-star-ui-viewport-fix.js
           grep -q 'function detailModeReady' published/homepage-detail-star-ui.js
           grep -q "controller.activeObject?.kind === 'project' ? 0.37 : 0.35" published/homepage-detail-star-ui.js
           grep -q 'const uiScene = new THREE.Scene()' published/homepage-detail-star-ui.js

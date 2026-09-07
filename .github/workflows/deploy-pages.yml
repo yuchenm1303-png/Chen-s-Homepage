@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 24ad36ad529e3dc25e4361267fe7151ce16a6236
+          ref: 6d4fcca71ff7818398494ffeb2e6fc238ffba796
           path: galaxy-release
           persist-credentials: false
 
@@ -70,7 +70,9 @@ jobs:
           grep -q 'data-project-detail-open' published/homepage-project-detail-content.js
           grep -q 'data-project-detail-overlay' published/homepage-project-detail-content.js
           grep -q 'project-detail-expanded' published/homepage-project-detail-content.js
+          grep -q '把供应商商品链接整理成可审核的 Makro 上架任务' published/homepage-project-detail-content.js
           grep -q 'height: 100dvh' published/homepage-project-detail.css
+          grep -q 'top: clamp(210px,27vh,252px)' published/homepage-project-detail.css
           grep -q 'project-overview-more' published/homepage-project-detail.css
           if grep -q 'stellarBloomActive ? 4.2' published/astra-homepage-glass-capture-loader.js; then
             echo 'Global flight bloom amplification must not return' >&2

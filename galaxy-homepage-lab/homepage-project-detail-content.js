@@ -15,7 +15,7 @@
   const EDITORIAL_COPY = Object.freeze({
     'ai-ledger': {
       intro: '一个能聊天，也能在手机上动手做事的 Android AI 助手。',
-      summary: '除了聊天，它还能调用搜索、行情、提醒等工具，并在需要时读取当前界面，通过无障碍服务完成简单操作。',
+      summary: '聊天之外，它还能调用搜索、行情和提醒等工具；需要操作手机时，会读取当前界面再执行点击、输入等动作。',
       type: 'Android AI 助手',
       role: 'Android / Agent',
       status: '持续开发',
@@ -38,16 +38,16 @@
       ],
     },
     'listing-studio': {
-      intro: '把一个供应商商品链接，变成可以检查后再执行的 Makro 上架任务。',
-      summary: '输入 1688 或供应商链接后，程序会整理商品信息和缺失字段，先生成上架草稿；确认无误后，再由受控 Edge 写入 Makro Seller Center。',
+      intro: '把供应商商品链接整理成可审核的 Makro 上架任务。',
+      summary: '输入 1688 或供应商链接，程序会整理规格、图片和缺失字段，先生成上架草稿；确认后再写入 Makro Seller Center。',
       type: 'Windows 电商工具',
       role: '产品 / Python / 自动化',
       status: '持续开发',
       points: [
-        '输入一个商品链接',
-        '自动整理规格与图片',
-        '先审阅草稿，再写入后台',
-        '支持单商品和批量任务',
+        '输入商品链接',
+        '整理规格与图片',
+        '先审核，再写入后台',
+        '支持单个与批量任务',
       ],
       work: [
         '单个和批量商品都能在同一个桌面工作台里处理。',
@@ -228,11 +228,8 @@
         </div>
 
         ${section('产出', listMarkup(detail.outputs, 'project-detail-output'))}
-
         ${section('技术栈', `<div class="project-detail-stack">${stack}</div>`)}
-
         ${section('进度', progressMarkup(detail.stages))}
-
         ${section('接下来', `<p class="project-detail-next">${escapeHtml(detail.next || '')}</p>${links ? `<div class="project-detail-links">${links}</div>` : ''}`)}
       </div>
     `;
@@ -275,15 +272,13 @@
           <p class="project-overview-kicker">项目概览</p>
           <h2 class="project-overview-thesis">${escapeHtml(copy.intro)}</h2>
           <p class="project-overview-summary">${escapeHtml(copy.summary)}</p>
-
           <div class="project-overview-facts">${overviewFacts}</div>
-
           <ul class="project-overview-points">${points}</ul>
-
-          <button class="project-overview-more" type="button" data-project-detail-open aria-expanded="false">
-            <span>查看更多详情</span><b aria-hidden="true">↗</b>
-          </button>
         </section>
+
+        <button class="project-overview-more" type="button" data-project-detail-open aria-expanded="false">
+          <span>查看更多详情</span><b aria-hidden="true">↗</b>
+        </button>
 
         <section class="project-detail-overlay" data-project-detail-overlay hidden aria-hidden="true">
           ${detailedMarkup(object, copy)}

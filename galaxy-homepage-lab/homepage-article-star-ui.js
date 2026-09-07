@@ -3,23 +3,14 @@
 
   const INSTALL_KEY = '__SMIREL_STAR_FLIGHT_INSTALL__';
   const baseInstall = window[INSTALL_KEY];
-  if (typeof baseInstall !== 'function' || baseInstall.__smirelArticleStarUiV2) return;
-
-  const POSTPROCESSING_URL = 'https://cdn.jsdelivr.net/npm/postprocessing@6.39.4/build/index.js';
-  let postprocessing = null;
-  let postprocessingFailed = false;
-  import(POSTPROCESSING_URL)
-    .then((module) => { postprocessing = module; })
-    .catch((error) => {
-      postprocessingFailed = true;
-      console.warn('[homepage-article-star-ui-v2] postprocessing unavailable; keeping world-space star', error);
-    });
+  if (typeof baseInstall !== 'function' || baseInstall.__smirelArticleStarUiV3) return;
 
   const CORE_RADIUS_FRACTION = 0.35;
   const UI_FOV = 28;
   const ENTRY_MS = 760;
   const REJOIN_MS = 260;
-  const MAX_DPR = 1.5;
+  const MAX_DPR = 1.0;
+  const OWNED_FRAME_INTERVAL_MS = 1000 / 30;
 
   function clamp01(value) {
     return Math.min(1, Math.max(0, value));
@@ -69,7 +60,7 @@
     };
   }
 
-  const articleStarUiInstall = function installArticleStarUiV2(context) {
+  const articleStarUiInstall = function installArticleStarUiV3(context) {
     const controller = baseInstall(context);
     if (!controller) return controller;
 
@@ -88,7 +79,6 @@
     let overlay = null;
     let canvas = null;
     let renderer = null;
-    let composer = null;
     let uiScene = null;
     let uiCamera = null;
     let entryStartedAt = 0;
@@ -98,6 +88,7 @@
     let currentRect = null;
     let lastRenderSize = 0;
     let lastDpr = 0;
+    let lastUiRenderMs = -Infinity;
     let rendererFailed = false;
 
     const worldCenter = new THREE.Vector3();
@@ -124,8 +115,8 @@
     }
 
     function ensureRenderer() {
-      if (rendererFailed || postprocessingFailed || !postprocessing) return false;
-      if (renderer && composer && uiScene && uiCamera) return true;
+      if (rendererFailed) return false;
+      if (renderer && uiScene && uiCamera) return true;
       if (!ensureOverlay()) return false;
 
       try {
@@ -138,35 +129,17 @@
           powerPreference: 'high-performance',
         });
         renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.toneMapping = THREE.NoToneMapping;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
         renderer.setClearColor(0x000000, 0);
 
         uiScene = new THREE.Scene();
         uiCamera = new THREE.PerspectiveCamera(UI_FOV, 1, 0.1, 64);
         uiCamera.position.set(0, 0, 4);
         uiCamera.lookAt(0, 0, 0);
-
-        const {
-          EffectComposer,
-          EffectPass,
-          RenderPass,
-          ToneMappingEffect,
-          ToneMappingMode,
-        } = postprocessing;
-
-        composer = new EffectComposer(renderer, {
-          depthBuffer: false,
-          frameBufferType: THREE.HalfFloatType,
-          multisampling: 2,
-        });
-        composer.addPass(new RenderPass(uiScene, uiCamera));
-        composer.addPass(new EffectPass(
-          uiCamera,
-          new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC }),
-        ));
       } catch (error) {
         rendererFailed = true;
-        console.warn('[homepage-article-star-ui-v2] renderer initialization failed; keeping world-space star', error);
+        console.warn('[homepage-article-star-ui-v3] renderer initialization failed; keeping world-space star', error);
         return false;
       }
 
@@ -206,6 +179,19 @@
       if (sourceMaterial && targetMaterial) materialPairs.push({ source: sourceMaterial, target: targetMaterial });
     }
 
+    function configureLocalGlow() {
+      if (!overlay) return;
+      const sourceColor = controller.stellarModel?.photosphere?.material?.uniforms?.uBaseColor?.value;
+      const color = sourceColor?.clone?.() || new THREE.Color(0xeaf6ff);
+      color.lerp(new THREE.Color(0xffffff), 0.48);
+      color.convertLinearToSRGB?.();
+      const r = Math.round(clamp01(color.r) * 255);
+      const g = Math.round(clamp01(color.g) * 255);
+      const b = Math.round(clamp01(color.b) * 255);
+      overlay.style.setProperty('--stellar-ui-glow-inner', `rgba(${r},${g},${b},.34)`);
+      overlay.style.setProperty('--stellar-ui-glow-outer', `rgba(${r},${g},${b},.14)`);
+    }
+
     function rebuildUiModel(group, objectId) {
       if (!ensureRenderer() || !group?.parent) return false;
       if (uiGroup && activeId === objectId && sourceGroup === group) return true;
@@ -221,7 +207,17 @@
       for (let i = 0; i < count; i += 1) {
         const sourceNode = sourceNodes[i];
         const uiNode = uiNodes[i];
-        if (!sourceNode?.material || !uiNode) continue;
+        if (!uiNode) continue;
+
+        // The world-space radial halo is intentionally disabled by the stellar
+        // emission runtime. Do not spend a draw call cloning an invisible sprite;
+        // the UI layer supplies a much tighter compositor glow instead.
+        if (sourceNode?.isSprite || uiNode.isSprite) {
+          uiNode.visible = false;
+          continue;
+        }
+
+        if (!sourceNode?.material) continue;
         const clonedMaterial = cloneMaterial(sourceNode.material);
         uiNode.material = clonedMaterial;
         registerMaterialPairs(sourceNode.material, clonedMaterial);
@@ -230,6 +226,8 @@
       uiGroup.position.set(0, 0, 0);
       uiGroup.visible = true;
       uiScene.add(uiGroup);
+      configureLocalGlow();
+      lastUiRenderMs = -Infinity;
       return true;
     }
 
@@ -270,6 +268,10 @@
         const sourceNode = sourceNodes[i];
         const uiNode = uiNodes[i];
         if (!sourceNode || !uiNode) continue;
+        if (sourceNode.isSprite || uiNode.isSprite) {
+          uiNode.visible = false;
+          continue;
+        }
         uiNode.position.copy(sourceNode.position);
         uiNode.quaternion.copy(sourceNode.quaternion);
         if (i === 0) {
@@ -341,7 +343,6 @@
         lastDpr = dpr;
         renderer.setPixelRatio(dpr);
         renderer.setSize(size, size, false);
-        composer.setSize(size, size);
         uiCamera.aspect = 1;
         uiCamera.updateProjectionMatrix();
       }
@@ -365,13 +366,17 @@
       uiCamera.updateProjectionMatrix();
     }
 
-    function renderUi(rect) {
-      if (!composer || !uiGroup || !rect) return false;
-      syncUiModel();
+    function renderUi(rect, now = performance.now(), force = false) {
+      if (!renderer || !uiGroup || !rect) return false;
       const square = squareRect(rect);
       if (!square || !setOverlayRect(square)) return false;
       fitUiCamera(square);
-      composer.render();
+
+      if (!force && now - lastUiRenderMs < OWNED_FRAME_INTERVAL_MS) return true;
+
+      syncUiModel();
+      renderer.render(uiScene, uiCamera);
+      lastUiRenderMs = now;
       return true;
     }
 
@@ -389,7 +394,7 @@
     }
 
     function startExtraction(now) {
-      if (state !== 'idle' || rendererFailed || postprocessingFailed || !postprocessing) return false;
+      if (state !== 'idle' || rendererFailed) return false;
       if (!articleModeReady() || !document.body.classList.contains('star-detail-open')) return false;
       if (document.body.classList.contains('star-detail-closing')) return false;
 
@@ -404,7 +409,7 @@
       entryStartedAt = now;
       state = 'extracting';
       setUiOwned(true);
-      if (!renderUi(startRect)) {
+      if (!renderUi(startRect, now, true)) {
         state = 'idle';
         setUiOwned(false);
         return false;
@@ -430,21 +435,22 @@
       const duration = reducedMotion ? 1 : ENTRY_MS;
       const raw = clamp01((now - entryStartedAt) / duration);
       const rect = lerpSquareRect(entryStartRect, slotRect, smootherstep01(raw));
-      if (rect) renderUi(rect);
+      if (rect) renderUi(rect, now, true);
       if (raw >= 1) {
         currentRect = slotRect;
         state = 'owned';
+        lastUiRenderMs = -Infinity;
       }
     }
 
-    function updateOwned() {
+    function updateOwned(now) {
       if (!sourceGroup?.parent || !uiGroup) {
         abortToWorld();
         return;
       }
       sourceGroup.visible = false;
       const slotRect = readSlotRect();
-      if (slotRect) renderUi(slotRect);
+      if (slotRect) renderUi(slotRect, now, false);
     }
 
     function beginRejoin(now) {
@@ -462,13 +468,13 @@
       sourceGroup.visible = false;
       const targetRect = squareRect(projectWorldStarRect(sourceGroup));
       if (!targetRect) {
-        renderUi(rejoinStartRect);
+        renderUi(rejoinStartRect, now, true);
         return;
       }
       const duration = reducedMotion ? 1 : REJOIN_MS;
       const raw = clamp01((now - rejoinStartedAt) / duration);
       const rect = lerpSquareRect(rejoinStartRect, targetRect, smootherstep01(raw));
-      if (rect) renderUi(rect);
+      if (rect) renderUi(rect, now, true);
 
       if (raw >= 1) {
         sourceGroup.visible = true;
@@ -503,6 +509,7 @@
       entryStartRect = null;
       rejoinStartRect = null;
       currentRect = null;
+      lastUiRenderMs = -Infinity;
       disposeUiModel();
     }
 
@@ -519,10 +526,10 @@
         if (closing && (state === 'owned' || state === 'extracting')) beginRejoin(now);
         if (state === 'idle') startExtraction(now);
         if (state === 'extracting') updateExtraction(now);
-        else if (state === 'owned') updateOwned();
+        else if (state === 'owned') updateOwned(now);
         else if (state === 'rejoining') updateRejoin(now);
       } catch (error) {
-        console.warn('[homepage-article-star-ui-v2] handoff failed; restoring world-space star', error);
+        console.warn('[homepage-article-star-ui-v3] handoff failed; restoring world-space star', error);
         abortToWorld();
       }
 
@@ -537,6 +544,6 @@
     return controller;
   };
 
-  articleStarUiInstall.__smirelArticleStarUiV2 = true;
+  articleStarUiInstall.__smirelArticleStarUiV3 = true;
   window[INSTALL_KEY] = articleStarUiInstall;
 })();

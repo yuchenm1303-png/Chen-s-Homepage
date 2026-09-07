@@ -3,12 +3,11 @@
 
   const INSTALL_KEY = '__SMIREL_STAR_FLIGHT_INSTALL__';
   const baseInstall = window[INSTALL_KEY];
-  if (typeof baseInstall !== 'function' || baseInstall.__smirelDetailStarUiV2) return;
+  if (typeof baseInstall !== 'function' || baseInstall.__smirelDetailStarUiV3) return;
 
-  const ENTRY_MS = 760;
+  const UI_FOV = 28;
+  const ENTRY_MS = 680;
   const REJOIN_MS = 260;
-  const CAMERA_RELEASE_MS = 560;
-  const UI_DEPTH = 6.0;
 
   function clamp01(value) {
     return Math.min(1, Math.max(0, value));
@@ -58,14 +57,25 @@
     };
   }
 
-  const detailStarUiInstall = function installDetailStarUiV2(context) {
+  const detailStarUiInstall = function installDetailStarUiV3(context) {
     const controller = baseInstall(context);
     if (!controller) return controller;
 
-    const { THREE, scene, camera, reducedMotion } = context || {};
-    if (!THREE || !scene || !camera) return controller;
+    const { THREE, camera, reducedMotion } = context || {};
+    if (!THREE || !camera) return controller;
 
     const baseUpdate = controller.update.bind(controller);
+    const baseShouldRenderFrame = typeof controller.shouldRenderFrame === 'function'
+      ? controller.shouldRenderFrame.bind(controller)
+      : null;
+    const baseMotionLodActive = typeof controller.motionLodActive === 'function'
+      ? controller.motionLodActive.bind(controller)
+      : null;
+
+    const uiScene = new THREE.Scene();
+    const uiCamera = new THREE.PerspectiveCamera(UI_FOV, 1, 0.01, 64);
+    uiCamera.position.set(0, 0, 4);
+    uiCamera.lookAt(0, 0, 0);
 
     let state = 'idle';
     let activeId = null;
@@ -78,12 +88,8 @@
     let entryStartRect = null;
     let rejoinStartRect = null;
     let currentRect = null;
-
     let previousArrived = false;
     let arrivalCaptured = false;
-    let holdCaptured = false;
-    let cameraReleaseStartedAt = 0;
-    let cameraDetached = false;
     let viewOrientationCaptured = false;
 
     const worldCenter = new THREE.Vector3();
@@ -92,21 +98,18 @@
     const projectedCenter = new THREE.Vector3();
     const projectedEdge = new THREE.Vector3();
     const cameraRight = new THREE.Vector3();
-    const cameraUp = new THREE.Vector3();
-    const cameraForward = new THREE.Vector3();
 
     const arrivalCameraPosition = new THREE.Vector3();
     const arrivalCameraQuaternion = new THREE.Quaternion();
     let arrivalCameraFov = 47;
-    const holdCameraPosition = new THREE.Vector3();
-    const holdCameraQuaternion = new THREE.Quaternion();
-    let holdCameraFov = 47;
-    const releaseCameraPosition = new THREE.Vector3();
-    const releaseCameraQuaternion = new THREE.Quaternion();
-    let releaseCameraFov = 47;
+
     const sourceViewQuaternion = new THREE.Quaternion();
     const sourceWorldQuaternion = new THREE.Quaternion();
     const inverseCameraQuaternion = new THREE.Quaternion();
+
+    const previousViewport = new THREE.Vector4();
+    const previousScissor = new THREE.Vector4();
+    const drawingBufferSize = new THREE.Vector2();
 
     function coreRadiusFraction() {
       return controller.activeObject?.kind === 'project' ? 0.37 : 0.35;
@@ -116,13 +119,6 @@
       document.body.classList.toggle('star-detail-ui-star-owned', Boolean(owned));
     }
 
-    function applyCameraPose(position, quaternion, fov) {
-      camera.position.copy(position);
-      camera.quaternion.copy(quaternion);
-      camera.fov = fov;
-      camera.updateProjectionMatrix();
-    }
-
     function captureArrivalCamera() {
       arrivalCameraPosition.copy(camera.position);
       arrivalCameraQuaternion.copy(camera.quaternion);
@@ -130,49 +126,12 @@
       arrivalCaptured = true;
     }
 
-    function captureHoldCamera() {
-      holdCameraPosition.copy(camera.position);
-      holdCameraQuaternion.copy(camera.quaternion);
-      holdCameraFov = camera.fov;
-      holdCaptured = true;
-      cameraReleaseStartedAt = 0;
-      cameraDetached = false;
-    }
-
-    function applyCameraOwnership(now) {
+    function restoreArrivalCamera() {
       if (!arrivalCaptured) return;
-
-      if (state === 'extracting') {
-        if (holdCaptured) applyCameraPose(holdCameraPosition, holdCameraQuaternion, holdCameraFov);
-        return;
-      }
-
-      if (state === 'owned') {
-        if (cameraDetached) {
-          applyCameraPose(arrivalCameraPosition, arrivalCameraQuaternion, arrivalCameraFov);
-          return;
-        }
-        if (!holdCaptured) captureHoldCamera();
-        if (!cameraReleaseStartedAt) {
-          cameraReleaseStartedAt = now;
-          releaseCameraPosition.copy(holdCameraPosition);
-          releaseCameraQuaternion.copy(holdCameraQuaternion);
-          releaseCameraFov = holdCameraFov;
-        }
-        const duration = reducedMotion ? 1 : CAMERA_RELEASE_MS;
-        const raw = clamp01((now - cameraReleaseStartedAt) / duration);
-        const t = smootherstep01(raw);
-        camera.position.lerpVectors(releaseCameraPosition, arrivalCameraPosition, t);
-        camera.quaternion.slerpQuaternions(releaseCameraQuaternion, arrivalCameraQuaternion, t);
-        camera.fov = lerp(releaseCameraFov, arrivalCameraFov, t);
-        camera.updateProjectionMatrix();
-        if (raw >= 1) cameraDetached = true;
-        return;
-      }
-
-      if ((state === 'rejoining' || state === 'world') && (cameraDetached || cameraReleaseStartedAt)) {
-        applyCameraPose(arrivalCameraPosition, arrivalCameraQuaternion, arrivalCameraFov);
-      }
+      camera.position.copy(arrivalCameraPosition);
+      camera.quaternion.copy(arrivalCameraQuaternion);
+      camera.fov = arrivalCameraFov;
+      camera.updateProjectionMatrix();
     }
 
     function disposeUiModel() {
@@ -186,35 +145,9 @@
     function captureViewOrientation(group) {
       if (!group) return;
       group.getWorldQuaternion(sourceWorldQuaternion);
-      inverseCameraQuaternion.copy(camera.quaternion).invert();
+      inverseCameraQuaternion.copy(arrivalCameraQuaternion).invert();
       sourceViewQuaternion.copy(inverseCameraQuaternion).multiply(sourceWorldQuaternion);
       viewOrientationCaptured = true;
-    }
-
-    function rebuildUiModel(group, objectId) {
-      if (!group?.parent) return false;
-      if (uiGroup && activeId === objectId && sourceGroup === group) return true;
-
-      disposeUiModel();
-      activeId = objectId;
-      sourceGroup = group;
-
-      // Clone only the Object3D transform hierarchy. Three.js clone() keeps the
-      // same geometry/material references, so the UI model receives the exact
-      // same photosphere/chromosphere/corona/activity shaders and textures as the
-      // galaxy model without duplicating shader programs or synchronizing uniforms.
-      uiGroup = group.clone(true);
-      group.traverse((node) => sourceNodes.push(node));
-      uiGroup.traverse((node) => uiNodes.push(node));
-
-      uiGroup.name = 'SmirelDetailStarUI';
-      uiGroup.userData.smirelDetailUi = true;
-      uiGroup.visible = true;
-      uiGroup.renderOrder = Math.max(group.renderOrder || 0, 40);
-      scene.add(uiGroup);
-      captureViewOrientation(group);
-      syncUiChildren();
-      return true;
     }
 
     function syncUiChildren() {
@@ -228,15 +161,47 @@
         uiNode.quaternion.copy(sourceNode.quaternion);
         uiNode.scale.copy(sourceNode.scale);
         uiNode.visible = sourceNode.visible;
-        uiNode.renderOrder = Math.max(sourceNode.renderOrder || 0, 40 + i);
+        uiNode.renderOrder = sourceNode.renderOrder || 0;
       }
+
+      const scalar = Math.max(
+        0.001,
+        (Math.abs(sourceGroup.scale.x) + Math.abs(sourceGroup.scale.y) + Math.abs(sourceGroup.scale.z)) / 3,
+      );
+      uiGroup.position.set(0, 0, 0);
+      uiGroup.scale.setScalar(scalar);
+      if (!viewOrientationCaptured) captureViewOrientation(sourceGroup);
+      uiGroup.quaternion.copy(sourceViewQuaternion);
       uiGroup.visible = true;
+    }
+
+    function rebuildUiModel(group, objectId) {
+      if (!group?.parent) return false;
+      if (uiGroup && activeId === objectId && sourceGroup === group) return true;
+
+      disposeUiModel();
+      activeId = objectId;
+      sourceGroup = group;
+
+      // Clone only Object3D transforms. Geometry, materials, textures and shader
+      // uniforms remain shared with the galaxy star: no second shader stack and
+      // no per-frame material/uniform synchronization.
+      uiGroup = group.clone(true);
+      group.traverse((node) => sourceNodes.push(node));
+      uiGroup.traverse((node) => uiNodes.push(node));
+      uiGroup.name = 'SmirelDetailStarUI';
+      uiGroup.userData.smirelDetailUi = true;
+      uiScene.add(uiGroup);
+      captureViewOrientation(group);
+      syncUiChildren();
+      return true;
     }
 
     function projectWorldStarRect(group) {
       if (!group?.parent) return null;
       const viewportWidth = Math.max(window.innerWidth, 1);
       const viewportHeight = Math.max(window.innerHeight, 1);
+
       group.updateWorldMatrix(true, false);
       camera.updateMatrixWorld();
       group.getWorldPosition(worldCenter);
@@ -255,6 +220,7 @@
       const edgeY = (-projectedEdge.y * 0.5 + 0.5) * viewportHeight;
       const radiusPx = Math.max(1, Math.hypot(edgeX - centreX, edgeY - centreY));
       const size = Math.max(24, radiusPx / coreRadiusFraction());
+
       return {
         left: centreX - size * 0.5,
         top: centreY - size * 0.5,
@@ -266,45 +232,8 @@
     function readSlotRect() {
       const shell = document.querySelector('.star-detail-shell');
       const slot = shell?.querySelector('.star-detail-star-slot');
-      if (!shell || !slot || shell.getAttribute('aria-hidden') === 'true') return null;
+      if (!shell || !slot) return null;
       return squareRect(slot.getBoundingClientRect());
-    }
-
-    function placeUiStar(inputRect) {
-      if (!uiGroup || !inputRect) return false;
-      const rect = squareRect(inputRect);
-      if (!rect) return false;
-      currentRect = rect;
-      syncUiChildren();
-
-      const viewportWidth = Math.max(window.innerWidth, 1);
-      const viewportHeight = Math.max(window.innerHeight, 1);
-      const centreX = rect.left + rect.width * 0.5;
-      const centreY = rect.top + rect.height * 0.5;
-      const ndcX = centreX / viewportWidth * 2 - 1;
-      const ndcY = 1 - centreY / viewportHeight * 2;
-      const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(camera.fov) * 0.5);
-      const halfHeight = UI_DEPTH * tanHalfFov;
-      const halfWidth = halfHeight * camera.aspect;
-
-      cameraRight.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
-      cameraUp.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
-      cameraForward.set(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
-
-      uiGroup.position.copy(camera.position)
-        .addScaledVector(cameraForward, UI_DEPTH)
-        .addScaledVector(cameraRight, ndcX * halfWidth)
-        .addScaledVector(cameraUp, ndcY * halfHeight);
-
-      if (!viewOrientationCaptured) captureViewOrientation(sourceGroup);
-      uiGroup.quaternion.copy(camera.quaternion).multiply(sourceViewQuaternion);
-
-      const focalPixels = viewportHeight / Math.max(2 * tanHalfFov, 1e-5);
-      const desiredCoreRadiusPx = Math.max(1, rect.width * coreRadiusFraction());
-      const uiScale = desiredCoreRadiusPx * UI_DEPTH / Math.max(focalPixels, 1);
-      uiGroup.scale.setScalar(Math.max(uiScale, 0.001));
-      uiGroup.updateMatrixWorld(true);
-      return true;
     }
 
     function detailModeReady() {
@@ -314,58 +243,76 @@
         object
         && shell
         && shell.dataset.starId === object.id
-        && shell.getAttribute('aria-hidden') !== 'true'
         && document.body.classList.contains('star-flight-arrived')
-        && document.body.classList.contains('star-detail-open')
         && !document.body.classList.contains('star-detail-closing')
       );
+    }
+
+    function fitUiCamera() {
+      if (!uiGroup) return;
+      const modelRadius = Math.max(uiGroup.scale.x, 0.001);
+      const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(UI_FOV) * 0.5);
+      const distance = modelRadius / Math.max(2 * coreRadiusFraction() * tanHalfFov, 1e-5);
+      uiCamera.aspect = 1;
+      uiCamera.position.set(0, 0, Math.max(distance, modelRadius * 1.25));
+      uiCamera.quaternion.identity();
+      uiCamera.lookAt(0, 0, 0);
+      uiCamera.updateProjectionMatrix();
+    }
+
+    function setCurrentRect(rect) {
+      const square = squareRect(rect);
+      if (!square) return false;
+      currentRect = square;
+      return true;
     }
 
     function startExtraction(now) {
       if (state !== 'idle' || !detailModeReady()) return false;
       const object = controller.activeObject;
       const group = controller.stellarModel?.group || null;
+      if (!object || !group) return false;
+
+      restoreArrivalCamera();
       const startRect = squareRect(projectWorldStarRect(group));
       const slotRect = readSlotRect();
-      if (!object || !group || !startRect || !slotRect) return false;
-      if (!rebuildUiModel(group, object.id)) return false;
+      if (!startRect || !slotRect || !rebuildUiModel(group, object.id)) return false;
 
-      captureHoldCamera();
       entryStartRect = startRect;
       entryStartedAt = now;
       state = 'extracting';
       setUiOwned(true);
-      if (!placeUiStar(startRect)) {
-        state = 'idle';
-        setUiOwned(false);
-        disposeUiModel();
-        return false;
-      }
+      setCurrentRect(startRect);
+      syncUiChildren();
+      fitUiCamera();
 
-      // The handoff is same-frame and same-material: after the UI clone is in the
-      // exact projected rectangle, the world model can disappear without a visual
-      // change. From this point the UI clone is camera-relative, not galaxy-bound.
+      // Same-frame handoff: overlay the UI model in the source star's exact
+      // screen rectangle, then hide the galaxy-bound source object.
       group.visible = false;
       return true;
     }
 
     function updateExtraction(now) {
-      if (!sourceGroup?.parent || !uiGroup) {
+      if (!sourceGroup?.parent || !uiGroup || !entryStartRect) {
         abortToWorld();
         return;
       }
+
       sourceGroup.visible = false;
       const slotRect = readSlotRect();
-      if (!slotRect || !entryStartRect) {
+      if (!slotRect) {
         abortToWorld();
         return;
       }
+
       const duration = reducedMotion ? 1 : ENTRY_MS;
       const raw = clamp01((now - entryStartedAt) / duration);
-      const rect = lerpSquareRect(entryStartRect, slotRect, smootherstep01(raw));
-      if (rect) placeUiStar(rect);
+      setCurrentRect(lerpSquareRect(entryStartRect, slotRect, smootherstep01(raw)));
+      syncUiChildren();
+      fitUiCamera();
+
       if (raw >= 1) {
-        currentRect = slotRect;
+        setCurrentRect(slotRect);
         state = 'owned';
       }
     }
@@ -375,14 +322,21 @@
         abortToWorld();
         return;
       }
+
       sourceGroup.visible = false;
       const slotRect = readSlotRect();
-      if (slotRect) placeUiStar(slotRect);
+      if (slotRect) setCurrentRect(slotRect);
+      syncUiChildren();
+      fitUiCamera();
     }
 
     function beginRejoin(now) {
       if (state !== 'owned' && state !== 'extracting') return;
       rejoinStartRect = squareRect(currentRect || readSlotRect() || projectWorldStarRect(sourceGroup));
+      if (!rejoinStartRect) {
+        abortToWorld();
+        return;
+      }
       rejoinStartedAt = now;
       state = 'rejoining';
     }
@@ -392,32 +346,34 @@
         abortToWorld();
         return;
       }
+
       sourceGroup.visible = false;
+      restoreArrivalCamera();
       const targetRect = squareRect(projectWorldStarRect(sourceGroup));
-      if (!targetRect) {
-        placeUiStar(rejoinStartRect);
-        return;
-      }
+      if (!targetRect) return;
+
       const duration = reducedMotion ? 1 : REJOIN_MS;
       const raw = clamp01((now - rejoinStartedAt) / duration);
-      const rect = lerpSquareRect(rejoinStartRect, targetRect, smootherstep01(raw));
-      if (rect) placeUiStar(rect);
+      setCurrentRect(lerpSquareRect(rejoinStartRect, targetRect, smootherstep01(raw)));
+      syncUiChildren();
+      fitUiCamera();
 
       if (raw >= 1) {
-        syncUiChildren();
-        uiGroup.visible = false;
         sourceGroup.visible = true;
         setUiOwned(false);
+        disposeUiModel();
+        currentRect = null;
         state = 'world';
       }
     }
 
     function abortToWorld() {
-      if (uiGroup) uiGroup.visible = false;
       if (sourceGroup?.parent && document.body.classList.contains('star-flight-arrived')) {
         sourceGroup.visible = true;
       }
       setUiOwned(false);
+      disposeUiModel();
+      currentRect = null;
       state = 'world';
     }
 
@@ -429,9 +385,6 @@
       entryStartRect = null;
       rejoinStartRect = null;
       currentRect = null;
-      holdCaptured = false;
-      cameraReleaseStartedAt = 0;
-      cameraDetached = false;
       arrivalCaptured = false;
       disposeUiModel();
     }
@@ -450,22 +403,18 @@
           return ownsCamera;
         }
 
-        applyCameraOwnership(now);
+        // The legacy detail runtime keeps only shell reveal/close timing. Once the
+        // flight arrives, the galaxy camera is frozen at that arrival pose; the
+        // independent UI star performs all subsequent movement itself.
+        restoreArrivalCamera();
 
         if (closing && (state === 'owned' || state === 'extracting')) beginRejoin(now);
         if (state === 'idle') startExtraction(now);
         if (state === 'extracting') updateExtraction(now);
         else if (state === 'owned') updateOwned();
         else if (state === 'rejoining') updateRejoin(now);
-
-        // The detail star is camera-relative, so every camera-release frame must
-        // update its world transform after the camera pose is finalized.
-        applyCameraOwnership(now);
-        if ((state === 'extracting' || state === 'owned' || state === 'rejoining') && currentRect) {
-          placeUiStar(currentRect);
-        }
       } catch (error) {
-        console.warn('[homepage-detail-star-ui-v2] handoff failed; restoring world-space star', error);
+        console.warn('[homepage-detail-star-ui] independent overlay handoff failed; restoring world star', error);
         abortToWorld();
       }
 
@@ -473,8 +422,62 @@
       return ownsCamera
         || state === 'extracting'
         || state === 'owned'
-        || state === 'rejoining'
-        || cameraDetached;
+        || state === 'rejoining';
+    };
+
+    controller.shouldRenderFrame = (now, lastCompositeMs) => {
+      if (state === 'extracting' || state === 'rejoining') return true;
+      return baseShouldRenderFrame ? baseShouldRenderFrame(now, lastCompositeMs) : false;
+    };
+
+    controller.motionLodActive = (now = performance.now()) => {
+      if (state === 'extracting' || state === 'rejoining') return true;
+      return baseMotionLodActive ? baseMotionLodActive(now) : false;
+    };
+
+    controller.renderDetailStarUi = (renderer) => {
+      if (!renderer || !uiGroup || !currentRect) return false;
+      if (state !== 'extracting' && state !== 'owned' && state !== 'rejoining') return false;
+
+      syncUiChildren();
+      fitUiCamera();
+
+      renderer.getDrawingBufferSize(drawingBufferSize);
+      const bufferWidth = Math.max(1, drawingBufferSize.x);
+      const bufferHeight = Math.max(1, drawingBufferSize.y);
+      const cssWidth = Math.max(window.innerWidth, 1);
+      const cssHeight = Math.max(window.innerHeight, 1);
+      const scaleX = bufferWidth / cssWidth;
+      const scaleY = bufferHeight / cssHeight;
+      const pixelScale = Math.min(scaleX, scaleY);
+
+      const centreX = (currentRect.left + currentRect.width * 0.5) * scaleX;
+      const centreYFromTop = (currentRect.top + currentRect.height * 0.5) * scaleY;
+      const size = Math.max(1, Math.round(currentRect.width * pixelScale));
+      const x = Math.round(centreX - size * 0.5);
+      const y = Math.round(bufferHeight - centreYFromTop - size * 0.5);
+
+      renderer.getViewport(previousViewport);
+      renderer.getScissor(previousScissor);
+      const previousScissorTest = renderer.getScissorTest();
+      const previousAutoClear = renderer.autoClear;
+      const previousRenderTarget = renderer.getRenderTarget();
+
+      try {
+        renderer.setRenderTarget(null);
+        renderer.autoClear = false;
+        renderer.setScissorTest(true);
+        renderer.setViewport(x, y, size, size);
+        renderer.setScissor(x, y, size, size);
+        renderer.render(uiScene, uiCamera);
+      } finally {
+        renderer.setViewport(previousViewport);
+        renderer.setScissor(previousScissor);
+        renderer.setScissorTest(previousScissorTest);
+        renderer.autoClear = previousAutoClear;
+        renderer.setRenderTarget(previousRenderTarget);
+      }
+      return true;
     };
 
     Object.defineProperty(controller, 'detailStarUiState', {
@@ -496,12 +499,14 @@
 
     Object.defineProperty(controller, 'detailCameraDetached', {
       configurable: true,
-      get() { return cameraDetached; },
+      get() {
+        return arrivalCaptured && document.body.classList.contains('star-flight-arrived');
+      },
     });
 
     return controller;
   };
 
-  detailStarUiInstall.__smirelDetailStarUiV2 = true;
+  detailStarUiInstall.__smirelDetailStarUiV3 = true;
   window[INSTALL_KEY] = detailStarUiInstall;
 })();

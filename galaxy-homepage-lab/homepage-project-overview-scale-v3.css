@@ -73,9 +73,11 @@
   }
 
   .project-overview-kicker {
-    color: rgba(255,255,255,.40);
-    font-size: 10px;
-    letter-spacing: .14em;
+    color: rgba(255,255,255,.56);
+    font-size: clamp(13px, .84vw, 14px);
+    font-weight: 620;
+    line-height: 1.2;
+    letter-spacing: .10em;
   }
 
   .project-overview-thesis {

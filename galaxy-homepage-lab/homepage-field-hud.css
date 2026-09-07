@@ -1,0 +1,209 @@
+/* Stellar field masthead — editorial HUD override.
+   The base field controller still owns layout state and text; this layer only
+   establishes hierarchy, spacing and interaction so every local field shares
+   one restrained visual language. */
+
+body .smirel-field-hud {
+  --field-hud-rule: rgba(255, 255, 255, 0.18);
+  --field-hud-muted: rgba(241, 246, 252, 0.54);
+  --field-hud-faint: rgba(241, 246, 252, 0.33);
+  left: clamp(30px, 3.7vw, 62px);
+  top: clamp(24px, 3.2vh, 40px);
+  width: min(590px, calc(100vw - 60px));
+  min-width: 0;
+  max-width: none;
+  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 20px;
+  row-gap: 11px;
+  align-items: start;
+  padding: 2px 0 0 18px;
+  color: rgba(248, 251, 255, 0.96);
+  filter: drop-shadow(0 7px 22px rgba(0, 0, 0, 0.58));
+}
+
+body .smirel-field-hud::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 1px;
+  height: 92px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.58) 0,
+    rgba(255, 255, 255, 0.24) 36%,
+    rgba(255, 255, 255, 0.07) 100%
+  );
+  box-shadow: 0 0 14px rgba(164, 207, 255, 0.12);
+  pointer-events: none;
+}
+
+body .smirel-field-back {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  justify-self: start;
+  min-width: 0;
+  min-height: 0;
+  margin: 2px 0 0;
+  padding: 0 0 7px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0;
+  background: transparent;
+  color: rgba(246, 249, 253, 0.58);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  font: 620 9px/1.15 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    transform 220ms cubic-bezier(.2,.8,.2,1);
+}
+
+body .smirel-field-back:hover,
+body .smirel-field-back:focus-visible {
+  color: rgba(255, 255, 255, 0.96);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateX(-2px);
+  outline: none;
+}
+
+body .smirel-field-copy {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  min-width: 0;
+  padding: 0 54px 0 0;
+}
+
+body .smirel-field-copy::after {
+  position: absolute;
+  right: 0;
+  top: 2px;
+  color: rgba(255, 255, 255, 0.24);
+  font: 590 10px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.14em;
+}
+
+body[data-star-field="about"] .smirel-field-copy::after { content: "01"; }
+body[data-star-field="projects"] .smirel-field-copy::after { content: "02"; }
+body[data-star-field="blog"] .smirel-field-copy::after { content: "03"; }
+body[data-star-field="contact"] .smirel-field-copy::after { content: "04"; }
+
+body .smirel-field-kicker {
+  margin: 0 0 7px;
+  color: var(--field-hud-faint);
+  font: 650 9px/1.1 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+body .smirel-field-title {
+  margin: 0;
+  max-width: 10ch;
+  color: rgba(252, 253, 255, 0.98);
+  font: 560 clamp(38px, 3.1vw, 50px)/0.94 ui-rounded, "SF Pro Rounded", "Segoe UI", sans-serif;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+  text-shadow:
+    0 2px 18px rgba(0, 0, 0, 0.86),
+    0 0 28px rgba(166, 205, 255, 0.05);
+}
+
+body .smirel-field-subtitle {
+  grid-column: 2;
+  grid-row: 2;
+  position: relative;
+  margin: 0;
+  max-width: 47ch;
+  padding-top: 11px;
+  color: var(--field-hud-muted);
+  font: 480 clamp(11px, 0.82vw, 13px)/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0.008em;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.92);
+}
+
+body .smirel-field-subtitle::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: min(118px, 34%);
+  height: 1px;
+  background: linear-gradient(to right, var(--field-hud-rule), rgba(255, 255, 255, 0));
+}
+
+@media (max-width: 760px) {
+  body .smirel-field-hud {
+    left: 18px;
+    top: 18px;
+    width: calc(100vw - 36px);
+    grid-template-columns: 52px minmax(0, 1fr);
+    column-gap: 14px;
+    padding-left: 14px;
+  }
+
+  body .smirel-field-hud::before {
+    height: 80px;
+  }
+
+  body .smirel-field-copy {
+    padding-right: 36px;
+  }
+
+  body .smirel-field-title {
+    font-size: clamp(34px, 10vw, 44px);
+  }
+
+  body .smirel-field-subtitle {
+    display: block;
+    max-width: 38ch;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 520px) {
+  body .smirel-field-hud {
+    left: 14px;
+    top: 14px;
+    width: calc(100vw - 28px);
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    row-gap: 8px;
+    padding-left: 13px;
+  }
+
+  body .smirel-field-back {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 0;
+  }
+
+  body .smirel-field-copy {
+    grid-column: 1;
+    grid-row: 2;
+    padding-right: 34px;
+  }
+
+  body .smirel-field-subtitle {
+    grid-column: 1;
+    grid-row: 3;
+    max-width: 32ch;
+    padding-top: 9px;
+  }
+
+  body .smirel-field-hud::before {
+    height: 116px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .smirel-field-back {
+    transition-duration: 0.01ms !important;
+  }
+}

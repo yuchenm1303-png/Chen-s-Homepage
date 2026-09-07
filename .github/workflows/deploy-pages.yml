@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: a8eccac1477cfaf468a8fe0e5823be8b7313604e
+          ref: 8dbed3b9a444c68ef1821fc7db1aa06eb3959e8b
           path: galaxy-release
           persist-credentials: false
 
@@ -49,6 +49,7 @@ jobs:
           test -s published/index.html
           test -s published/homepage-star-activity.js
           test -s published/homepage-star-emission-boost.js
+          test -s published/homepage-star-temporal-stability.js
           test -s published/homepage-star-picker-entry-v3.js
           test -s published/homepage-star-picker-v3.js
           test -s published/homepage-blog-constellation-layout.js
@@ -58,9 +59,11 @@ jobs:
           test -s published/homepage-article-star-ui.js
           test -s published/homepage-article-star-ui.css
           node --check published/homepage-article-star-ui.js
+          node --check published/homepage-star-temporal-stability.js
           grep -q 'homepage-star-picker-entry-v3.js?build=93c984f4' published/index.html
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
           grep -q 'homepage-star-emission-boost.js?build=aaec8612' published/index.html
+          grep -q 'homepage-star-temporal-stability.js?build=5acaac50' published/index.html
           grep -q 'homepage-article-star-ui.js?build=4e57d6e9' published/index.html
           grep -q 'homepage-article-star-ui.css' published/index.html
           grep -q 'homepage-project-overview-scale-v3.css' published/index.html
@@ -72,6 +75,11 @@ jobs:
           grep -q 'CORONA_MAX_BOOST = 1.25' published/homepage-star-emission-boost.js
           grep -q 'model.halo.material.opacity = 0' published/homepage-star-emission-boost.js
           grep -q 'uEmissionBoost' published/homepage-star-emission-boost.js
+          grep -q 'STONE_B_STABLE' published/homepage-star-temporal-stability.js
+          grep -q 'MICRO_A_STABLE' published/homepage-star-temporal-stability.js
+          grep -q 'MICRO_B_STABLE' published/homepage-star-temporal-stability.js
+          grep -q 'DETAIL_CORE_SPIN_RAD_S = 0.012' published/homepage-star-temporal-stability.js
+          grep -q 'DETAIL_CORONA_SPIN_RAD_S = -0.006' published/homepage-star-temporal-stability.js
           grep -q 'bloom.intensity = CONFIG.bloomIntensity' published/astra-homepage-glass-capture-loader.js
           grep -q 'bloom.mipmapBlurPass.radius = CONFIG.bloomRadius' published/astra-homepage-glass-capture-loader.js
           grep -q 'function squareRect' published/homepage-article-star-ui.js

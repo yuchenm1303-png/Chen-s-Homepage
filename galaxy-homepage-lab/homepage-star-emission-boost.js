@@ -11,15 +11,15 @@
   const SHELL_OUTPUT_MARKER = 'gl_FragColor = vec4(color, alpha);';
   const SHELL_OUTPUT_REPLACEMENT = 'gl_FragColor = vec4(color * uEmissionBoost, alpha);';
 
-  // Keep distant flight visually identical to the source point star. Only the
-  // final close approach is allowed to develop the HDR stellar envelope.
+  // The refined photosphere is already HDR before this wrapper runs. A large
+  // multiplier feeds too much energy into the scene-wide mipmap bloom and turns
+  // the star into a broad circular fog bank. Keep only a modest close-range lift
+  // and let the photosphere/chromosphere geometry define the visible edge.
   const CLOSE_APPROACH_START = 0.82;
   const CLOSE_APPROACH_FULL = 0.985;
-  const CORE_MAX_BOOST = 5.0;
-  const CHROMOSPHERE_MAX_BOOST = 3.0;
-  const CORONA_MAX_BOOST = 2.2;
-  const HALO_MAX_OPACITY = 0.018;
-  const HALO_SCALE_FACTOR = 0.72;
+  const CORE_MAX_BOOST = 1.85;
+  const CHROMOSPHERE_MAX_BOOST = 1.45;
+  const CORONA_MAX_BOOST = 1.25;
 
   function smootherstep01(value) {
     const t = Math.min(1, Math.max(0, value));
@@ -61,9 +61,6 @@
       const active = controller.activeObject;
       if (!active || !model?.group) return 0;
 
-      // The refined stellar model settles at 0.84 * catalog radius. Use its
-      // actual rendered scale rather than the binary flight CSS class, so a
-      // distant target remains visually identical to its original point star.
       const radius = active.star?.radius ?? 1;
       const finalScale = Math.max(0.84 * radius, 0.001);
       const sizeRatio = Math.min(1, Math.max(0, model.group.scale.x / finalScale));
@@ -109,12 +106,11 @@
         1.0 + (CORONA_MAX_BOOST - 1.0) * approach,
       );
 
-      // The camera-facing legacy halo remains only a compact optical envelope.
-      // The refined runtime resets its descriptor scale before this wrapper runs,
-      // so this per-frame factor does not accumulate.
+      // Remove the legacy camera-facing radial sprite completely. Its perfectly
+      // circular footprint is exactly the opposite of the thin, structured limb
+      // seen in the Stellaris reference and it provides no real 3D information.
       if (model.halo?.material) {
-        model.halo.scale.multiplyScalar(HALO_SCALE_FACTOR);
-        model.halo.material.opacity = HALO_MAX_OPACITY * approach;
+        model.halo.material.opacity = 0;
       }
     }
 

@@ -3,7 +3,7 @@
 
   const INSTALL_KEY = '__SMIREL_STAR_FLIGHT_INSTALL__';
   const baseInstall = window[INSTALL_KEY];
-  if (typeof baseInstall !== 'function' || baseInstall.__smirelArticleStarUi) return;
+  if (typeof baseInstall !== 'function' || baseInstall.__smirelArticleStarUiV2) return;
 
   const POSTPROCESSING_URL = 'https://cdn.jsdelivr.net/npm/postprocessing@6.39.4/build/index.js';
   let postprocessing = null;
@@ -12,7 +12,7 @@
     .then((module) => { postprocessing = module; })
     .catch((error) => {
       postprocessingFailed = true;
-      console.warn('[homepage-article-star-ui] postprocessing unavailable; keeping world-space star', error);
+      console.warn('[homepage-article-star-ui-v2] postprocessing unavailable; keeping world-space star', error);
     });
 
   const CORE_RADIUS_FRACTION = 0.35;
@@ -34,16 +34,42 @@
     return a + (b - a) * t;
   }
 
-  function lerpRect(from, to, t) {
+  function squareRect(rect) {
+    if (!rect) return null;
+    const width = Math.max(Number(rect.width) || 0, 0);
+    const height = Math.max(Number(rect.height) || 0, 0);
+    if (width <= 0 || height <= 0) return null;
+    const size = Math.max(1, Math.min(width, height));
+    const centreX = Number(rect.left) + width * 0.5;
+    const centreY = Number(rect.top) + height * 0.5;
     return {
-      left: lerp(from.left, to.left, t),
-      top: lerp(from.top, to.top, t),
-      width: lerp(from.width, to.width, t),
-      height: lerp(from.height, to.height, t),
+      left: centreX - size * 0.5,
+      top: centreY - size * 0.5,
+      width: size,
+      height: size,
     };
   }
 
-  const articleStarUiInstall = function installArticleStarUi(context) {
+  function lerpSquareRect(fromRect, toRect, t) {
+    const from = squareRect(fromRect);
+    const to = squareRect(toRect);
+    if (!from || !to) return null;
+    const size = lerp(from.width, to.width, t);
+    const fromCx = from.left + from.width * 0.5;
+    const fromCy = from.top + from.height * 0.5;
+    const toCx = to.left + to.width * 0.5;
+    const toCy = to.top + to.height * 0.5;
+    const centreX = lerp(fromCx, toCx, t);
+    const centreY = lerp(fromCy, toCy, t);
+    return {
+      left: centreX - size * 0.5,
+      top: centreY - size * 0.5,
+      width: size,
+      height: size,
+    };
+  }
+
+  const articleStarUiInstall = function installArticleStarUiV2(context) {
     const controller = baseInstall(context);
     if (!controller) return controller;
 
@@ -70,8 +96,7 @@
     let entryStartRect = null;
     let rejoinStartRect = null;
     let currentRect = null;
-    let lastRenderWidth = 0;
-    let lastRenderHeight = 0;
+    let lastRenderSize = 0;
     let lastDpr = 0;
     let rendererFailed = false;
 
@@ -88,7 +113,6 @@
 
     function ensureOverlay() {
       if (overlay?.isConnected && canvas?.isConnected) return true;
-
       overlay = document.createElement('div');
       overlay.className = 'stellar-article-star-ui-layer';
       overlay.setAttribute('aria-hidden', 'true');
@@ -142,7 +166,7 @@
         ));
       } catch (error) {
         rendererFailed = true;
-        console.warn('[homepage-article-star-ui] renderer initialization failed; keeping world-space star', error);
+        console.warn('[homepage-article-star-ui-v2] renderer initialization failed; keeping world-space star', error);
         return false;
       }
 
@@ -151,15 +175,12 @@
         rendererFailed = true;
         abortToWorld();
       }, { passive: false });
-
       return true;
     }
 
     function disposeUiModel() {
       if (uiGroup?.parent) uiGroup.parent.remove(uiGroup);
-      for (const pair of materialPairs) {
-        pair.target?.dispose?.();
-      }
+      for (const pair of materialPairs) pair.target?.dispose?.();
       uiGroup = null;
       sourceNodes = [];
       uiNodes = [];
@@ -182,9 +203,7 @@
         }
         return;
       }
-      if (sourceMaterial && targetMaterial) {
-        materialPairs.push({ source: sourceMaterial, target: targetMaterial });
-      }
+      if (sourceMaterial && targetMaterial) materialPairs.push({ source: sourceMaterial, target: targetMaterial });
     }
 
     function rebuildUiModel(group, objectId) {
@@ -195,8 +214,6 @@
       activeId = objectId;
       sourceGroup = group;
       uiGroup = group.clone(true);
-      sourceNodes = [];
-      uiNodes = [];
       group.traverse((node) => sourceNodes.push(node));
       uiGroup.traverse((node) => uiNodes.push(node));
 
@@ -220,7 +237,6 @@
       if (!targetUniform || !sourceUniform) return;
       const sourceValue = sourceUniform.value;
       const targetValue = targetUniform.value;
-
       if (sourceValue?.isTexture) {
         targetUniform.value = sourceValue;
       } else if (targetValue && sourceValue && typeof targetValue.copy === 'function') {
@@ -237,15 +253,12 @@
         const sourceMaterial = pair.source;
         const targetMaterial = pair.target;
         if (!sourceMaterial || !targetMaterial) continue;
-
         targetMaterial.opacity = sourceMaterial.opacity;
         targetMaterial.visible = sourceMaterial.visible;
         if (!sourceMaterial.uniforms || !targetMaterial.uniforms) continue;
-
         for (const [name, targetUniform] of Object.entries(targetMaterial.uniforms)) {
           const sourceUniform = sourceMaterial.uniforms[name];
-          if (!sourceUniform) continue;
-          copyUniformValue(targetUniform, sourceUniform);
+          if (sourceUniform) copyUniformValue(targetUniform, sourceUniform);
         }
       }
     }
@@ -259,7 +272,15 @@
         if (!sourceNode || !uiNode) continue;
         uiNode.position.copy(sourceNode.position);
         uiNode.quaternion.copy(sourceNode.quaternion);
-        uiNode.scale.copy(sourceNode.scale);
+        if (i === 0) {
+          const scalar = Math.max(
+            0.001,
+            (Math.abs(sourceNode.scale.x) + Math.abs(sourceNode.scale.y) + Math.abs(sourceNode.scale.z)) / 3,
+          );
+          uiNode.scale.setScalar(scalar);
+        } else {
+          uiNode.scale.copy(sourceNode.scale);
+        }
         if (i !== 0) uiNode.visible = sourceNode.visible;
       }
       uiGroup.position.set(0, 0, 0);
@@ -271,7 +292,6 @@
       if (!group?.parent) return null;
       const viewportWidth = Math.max(window.innerWidth, 1);
       const viewportHeight = Math.max(window.innerHeight, 1);
-
       group.updateWorldMatrix(true, false);
       camera.updateMatrixWorld();
       group.getWorldPosition(worldCenter);
@@ -282,7 +302,6 @@
       worldEdge.copy(worldCenter).addScaledVector(cameraRight, radiusWorld);
       projectedCenter.copy(worldCenter).project(camera);
       projectedEdge.copy(worldEdge).project(camera);
-
       if (projectedCenter.z < -1.2 || projectedCenter.z > 1.2) return null;
 
       const centreX = (projectedCenter.x * 0.5 + 0.5) * viewportWidth;
@@ -290,9 +309,7 @@
       const edgeX = (projectedEdge.x * 0.5 + 0.5) * viewportWidth;
       const edgeY = (-projectedEdge.y * 0.5 + 0.5) * viewportHeight;
       const radiusPx = Math.max(1, Math.hypot(edgeX - centreX, edgeY - centreY));
-      const diameterFraction = CORE_RADIUS_FRACTION * 2;
-      const size = Math.max(24, radiusPx * 2 / diameterFraction);
-
+      const size = Math.max(24, radiusPx * 2 / (CORE_RADIUS_FRACTION * 2));
       return {
         left: centreX - size * 0.5,
         top: centreY - size * 0.5,
@@ -304,51 +321,45 @@
     function readSlotRect() {
       const slot = document.querySelector('.star-detail-shell.is-article-reader .star-detail-star-slot');
       if (!slot) return null;
-      const rect = slot.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return null;
-      return {
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
-      };
+      return squareRect(slot.getBoundingClientRect());
     }
 
-    function setOverlayRect(rect) {
-      if (!overlay || !rect) return false;
+    function setOverlayRect(inputRect) {
+      if (!overlay || !inputRect) return false;
+      const rect = squareRect(inputRect);
+      if (!rect) return false;
       currentRect = rect;
       overlay.style.left = `${rect.left}px`;
       overlay.style.top = `${rect.top}px`;
       overlay.style.width = `${rect.width}px`;
-      overlay.style.height = `${rect.height}px`;
+      overlay.style.height = `${rect.width}px`;
 
-      const width = Math.max(1, Math.round(rect.width));
-      const height = Math.max(1, Math.round(rect.height));
+      const size = Math.max(1, Math.round(rect.width));
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-      if (Math.abs(width - lastRenderWidth) > 1
-          || Math.abs(height - lastRenderHeight) > 1
-          || Math.abs(dpr - lastDpr) > 0.01) {
-        lastRenderWidth = width;
-        lastRenderHeight = height;
+      if (Math.abs(size - lastRenderSize) > 1 || Math.abs(dpr - lastDpr) > 0.01) {
+        lastRenderSize = size;
         lastDpr = dpr;
         renderer.setPixelRatio(dpr);
-        renderer.setSize(width, height, false);
-        composer.setSize(width, height, false);
-        uiCamera.aspect = width / Math.max(height, 1);
+        renderer.setSize(size, size, false);
+        composer.setSize(size, size);
+        uiCamera.aspect = 1;
         uiCamera.updateProjectionMatrix();
       }
       return true;
     }
 
-    function fitUiCamera(rect) {
-      if (!uiGroup || !uiCamera || !rect) return;
-      const radiusPx = Math.max(1, Math.min(rect.width, rect.height) * CORE_RADIUS_FRACTION);
-      const focalPixels = rect.height / Math.max(
+    function fitUiCamera(inputRect) {
+      if (!uiGroup || !uiCamera || !inputRect) return;
+      const rect = squareRect(inputRect);
+      if (!rect) return;
+      const radiusPx = Math.max(1, rect.width * CORE_RADIUS_FRACTION);
+      const focalPixels = rect.width / Math.max(
         2 * Math.tan(THREE.MathUtils.degToRad(UI_FOV) * 0.5),
         1e-5,
       );
-      const modelRadius = Math.max(uiGroup.scale.x, uiGroup.scale.y, uiGroup.scale.z, 0.001);
+      const modelRadius = Math.max(uiGroup.scale.x, 0.001);
       const distance = modelRadius * focalPixels / radiusPx;
+      uiCamera.aspect = 1;
       uiCamera.position.set(0, 0, Math.max(distance, 0.25));
       uiCamera.lookAt(0, 0, 0);
       uiCamera.updateProjectionMatrix();
@@ -357,8 +368,9 @@
     function renderUi(rect) {
       if (!composer || !uiGroup || !rect) return false;
       syncUiModel();
-      if (!setOverlayRect(rect)) return false;
-      fitUiCamera(rect);
+      const square = squareRect(rect);
+      if (!square || !setOverlayRect(square)) return false;
+      fitUiCamera(square);
       composer.render();
       return true;
     }
@@ -383,7 +395,7 @@
 
       const object = controller.activeObject;
       const group = controller.stellarModel?.group || null;
-      const startRect = projectWorldStarRect(group);
+      const startRect = squareRect(projectWorldStarRect(group));
       const slotRect = readSlotRect();
       if (!object || !group || !startRect || !slotRect) return false;
       if (!rebuildUiModel(group, object.id)) return false;
@@ -392,7 +404,6 @@
       entryStartedAt = now;
       state = 'extracting';
       setUiOwned(true);
-
       if (!renderUi(startRect)) {
         state = 'idle';
         setUiOwned(false);
@@ -416,12 +427,10 @@
         abortToWorld();
         return;
       }
-
       const duration = reducedMotion ? 1 : ENTRY_MS;
       const raw = clamp01((now - entryStartedAt) / duration);
-      const motion = smootherstep01(raw);
-      const rect = lerpRect(entryStartRect, slotRect, motion);
-      renderUi(rect);
+      const rect = lerpSquareRect(entryStartRect, slotRect, smootherstep01(raw));
+      if (rect) renderUi(rect);
       if (raw >= 1) {
         currentRect = slotRect;
         state = 'owned';
@@ -440,7 +449,7 @@
 
     function beginRejoin(now) {
       if (state !== 'owned' && state !== 'extracting') return;
-      rejoinStartRect = currentRect || readSlotRect() || projectWorldStarRect(sourceGroup);
+      rejoinStartRect = squareRect(currentRect || readSlotRect() || projectWorldStarRect(sourceGroup));
       rejoinStartedAt = now;
       state = 'rejoining';
     }
@@ -450,24 +459,18 @@
         abortToWorld();
         return;
       }
-
       sourceGroup.visible = false;
-      const targetRect = projectWorldStarRect(sourceGroup);
+      const targetRect = squareRect(projectWorldStarRect(sourceGroup));
       if (!targetRect) {
         renderUi(rejoinStartRect);
         return;
       }
-
       const duration = reducedMotion ? 1 : REJOIN_MS;
       const raw = clamp01((now - rejoinStartedAt) / duration);
-      const motion = smootherstep01(raw);
-      const rect = lerpRect(rejoinStartRect, targetRect, motion);
-      renderUi(rect);
+      const rect = lerpSquareRect(rejoinStartRect, targetRect, smootherstep01(raw));
+      if (rect) renderUi(rect);
 
       if (raw >= 1) {
-        // The main composer renders after controller.update(). Switching here
-        // means the world star is drawn in the exact screen rect that the UI
-        // renderer occupied during this same frame.
         sourceGroup.visible = true;
         overlay.style.opacity = '0';
         overlay.classList.remove('is-active');
@@ -513,24 +516,13 @@
           if (state !== 'idle') resetAfterFlight();
           return ownsCamera;
         }
-
-        if (closing && (state === 'owned' || state === 'extracting')) {
-          beginRejoin(now);
-        }
-
-        if (state === 'idle') {
-          startExtraction(now);
-        }
-
-        if (state === 'extracting') {
-          updateExtraction(now);
-        } else if (state === 'owned') {
-          updateOwned();
-        } else if (state === 'rejoining') {
-          updateRejoin(now);
-        }
+        if (closing && (state === 'owned' || state === 'extracting')) beginRejoin(now);
+        if (state === 'idle') startExtraction(now);
+        if (state === 'extracting') updateExtraction(now);
+        else if (state === 'owned') updateOwned();
+        else if (state === 'rejoining') updateRejoin(now);
       } catch (error) {
-        console.warn('[homepage-article-star-ui] handoff failed; restoring world-space star', error);
+        console.warn('[homepage-article-star-ui-v2] handoff failed; restoring world-space star', error);
         abortToWorld();
       }
 
@@ -539,14 +531,12 @@
 
     Object.defineProperty(controller, 'articleStarUiState', {
       configurable: true,
-      get() {
-        return state;
-      },
+      get() { return state; },
     });
 
     return controller;
   };
 
-  articleStarUiInstall.__smirelArticleStarUi = true;
+  articleStarUiInstall.__smirelArticleStarUiV2 = true;
   window[INSTALL_KEY] = articleStarUiInstall;
 })();

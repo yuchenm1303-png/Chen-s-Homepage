@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: abbd13b8d8b2d6bf709e921a1032da1df4e1a88c
+          ref: 7f272c5c29f6e0adb2db24273af15933d5130078
           path: galaxy-release
           persist-credentials: false
 
@@ -54,9 +54,21 @@ jobs:
           test -s published/homepage-blog-constellation-layout.js
           grep -q 'homepage-star-picker-entry-v3.js?build=93c984f4' published/index.html
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
-          grep -q 'homepage-star-emission-boost.js?build=0c5457d9' published/index.html
-          grep -q 'astra-homepage-glass-capture-loader.js?build=6e273823' published/index.html
-          grep -q 'CORE_REPLACEMENT' published/homepage-star-emission-boost.js
+          grep -q 'homepage-star-emission-boost.js?build=39707f7e' published/index.html
+          grep -q 'astra-homepage-glass-capture-loader.js?build=e338f7e9' published/index.html
+          grep -q 'CLOSE_APPROACH_START = 0.72' published/homepage-star-emission-boost.js
+          grep -q 'CLOSE_APPROACH_FULL = 0.96' published/homepage-star-emission-boost.js
+          grep -q 'uEmissionBoost' published/homepage-star-emission-boost.js
+          grep -q 'bloom.intensity = CONFIG.bloomIntensity' published/astra-homepage-glass-capture-loader.js
+          grep -q 'bloom.mipmapBlurPass.radius = CONFIG.bloomRadius' published/astra-homepage-glass-capture-loader.js
+          if grep -q 'stellarBloomActive ? 4.2' published/astra-homepage-glass-capture-loader.js; then
+            echo 'Global flight bloom amplification must not return' >&2
+            exit 1
+          fi
+          if grep -q 'starFlightActive ? 4.2' published/astra-homepage-glass-capture-loader.js; then
+            echo 'Global flight bloom amplification must not return' >&2
+            exit 1
+          fi
           if grep -q 'SelectiveBloomEffect' published/astra-homepage-glass-capture-loader.js; then
             echo 'Depth-dependent SelectiveBloomEffect must not enter the depthless composer' >&2
             exit 1

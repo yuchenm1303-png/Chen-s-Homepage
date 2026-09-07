@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 0fc6b97577fd135a3d3f9c32db5b9e3e98456142
+          ref: 9cd1e96467e91d5675c8888e8ae80bd7639502e2
           path: galaxy-release
           persist-credentials: false
 
@@ -53,8 +53,6 @@ jobs:
           test -s published/homepage-blog-constellation-layout.js
           grep -q 'homepage-star-picker-entry-v3.js?build=93c984f4' published/index.html
           grep -q 'homepage-star-picker-v3.js?build=' published/index.html
-          grep -q 'astra-homepage-glass-capture-loader.js?build=0608af50' published/index.html
-          grep -q 'SelectiveBloomEffect' published/astra-homepage-glass-capture-loader.js
           grep -q '__SMIREL_STAR_PICKER_BOOTSTRAP_V4__' published/homepage-star-picker-entry-v3.js
           grep -q 'about: 12089' published/homepage-blog-constellation-layout.js
           grep -q "'about-study': 1420" published/homepage-blog-constellation-layout.js

@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 469a231f05c67cc13613dbed989935cc2b52ad00
+          ref: 8b7f6fce484b36d74f46e32794f4cfae2a05a760
           path: galaxy-release
           persist-credentials: false
 
@@ -57,6 +57,7 @@ jobs:
           test -s published/homepage-star-detail.js
           test -s published/homepage-detail-star-ui.js
           test -s published/homepage-detail-star-ui-canvas.css
+          test -s published/homepage-detail-camera-cinematic.js
           test -s published/homepage-star-picker-entry-v3.js
           test -s published/homepage-star-picker-v3.js
           test -s published/homepage-blog-constellation-layout.js
@@ -71,6 +72,7 @@ jobs:
           test -s published/homepage-project-ui-polish-v4.css
           node --check published/homepage-star-detail.js
           node --check published/homepage-detail-star-ui.js
+          node --check published/homepage-detail-camera-cinematic.js
           node --check published/astra-homepage-glass-capture-loader.js
           node --check published/homepage-star-temporal-stability.js
           node --check published/homepage-language.js
@@ -85,6 +87,7 @@ jobs:
           grep -q 'homepage-star-detail.js?build=b2d79ec4' published/index.html
           grep -q 'homepage-detail-star-ui.js?build=v4-1259de3e' published/index.html
           grep -q 'homepage-detail-star-ui-canvas.css?build=1259de3e' published/index.html
+          grep -q 'homepage-detail-camera-cinematic.js?build=camera-v1-b6fd4f3c' published/index.html
           grep -q 'homepage-project-overview-scale-v3.css?build=e80a0bba' published/index.html
           grep -q 'homepage-project-ui-polish-v4.css?build=3598df03' published/index.html
           grep -q 'Versioned project UI polish' published/homepage-project-ui-polish-v4.css
@@ -167,6 +170,20 @@ jobs:
           fi
           if grep -q 'homepage-article-star-ui.js' published/index.html; then
             echo 'Legacy note-only star UI runtime must not be loaded' >&2
+            exit 1
+          fi
+
+          # Cinematic camera is deliberately separate from the independent star UI.
+          # It may dolly/zoom the galaxy, but must never read the DOM star slot or
+          # derive an NDC target for placing the detail star.
+          grep -q '__smirelDetailCameraCinematicV1' published/homepage-detail-camera-cinematic.js
+          grep -q 'OPEN_MS = reducedMotion ? 1 : 1080' published/homepage-detail-camera-cinematic.js
+          grep -q 'RETURN_MS = reducedMotion ? 1 : 400' published/homepage-detail-camera-cinematic.js
+          grep -q 'arrivalDepth \* 5.1' published/homepage-detail-camera-cinematic.js
+          grep -q "object?.kind === 'note' ? 28 : 26" published/homepage-detail-camera-cinematic.js
+          grep -q 'detailStarUiState' published/homepage-detail-camera-cinematic.js
+          if grep -Eq 'getBoundingClientRect|star-detail-star-slot|targetNdc' published/homepage-detail-camera-cinematic.js; then
+            echo 'Cinematic camera must not place the star from DOM slot coordinates' >&2
             exit 1
           fi
 

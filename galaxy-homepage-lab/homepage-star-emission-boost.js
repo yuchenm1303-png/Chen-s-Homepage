@@ -11,12 +11,15 @@
   const SHELL_OUTPUT_MARKER = 'gl_FragColor = vec4(color, alpha);';
   const SHELL_OUTPUT_REPLACEMENT = 'gl_FragColor = vec4(color * uEmissionBoost, alpha);';
 
-  const CLOSE_APPROACH_START = 0.72;
-  const CLOSE_APPROACH_FULL = 0.96;
-  const CORE_MAX_BOOST = 6.0;
-  const CHROMOSPHERE_MAX_BOOST = 3.6;
-  const CORONA_MAX_BOOST = 3.0;
-  const HALO_MAX_OPACITY = 0.035;
+  // Keep distant flight visually identical to the source point star. Only the
+  // final close approach is allowed to develop the HDR stellar envelope.
+  const CLOSE_APPROACH_START = 0.82;
+  const CLOSE_APPROACH_FULL = 0.985;
+  const CORE_MAX_BOOST = 5.0;
+  const CHROMOSPHERE_MAX_BOOST = 3.0;
+  const CORONA_MAX_BOOST = 2.2;
+  const HALO_MAX_OPACITY = 0.018;
+  const HALO_SCALE_FACTOR = 0.72;
 
   function smootherstep01(value) {
     const t = Math.min(1, Math.max(0, value));
@@ -106,10 +109,11 @@
         1.0 + (CORONA_MAX_BOOST - 1.0) * approach,
       );
 
-      // The legacy camera-facing sprite must never announce flight from afar.
-      // It fades in only alongside the close-approach radiance ramp and remains
-      // a weak optical envelope even at full arrival brightness.
+      // The camera-facing legacy halo remains only a compact optical envelope.
+      // The refined runtime resets its descriptor scale before this wrapper runs,
+      // so this per-frame factor does not accumulate.
       if (model.halo?.material) {
+        model.halo.scale.multiplyScalar(HALO_SCALE_FACTOR);
         model.halo.material.opacity = HALO_MAX_OPACITY * approach;
       }
     }

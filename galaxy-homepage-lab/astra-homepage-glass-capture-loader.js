@@ -53,6 +53,7 @@ source = replaceOnce(
   \`const lookTarget = new THREE.Vector3();
 const starFlight = window.__SMIREL_STAR_FLIGHT_INSTALL__?.({
   THREE,
+  renderer,
   scene,
   camera,
   brightField,

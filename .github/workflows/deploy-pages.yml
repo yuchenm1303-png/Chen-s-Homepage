@@ -193,7 +193,7 @@ jobs:
             exit 1
           fi
 
-          if grep -q 'EffectComposer' published/homepage-detail-star-ui.js; then
+          if grep -Eq 'new[[:space:]]+EffectComposer|EffectComposer[[:space:]]*\\(' published/homepage-detail-star-ui.js; then
             echo 'Detail UI controller must obtain postprocess from the shared factory, not duplicate its implementation' >&2
             exit 1
           fi

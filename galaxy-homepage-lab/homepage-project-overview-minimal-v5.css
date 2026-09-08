@@ -1,0 +1,65 @@
+/* Text-only project overview.
+   Structured metadata and capability rails are intentionally removed from the
+   cover. The cover should read like an editorial project introduction, while
+   the full structured information remains available behind “View details”. */
+
+.star-detail-shell[data-star-kind="project"] .project-overview-facts,
+.star-detail-shell[data-star-kind="project"] .project-overview-points {
+  display: none !important;
+}
+
+@media (min-width: 1181px) {
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only {
+    width: min(780px, 49vw);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "kicker"
+      "thesis"
+      "summary";
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-kicker {
+    margin: 0;
+    color: rgba(255,255,255,.58);
+    font-size: clamp(13px, .84vw, 14px);
+    font-weight: 620;
+    letter-spacing: .08em;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-thesis {
+    max-width: 17.5ch;
+    margin-top: clamp(18px, 2.2vh, 24px);
+    font-size: clamp(38px, 2.55vw, 44px);
+    line-height: 1.16;
+    font-weight: 510;
+    letter-spacing: -.035em;
+    text-wrap: balance;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-summary {
+    max-width: 49ch;
+    margin-top: clamp(24px, 3vh, 30px);
+    color: rgba(255,255,255,.64);
+    font-size: clamp(17px, 1.08vw, 18.5px);
+    line-height: 1.78;
+    letter-spacing: -.008em;
+    text-wrap: pretty;
+  }
+}
+
+@media (min-width: 1181px) and (max-height: 820px) {
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only {
+    width: min(720px, 48vw);
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-thesis {
+    margin-top: 14px;
+    font-size: clamp(32px, 2.25vw, 38px);
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-summary {
+    margin-top: 18px;
+    font-size: 15.5px;
+    line-height: 1.64;
+  }
+}

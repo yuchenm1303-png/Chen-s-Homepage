@@ -15,12 +15,57 @@
   -webkit-backface-visibility: hidden;
 }
 
+.smirel-detail-star-canvas-layer::before,
+.smirel-detail-star-canvas-layer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+
+.smirel-detail-star-canvas-layer::before {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255,255,255,0) 0 34%,
+    rgba(245,249,255,.22) 43%,
+    rgba(218,234,255,.15) 52%,
+    rgba(190,218,255,.075) 62%,
+    rgba(150,198,255,.025) 70%,
+    rgba(0,0,0,0) 78%
+  );
+}
+
+.smirel-detail-star-canvas-layer::after {
+  inset: 8%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255,255,255,0) 0 43%,
+    rgba(255,255,255,.13) 52%,
+    rgba(220,237,255,.07) 63%,
+    rgba(0,0,0,0) 76%
+  );
+}
+
 .smirel-detail-star-canvas-layer.is-active {
   opacity: 1;
   visibility: visible;
 }
 
+.smirel-detail-star-canvas-layer.is-active::before {
+  opacity: .96;
+}
+
+.smirel-detail-star-canvas-layer.is-active::after {
+  opacity: .78;
+}
+
 .smirel-detail-star-canvas {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;

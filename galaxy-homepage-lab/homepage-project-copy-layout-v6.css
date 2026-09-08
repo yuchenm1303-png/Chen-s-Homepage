@@ -1,0 +1,180 @@
+/* Project cover copy layout v6.
+   Root cause addressed here: after removing the metadata/capability rails, the
+   remaining copy inherited the compact spacing of the old dense layout, while
+   the right-side identity block stayed too narrow for its subtitle. This layer
+   gives the text-only cover deliberate editorial spacing without touching the
+   stellar renderer, star slot, camera or interaction logic. */
+
+@media (min-width: 1181px) {
+  /* Keep the project identity anchored in the same upper-right area, but widen
+     only toward the left so the subtitle can stay on one clean line. */
+  .star-detail-shell[data-star-kind="project"] .star-detail-header {
+    right: clamp(46px, 4.4vw, 76px);
+    top: clamp(58px, 7.2vh, 76px);
+    width: min(790px, 48vw);
+    grid-template-columns: minmax(0, 1fr) clamp(176px, 11vw, 192px);
+    gap: clamp(28px, 2.15vw, 36px);
+    align-items: center;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .star-detail-heading {
+    min-width: 0;
+    max-width: none;
+    padding-right: clamp(24px, 1.9vw, 30px);
+  }
+
+  .star-detail-shell[data-star-kind="project"] .star-detail-kicker {
+    margin: 0;
+    font-size: 10px;
+    line-height: 1.2;
+    letter-spacing: .17em;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .star-detail-title {
+    max-width: none;
+    margin-top: 13px;
+    font-size: clamp(58px, 4vw, 66px);
+    line-height: 1.01;
+    letter-spacing: -.052em;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .star-detail-subtitle {
+    max-width: none;
+    margin-top: 17px;
+    color: rgba(255,255,255,.51);
+    font-size: clamp(12px, .78vw, 13px);
+    line-height: 1.45;
+    white-space: nowrap;
+  }
+
+  /* The cover is text-only now, so let the typography occupy the canvas rather
+     than keeping the old compact spacing that existed to make room for tables. */
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only {
+    left: clamp(76px, 5.8vw, 102px);
+    top: clamp(232px, 27vh, 258px);
+    width: min(860px, 52vw);
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-kicker {
+    position: relative;
+    width: max-content;
+    padding-bottom: 16px;
+    color: rgba(255,255,255,.64);
+    font-size: clamp(14px, .9vw, 15px);
+    font-weight: 650;
+    line-height: 1.2;
+    letter-spacing: .075em;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-kicker::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 46px;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,.46), rgba(255,255,255,.08));
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-thesis {
+    max-width: 13.2em;
+    margin-top: clamp(24px, 3vh, 31px);
+    color: rgba(255,255,255,.98);
+    font-size: clamp(46px, 3.05vw, 52px);
+    font-weight: 500;
+    line-height: 1.13;
+    letter-spacing: -.04em;
+    text-wrap: balance;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-summary {
+    max-width: 57ch;
+    margin-top: clamp(31px, 4vh, 38px);
+    color: rgba(255,255,255,.68);
+    font-size: clamp(17.5px, 1.12vw, 19px);
+    font-weight: 430;
+    line-height: 1.86;
+    letter-spacing: -.008em;
+    text-wrap: pretty;
+  }
+
+  /* A very faint terminal rule gives the copy a visual ending without bringing
+     back cards, tables, timeline rails or metadata blocks. */
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only::after {
+    content: '';
+    display: block;
+    width: min(430px, 52%);
+    height: 1px;
+    margin-top: clamp(34px, 4.6vh, 44px);
+    background: linear-gradient(90deg, rgba(255,255,255,.12), transparent);
+  }
+}
+
+@media (min-width: 1181px) and (max-width: 1380px) {
+  .star-detail-shell[data-star-kind="project"] .star-detail-header {
+    width: min(720px, 52vw);
+    grid-template-columns: minmax(0, 1fr) 164px;
+    gap: 26px;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .star-detail-star-slot {
+    width: 164px;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .star-detail-subtitle {
+    white-space: normal;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only {
+    width: min(760px, 55vw);
+  }
+}
+
+@media (min-width: 1181px) and (max-height: 820px) {
+  .star-detail-shell[data-star-kind="project"] .star-detail-header {
+    top: 46px;
+    width: min(730px, 47vw);
+    grid-template-columns: minmax(0, 1fr) 158px;
+    gap: 26px;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .star-detail-star-slot {
+    width: 158px;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .star-detail-title {
+    margin-top: 10px;
+    font-size: clamp(50px, 3.6vw, 58px);
+  }
+
+  .star-detail-shell[data-star-kind="project"] .star-detail-subtitle {
+    margin-top: 12px;
+    font-size: 11.5px;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only {
+    top: 190px;
+    width: min(760px, 50vw);
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-kicker {
+    padding-bottom: 12px;
+    font-size: 13px;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-thesis {
+    margin-top: 19px;
+    font-size: clamp(39px, 2.65vw, 45px);
+    line-height: 1.12;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only .project-overview-summary {
+    margin-top: 24px;
+    font-size: 16px;
+    line-height: 1.68;
+  }
+
+  .star-detail-shell[data-star-kind="project"] .project-overview--text-only::after {
+    margin-top: 28px;
+  }
+}

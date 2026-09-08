@@ -3,7 +3,7 @@
 
   const INSTALL_KEY = '__SMIREL_STAR_FLIGHT_INSTALL__';
   const baseInstall = window[INSTALL_KEY];
-  if (typeof baseInstall !== 'function' || baseInstall.__smirelDetailStarUiV4) return;
+  if (typeof baseInstall !== 'function' || baseInstall.__smirelDetailStarUiV5) return;
 
   window.__SMIREL_DETAIL_STAR_UI_INDEPENDENT_CANVAS__ = true;
 
@@ -11,7 +11,8 @@
   const UI_FOV = 28;
   const ENTRY_MS = 640;
   const REJOIN_MS = 280;
-  const UI_FRAME_INTERVAL_MS = 1000 / 30;
+  const UI_OWNED_FRAME_INTERVAL_MS = 1000 / 30;
+  const UI_MOVING_FRAME_INTERVAL_MS = 1000 / 15;
   const GALAXY_DETAIL_INTERVAL_MS = 1000 / 24;
 
   function squareRect(rect) {
@@ -30,7 +31,7 @@
     };
   }
 
-  const detailStarUiInstall = function installDetailStarUiV4(context) {
+  const detailStarUiInstall = function installDetailStarUiV5(context) {
     const controller = baseInstall(context);
     if (!controller) return controller;
 
@@ -63,7 +64,11 @@
     let lastUiRenderMs = -1e9;
     let previousArrived = false;
     let prewarmStarted = false;
+    let prewarmPromise = null;
     let prewarmed = false;
+    let pipelineWarmStarted = false;
+    let pipelinePrewarmed = false;
+    let fittedModelRadius = -1;
     let needsGalaxyRefresh = false;
     let settleMotionLodUntilMs = 0;
 
@@ -154,6 +159,30 @@
         postprocess = null;
       }
       return postprocess;
+    }
+
+    function warmPipelineInfrastructure() {
+      if (pipelinePrewarmed || pipelineWarmStarted) return;
+      if (!ensureRenderer()) return;
+
+      const pipeline = ensurePostprocess();
+      if (!pipeline?.render) {
+        setTimeout(warmPipelineInfrastructure, 120);
+        return;
+      }
+
+      pipelineWarmStarted = true;
+      try {
+        // Compile and allocate the fixed HalfFloat/Bloom chain while the layer is
+        // hidden. This keeps EffectComposer target creation and the first Astra
+        // shader pass away from the world-star -> UI-star handoff frame.
+        pipeline.render(0);
+        pipelinePrewarmed = true;
+      } catch (error) {
+        console.warn('[homepage-detail-star-ui] pipeline prewarm failed; retrying later', error);
+        pipelineWarmStarted = false;
+        setTimeout(warmPipelineInfrastructure, 180);
+      }
     }
 
     function setUiOwned(owned) {
@@ -322,6 +351,8 @@
     function fitUiCamera() {
       if (!uiGroup || !uiCamera) return;
       const modelRadius = Math.max(uiGroup.scale.x, 0.001);
+      if (Math.abs(modelRadius - fittedModelRadius) <= 1e-5) return;
+
       const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(UI_FOV) * 0.5);
       const distance = modelRadius / Math.max(2 * coreRadiusFraction() * tanHalfFov, 1e-5);
       uiCamera.aspect = 1;
@@ -329,6 +360,7 @@
       uiCamera.quaternion.identity();
       uiCamera.lookAt(0, 0, 0);
       uiCamera.updateProjectionMatrix();
+      fittedModelRadius = modelRadius;
     }
 
     function disposeUiModel() {
@@ -338,7 +370,9 @@
       uiNodes = [];
       activeId = null;
       prewarmStarted = false;
+      prewarmPromise = null;
       prewarmed = false;
+      fittedModelRadius = -1;
     }
 
     function rebuildUiModel(group, objectId) {
@@ -386,33 +420,38 @@
           activityUniform.value = previousActivityDpr;
         }
       }
+      lastUiRenderMs = performance.now();
       return true;
     }
 
     function requestPrewarm() {
-      if (prewarmStarted || prewarmed || !renderer || !uiScene || !uiCamera || !uiGroup) return;
+      if (prewarmed || prewarmPromise || !renderer || !uiScene || !uiCamera || !uiGroup) {
+        return prewarmPromise;
+      }
       prewarmStarted = true;
 
       const warm = async () => {
         try {
+          warmPipelineInfrastructure();
           if (typeof renderer.compileAsync === 'function') {
             await renderer.compileAsync(uiScene, uiCamera);
           } else if (typeof renderer.compile === 'function') {
             renderer.compile(uiScene, uiCamera);
           }
-          ensurePostprocess();
-          renderUiOnce();
           prewarmed = true;
         } catch (error) {
-          console.warn('[homepage-detail-star-ui] prewarm failed; first UI frame will compile lazily', error);
+          prewarmStarted = false;
+          console.warn('[homepage-detail-star-ui] model prewarm failed; handoff will retry', error);
+        } finally {
+          prewarmPromise = null;
         }
       };
 
-      if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(() => { warm(); }, { timeout: 220 });
-      } else {
-        setTimeout(() => { warm(); }, 0);
-      }
+      // compileAsync uses KHR_parallel_shader_compile when available. Start it as
+      // soon as the source star begins flying instead of waiting for an idle
+      // callback that may not occur during a 60 Hz camera flight.
+      prewarmPromise = Promise.resolve().then(warm);
+      return prewarmPromise;
     }
 
     function prepareDuringFlight() {
@@ -425,9 +464,9 @@
       if (!object || !group?.parent) return;
       if (!rebuildUiModel(group, object.id)) return;
 
-      captureViewOrientation(group);
-      syncUiChildren();
-      fitUiCamera();
+      // Rebuild already synchronized the clone once. During the 4.2 s world
+      // flight there is no reason to copy every child transform each frame while
+      // the independent canvas is still hidden; only compile its GPU programs.
       requestPrewarm();
     }
 
@@ -450,6 +489,13 @@
       const group = controller.stellarModel?.group || null;
       if (!object || !group?.parent || !rebuildUiModel(group, object.id)) return false;
 
+      // Never create render targets or compile shader programs in the handoff
+      // frame. Keep the world star visible until both independent pipelines are
+      // ready, then do one fully-warmed snapshot before compositor motion starts.
+      warmPipelineInfrastructure();
+      requestPrewarm();
+      if (!pipelinePrewarmed || !prewarmed) return false;
+
       captureViewOrientation(group);
       syncUiChildren();
       fitUiCamera();
@@ -458,9 +504,9 @@
       const slotRect = readSlotRect();
       if (!startRect || !slotRect || !ensureOverlay()) return false;
 
-      setUiOwned(true);
       overlay.style.transform = transformForRect(startRect);
       renderUiOnce();
+      setUiOwned(true);
 
       sourceGroup = group;
       sourceGroup.visible = false;
@@ -558,17 +604,28 @@
     function uiFrame(now) {
       requestAnimationFrame(uiFrame);
       if (!renderer || !uiGroup || !overlay?.classList.contains('is-active')) return;
-      if (now - lastUiRenderMs < UI_FRAME_INTERVAL_MS) return;
-      lastUiRenderMs = now;
+
+      // The canvas position itself is animated by the browser compositor at the
+      // display refresh rate. While it is moving, update the expensive 512²
+      // HalfFloat Astra bloom at 15 FPS; once parked in the UI slot, restore the
+      // normal 30 FPS stellar surface. This prevents the second WebGL context
+      // from competing with the cinematic galaxy on every camera frame.
+      const interval = state === 'owned'
+        ? UI_OWNED_FRAME_INTERVAL_MS
+        : UI_MOVING_FRAME_INTERVAL_MS;
+      if (now - lastUiRenderMs < interval) return;
       renderUiOnce();
     }
     requestAnimationFrame(uiFrame);
 
-    if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(() => ensureRenderer(), { timeout: 1200 });
-    } else {
-      setTimeout(() => ensureRenderer(), 400);
-    }
+    const scheduleInfrastructureWarm = () => {
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(() => warmPipelineInfrastructure(), { timeout: 900 });
+      } else {
+        setTimeout(() => warmPipelineInfrastructure(), 240);
+      }
+    };
+    scheduleInfrastructureWarm();
 
     controller.update = (now, dt, elapsed) => {
       const ownsCamera = baseUpdate(now, dt, elapsed);
@@ -639,9 +696,15 @@
       },
     });
 
+    Object.defineProperty(controller, 'detailStarUiPrewarmed', {
+      configurable: true,
+      get() { return pipelinePrewarmed && prewarmed; },
+    });
+
     return controller;
   };
 
+  detailStarUiInstall.__smirelDetailStarUiV5 = true;
   detailStarUiInstall.__smirelDetailStarUiV4 = true;
   window[INSTALL_KEY] = detailStarUiInstall;
 })();

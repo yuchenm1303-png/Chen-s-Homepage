@@ -808,6 +808,14 @@
       get catalog() {
         return catalog;
       },
+      prewarmWorldStar() {
+        buildStar();
+        if (starGroup) {
+          starGroup.visible = false;
+          starGroup.scale.setScalar(0.001);
+        }
+        return Boolean(starGroup);
+      },
       openObject: beginFlight,
       setVisibleKind,
       update(now, dt, elapsed) {

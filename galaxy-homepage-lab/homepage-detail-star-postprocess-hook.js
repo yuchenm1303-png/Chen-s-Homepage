@@ -3,11 +3,11 @@
 
   const INSTALL_KEY = '__SMIREL_STAR_FLIGHT_INSTALL__';
   const baseInstall = window[INSTALL_KEY];
-  if (typeof baseInstall !== 'function' || baseInstall.__smirelDetailStarPostprocessHookV1) return;
+  if (typeof baseInstall !== 'function' || baseInstall.__smirelDetailStarPostprocessHookV2) return;
 
   const detailPostprocessInstall = function installDetailStarPostprocessHook(context) {
     const { THREE } = context || {};
-    if (THREE?.WebGLRenderer?.prototype && !THREE.WebGLRenderer.prototype.__smirelDetailStarPostprocessHookV1) {
+    if (THREE?.WebGLRenderer?.prototype && !THREE.WebGLRenderer.prototype.__smirelDetailStarPostprocessHookV2) {
       const prototype = THREE.WebGLRenderer.prototype;
       const originalRender = prototype.render;
 
@@ -20,6 +20,24 @@
         }
 
         try {
+          if (!this.__smirelDetailScreenCompositeReady) {
+            // Bloom RGB outside the star is invisible on a transparent canvas
+            // because those pixels keep near-zero alpha. Render the detail star
+            // onto opaque black instead, then screen-blend the whole fixed canvas
+            // over the page. Black becomes visually neutral while the exact Astra
+            // bloom RGB remains visible. This changes only DOM compositing, not the
+            // approved stellar bloom algorithm or the compositor motion path.
+            this.setClearColor?.(0x000000, 1);
+            if (this.domElement) {
+              this.domElement.style.background = '#000';
+              const layer = this.domElement.parentElement;
+              if (layer?.classList?.contains('smirel-detail-star-canvas-layer')) {
+                layer.style.mixBlendMode = 'screen';
+              }
+            }
+            this.__smirelDetailScreenCompositeReady = true;
+          }
+
           if (!this.__smirelDetailStellarPostprocess) {
             this.__smirelDetailStellarPostprocess = factory({
               renderer: this,
@@ -42,13 +60,13 @@
         }
       };
 
-      prototype.__smirelDetailStarPostprocessHookV1 = true;
+      prototype.__smirelDetailStarPostprocessHookV2 = true;
       prototype.__smirelDetailStarOriginalRender = originalRender;
     }
 
     return baseInstall(context);
   };
 
-  detailPostprocessInstall.__smirelDetailStarPostprocessHookV1 = true;
+  detailPostprocessInstall.__smirelDetailStarPostprocessHookV2 = true;
   window[INSTALL_KEY] = detailPostprocessInstall;
 })();

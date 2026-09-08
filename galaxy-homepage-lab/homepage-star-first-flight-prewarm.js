@@ -43,7 +43,11 @@
       buildRequested = true;
 
       const build = () => {
-        if (document.body.classList.contains('star-flight-active')) return;
+        if (document.body.classList.contains('star-flight-active')) {
+          buildRequested = false;
+          setTimeout(buildDuringIdle, 240);
+          return;
+        }
         try {
           controller.prewarmWorldStar?.();
         } catch (error) {
@@ -58,6 +62,20 @@
       }
     }
 
+    function warmGpuResources(warmScene) {
+      if (!renderer || !warmScene) return;
+      const previousTarget = renderer.getRenderTarget?.() || null;
+      const target = new THREE.WebGLRenderTarget(8, 8, { depthBuffer: false });
+      try {
+        renderer.setRenderTarget(target);
+        renderer.clear();
+        renderer.render(warmScene, camera);
+      } finally {
+        renderer.setRenderTarget(previousTarget);
+        target.dispose();
+      }
+    }
+
     function compileFinalWorldStar() {
       if (compileReady || compileStarted || !renderer || !finalModelReady()) return;
       if (document.body.classList.contains('star-flight-active')) return;
@@ -68,10 +86,19 @@
       warmGroup.visible = true;
       warmGroup.position.set(0, 0, -4);
       warmGroup.scale.setScalar(0.4);
+      warmGroup.traverse((node) => {
+        node.visible = true;
+        node.frustumCulled = false;
+      });
       warmScene.add(warmGroup);
       compileStarted = true;
 
       const finish = () => {
+        try {
+          warmGpuResources(warmScene);
+        } catch (error) {
+          console.warn('[homepage-star-prewarm] offscreen GPU warm render failed', error);
+        }
         warmScene.remove(warmGroup);
         compileReady = true;
         compileStarted = false;

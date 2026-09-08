@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 0fbd919d3cf31ce03f5f44b2a867993cf999d58a
+          ref: 2ee66fc539cb42c875eb284b84f4a3e26811f813
           path: galaxy-release
           persist-credentials: false
 
@@ -91,7 +91,7 @@ jobs:
           grep -q 'homepage-star-emission-boost.js?build=aaec8612' published/index.html
           grep -q 'homepage-star-temporal-stability.js?build=5acaac50' published/index.html
           grep -q 'homepage-star-detail.js?build=b2d79ec4' published/index.html
-          grep -q 'homepage-detail-star-ui.js?build=bloom-direct-v3-a93fe777' published/index.html
+          grep -q 'homepage-detail-star-ui.js?build=handoff-v5-1ed5e74d' published/index.html
           grep -Fq "homepage-detail-star-ui-canvas.css?build=${GITHUB_SHA::12}" published/index.html
           grep -q 'homepage-detail-star-postprocess-factory.js?build=bloom-v1-7186f16e' published/index.html
           grep -q 'homepage-detail-camera-cinematic.js?build=camera-v1-b6fd4f3c' published/index.html
@@ -127,11 +127,14 @@ jobs:
           grep -q 'bloom.intensity = CONFIG.bloomIntensity' published/astra-homepage-glass-capture-loader.js
           grep -q 'bloom.mipmapBlurPass.radius = CONFIG.bloomRadius' published/astra-homepage-glass-capture-loader.js
 
-          # Detail-star handoff invariants: fixed lightweight canvas, centered
-          # camera and compositor transform animation remain unchanged.
-          grep -q '__smirelDetailStarUiV4' published/homepage-detail-star-ui.js
+          # Detail-star handoff invariants: fixed canvas, centered camera and
+          # compositor transform animation remain unchanged. V5 moves all costly
+          # pipeline allocation/compilation before the handoff and halves the
+          # independent Bloom cadence only while the canvas itself is moving.
+          grep -q '__smirelDetailStarUiV5' published/homepage-detail-star-ui.js
           grep -q 'CANVAS_SIZE = 512' published/homepage-detail-star-ui.js
-          grep -q 'UI_FRAME_INTERVAL_MS = 1000 / 30' published/homepage-detail-star-ui.js
+          grep -q 'UI_OWNED_FRAME_INTERVAL_MS = 1000 / 30' published/homepage-detail-star-ui.js
+          grep -q 'UI_MOVING_FRAME_INTERVAL_MS = 1000 / 15' published/homepage-detail-star-ui.js
           grep -q 'GALAXY_DETAIL_INTERVAL_MS = 1000 / 24' published/homepage-detail-star-ui.js
           grep -q 'new THREE.WebGLRenderer' published/homepage-detail-star-ui.js
           grep -q 'alpha: false' published/homepage-detail-star-ui.js
@@ -142,8 +145,12 @@ jobs:
           grep -q 'new THREE.PerspectiveCamera(UI_FOV, 1' published/homepage-detail-star-ui.js
           grep -q 'uiCamera.aspect = 1' published/homepage-detail-star-ui.js
           grep -q 'overlay.animate' published/homepage-detail-star-ui.js
+          grep -q 'function warmPipelineInfrastructure' published/homepage-detail-star-ui.js
+          grep -q 'pipeline.render(0)' published/homepage-detail-star-ui.js
           grep -q 'requestPrewarm' published/homepage-detail-star-ui.js
           grep -q 'renderer.compileAsync' published/homepage-detail-star-ui.js
+          grep -q 'if (!pipelinePrewarmed || !prewarmed) return false' published/homepage-detail-star-ui.js
+          grep -q 'lastUiRenderMs = performance.now()' published/homepage-detail-star-ui.js
           grep -q 'uiGroup = group.clone(true)' published/homepage-detail-star-ui.js
           grep -q 'uiScene.add(uiGroup)' published/homepage-detail-star-ui.js
           grep -q 'sourceGroup.visible = false' published/homepage-detail-star-ui.js

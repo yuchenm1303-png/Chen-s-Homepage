@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: d998e60199ed0aca0d6c3ca8feda940f3c108a8e
+          ref: 4a0ae0e9baee68bfbe4f5267a55a5e44845a28a5
           path: galaxy-release
           persist-credentials: false
 
@@ -64,6 +64,8 @@ jobs:
           test -s published/homepage-project-detail-content.js
           test -s published/homepage-project-detail.css
           test -s published/homepage-project-overview-scale-v3.css
+          test -s published/homepage-project-overview-minimal-v5.js
+          test -s published/homepage-project-overview-minimal-v5.css
           test -s published/astra-homepage-glass-capture-loader.js
           test -s published/homepage-language.js
           test -s published/homepage-language.css
@@ -73,6 +75,7 @@ jobs:
           node --check published/homepage-star-detail.js
           node --check published/homepage-detail-star-ui.js
           node --check published/homepage-detail-camera-cinematic.js
+          node --check published/homepage-project-overview-minimal-v5.js
           node --check published/astra-homepage-glass-capture-loader.js
           node --check published/homepage-star-temporal-stability.js
           node --check published/homepage-language.js
@@ -90,6 +93,13 @@ jobs:
           grep -q 'homepage-detail-camera-cinematic.js?build=camera-v1-b6fd4f3c' published/index.html
           grep -q 'homepage-project-overview-scale-v3.css?build=e80a0bba' published/index.html
           grep -q 'homepage-project-ui-polish-v4.css?build=3598df03' published/index.html
+          grep -q 'homepage-project-overview-minimal-v5.css?build=text-only-v5' published/index.html
+          grep -q 'homepage-project-detail-content.js?build=overview-base-d998e601' published/index.html
+          grep -q 'homepage-project-overview-minimal-v5.js?build=text-only-v5' published/index.html
+          grep -q 'project-overview--text-only' published/homepage-project-overview-minimal-v5.js
+          grep -Fq "querySelector('.project-overview-facts')?.remove()" published/homepage-project-overview-minimal-v5.js
+          grep -Fq "querySelector('.project-overview-points')?.remove()" published/homepage-project-overview-minimal-v5.js
+          grep -q 'Text-only project overview' published/homepage-project-overview-minimal-v5.css
           grep -q 'Versioned project UI polish' published/homepage-project-ui-polish-v4.css
           grep -q 'homepage-language.js?build=restore-20260907' published/index.html
           grep -q 'homepage-content-i18n.js?build=restore-20260907' published/index.html

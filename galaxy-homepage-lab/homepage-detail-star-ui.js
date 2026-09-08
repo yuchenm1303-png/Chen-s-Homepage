@@ -50,6 +50,7 @@
     let renderer = null;
     let uiScene = null;
     let uiCamera = null;
+    let postprocess = null;
 
     let state = 'idle';
     let activeId = null;
@@ -103,21 +104,24 @@
       if (!ensureOverlay()) return false;
 
       try {
+        // Keep the detail canvas opaque black so the HDR bloom reconstruction
+        // has a stable alpha channel. The whole fixed canvas is screen-blended
+        // by CSS, making black visually neutral while preserving bloom RGB.
         renderer = new THREE.WebGLRenderer({
           canvas,
-          alpha: true,
+          alpha: false,
           antialias: false,
           depth: false,
-          premultipliedAlpha: true,
           powerPreference: 'high-performance',
         });
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.NoToneMapping;
         renderer.setPixelRatio(1);
         renderer.setSize(CANVAS_SIZE, CANVAS_SIZE, false);
-        renderer.setClearColor(0x000000, 0);
+        renderer.setClearColor(0x000000, 1);
 
         uiScene = new THREE.Scene();
+        uiScene.background = new THREE.Color(0x000000);
         uiCamera = new THREE.PerspectiveCamera(UI_FOV, 1, 0.01, 64);
         uiCamera.position.set(0, 0, 4);
         uiCamera.lookAt(0, 0, 0);
@@ -129,6 +133,27 @@
         uiCamera = null;
         return false;
       }
+    }
+
+    function ensurePostprocess() {
+      if (postprocess?.render) return postprocess;
+      if (!renderer || !uiScene || !uiCamera) return null;
+
+      const factory = window.__SMIREL_CREATE_DETAIL_STELLAR_POSTPROCESS__;
+      if (typeof factory !== 'function') return null;
+
+      try {
+        postprocess = factory({
+          renderer,
+          scene: uiScene,
+          camera: uiCamera,
+          size: CANVAS_SIZE,
+        });
+      } catch (error) {
+        console.warn('[homepage-detail-star-ui] Astra bloom init failed; retrying on a later frame', error);
+        postprocess = null;
+      }
+      return postprocess;
     }
 
     function setUiOwned(owned) {
@@ -350,7 +375,12 @@
       if (activityUniform) activityUniform.value = 1;
 
       try {
-        renderer.render(uiScene, uiCamera);
+        const pipeline = ensurePostprocess();
+        if (pipeline?.render) {
+          pipeline.render(1 / 30);
+        } else {
+          renderer.render(uiScene, uiCamera);
+        }
       } finally {
         if (activityUniform && previousActivityDpr != null) {
           activityUniform.value = previousActivityDpr;
@@ -370,6 +400,7 @@
           } else if (typeof renderer.compile === 'function') {
             renderer.compile(uiScene, uiCamera);
           }
+          ensurePostprocess();
           renderUiOnce();
           prewarmed = true;
         } catch (error) {

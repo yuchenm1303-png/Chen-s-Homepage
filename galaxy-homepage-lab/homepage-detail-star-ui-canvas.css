@@ -15,26 +15,25 @@
   -webkit-backface-visibility: hidden;
   mix-blend-mode: screen;
 
-  /* The real Astra bloom is rendered inside a fixed square framebuffer.
-     Feather only the outer framebuffer boundary so the bloom can fade out
-     before it reaches the canvas edge. The stellar core and inner glow remain
-     untouched; this is a compositor crop, not a replacement glow effect. */
+  /* Astra bloom is rendered into a fixed square framebuffer. Use closest-side
+     so 100% maps to the four canvas edges (not the corners); this guarantees
+     every edge fades to zero before the framebuffer boundary becomes visible. */
   -webkit-mask-image: radial-gradient(
-    circle at 50% 50%,
+    circle closest-side at 50% 50%,
     #000 0%,
-    #000 80%,
-    rgba(0, 0, 0, 0.92) 84%,
-    rgba(0, 0, 0, 0.58) 90%,
-    rgba(0, 0, 0, 0.18) 96%,
+    #000 68%,
+    rgba(0, 0, 0, 0.94) 76%,
+    rgba(0, 0, 0, 0.68) 84%,
+    rgba(0, 0, 0, 0.28) 92%,
     transparent 100%
   );
   mask-image: radial-gradient(
-    circle at 50% 50%,
+    circle closest-side at 50% 50%,
     #000 0%,
-    #000 80%,
-    rgba(0, 0, 0, 0.92) 84%,
-    rgba(0, 0, 0, 0.58) 90%,
-    rgba(0, 0, 0, 0.18) 96%,
+    #000 68%,
+    rgba(0, 0, 0, 0.94) 76%,
+    rgba(0, 0, 0, 0.68) 84%,
+    rgba(0, 0, 0, 0.28) 92%,
     transparent 100%
   );
 }

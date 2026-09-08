@@ -31,7 +31,7 @@ jobs:
       - name: Checkout pinned galaxy homepage release
         uses: actions/checkout@v4
         with:
-          ref: 2ee66fc539cb42c875eb284b84f4a3e26811f813
+          ref: 62b249436ed540f865ec5fcdd580c37a8dad017e
           path: galaxy-release
           persist-credentials: false
 
@@ -55,6 +55,7 @@ jobs:
           test -s published/homepage-star-activity.js
           test -s published/homepage-star-emission-boost.js
           test -s published/homepage-star-temporal-stability.js
+          test -s published/homepage-star-first-flight-prewarm.js
           test -s published/homepage-star-detail.js
           test -s published/homepage-detail-star-ui.js
           test -s published/homepage-detail-star-ui-canvas.css
@@ -78,6 +79,7 @@ jobs:
           node --check published/homepage-star-detail.js
           node --check published/homepage-detail-star-ui.js
           node --check published/homepage-detail-camera-cinematic.js
+          node --check published/homepage-star-first-flight-prewarm.js
           node --check published/homepage-project-overview-minimal-v5.js
           node --check published/astra-homepage-glass-capture-loader.js
           node --check published/homepage-star-temporal-stability.js
@@ -126,6 +128,18 @@ jobs:
           grep -q 'DETAIL_CORONA_SPIN_RAD_S = -0.006' published/homepage-star-temporal-stability.js
           grep -q 'bloom.intensity = CONFIG.bloomIntensity' published/astra-homepage-glass-capture-loader.js
           grep -q 'bloom.mipmapBlurPass.radius = CONFIG.bloomRadius' published/astra-homepage-glass-capture-loader.js
+
+          # First-flight invariants: world-space stellar allocation, final wrapper
+          # shader compilation and the first geometry/texture upload must happen
+          # during idle time rather than on the user's first click.
+          grep -q 'prewarmWorldStar()' published/homepage-star-flight.js
+          grep -q '__smirelWorldStarPrewarmV1' published/homepage-star-first-flight-prewarm.js
+          grep -q 'IDLE_TIMEOUT_MS = 160' published/homepage-star-first-flight-prewarm.js
+          grep -q 'renderer.compileAsync' published/homepage-star-first-flight-prewarm.js
+          grep -q 'new THREE.WebGLRenderTarget(8, 8' published/homepage-star-first-flight-prewarm.js
+          grep -q '__SMIREL_WORLD_STAR_PREWARM_READY__' published/homepage-star-first-flight-prewarm.js
+          grep -q 'homepage-star-first-flight-prewarm.js?build=world-prewarm-v1-65ea4f76' published/astra-homepage-glass-capture-loader.js
+          grep -q '^  renderer,$' published/astra-homepage-glass-capture-loader.js
 
           # Detail-star handoff invariants: fixed canvas, centered camera and
           # compositor transform animation remain unchanged. V5 moves all costly

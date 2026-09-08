@@ -14,6 +14,29 @@
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   mix-blend-mode: screen;
+
+  /* The real Astra bloom is rendered inside a fixed square framebuffer.
+     Feather only the outer framebuffer boundary so the bloom can fade out
+     before it reaches the canvas edge. The stellar core and inner glow remain
+     untouched; this is a compositor crop, not a replacement glow effect. */
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 50%,
+    #000 0%,
+    #000 80%,
+    rgba(0, 0, 0, 0.92) 84%,
+    rgba(0, 0, 0, 0.58) 90%,
+    rgba(0, 0, 0, 0.18) 96%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    circle at 50% 50%,
+    #000 0%,
+    #000 80%,
+    rgba(0, 0, 0, 0.92) 84%,
+    rgba(0, 0, 0, 0.58) 90%,
+    rgba(0, 0, 0, 0.18) 96%,
+    transparent 100%
+  );
 }
 
 .smirel-detail-star-canvas-layer.is-active {

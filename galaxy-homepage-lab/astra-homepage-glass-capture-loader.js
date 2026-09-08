@@ -232,6 +232,8 @@ source = source.slice(0, stableModuleIndex)
   + bridgeInjection + '\n\n'
   + source.slice(stableModuleIndex);
 
+await import(new URL('./homepage-star-first-flight-prewarm.js?build=world-prewarm-v1-65ea4f76', import.meta.url).href);
+
 const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
 try {
   await import(moduleUrl);

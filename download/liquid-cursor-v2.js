@@ -1,4 +1,4 @@
-import { glassOffset } from './liquid-glass-math.mjs?v=20261007-2';
+import { glassOffset } from './liquid-glass-math.mjs?v=20261007-3';
 // Live backdrop lens: original Loom interaction springs, browser-rendered background.
 (()=>{
 const FREE_ROI_SIZE = 420;
@@ -32,14 +32,14 @@ function intersects(rect, left, top, width, height) {
 
 function createBackdropLens(lens){
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('width','0');svg.setAttribute('height','0');svg.setAttribute('aria-hidden','true');svg.style.position='absolute';svg.dataset.loomLiquidCursor='true';let nodes='';
- for(let i=0;i<3;i++){const matrix=Array.from({length:20},(_,j)=>(j===i*5+i||j===18)?1:0).join(' ');nodes+='<feImage result="map'+i+'" preserveAspectRatio="none"/><feDisplacementMap in="SourceGraphic" in2="map'+i+'" scale="128" xChannelSelector="R" yChannelSelector="G" result="sample'+i+'"/><feColorMatrix in="sample'+i+'" type="matrix" values="'+matrix+'" result="rgb'+i+'"/>';}
- nodes+='<feComposite in="rgb0" in2="rgb1" operator="arithmetic" k2="1" k3="1" result="rg"/><feComposite in="rg" in2="rgb2" operator="arithmetic" k2="1" k3="1"/>';
+ nodes='<feImage result="map0" preserveAspectRatio="none"/><feDisplacementMap in="SourceGraphic" in2="map0" scale="128" xChannelSelector="R" yChannelSelector="G"/>';
  svg.innerHTML='<defs><filter id="download-live-glass" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">'+nodes+'</filter></defs>';document.body.appendChild(svg);
- const images=[...svg.querySelectorAll('feImage')],map=document.createElement('canvas'),ctx=map.getContext('2d');let key='',last=0;
- const supported=/Chrome|Chromium|Edg\//.test(navigator.userAgent)&&CSS.supports('backdrop-filter','url(#download-live-glass)');lens.dataset.renderer=supported?'backdrop-rgb-refraction':'backdrop-blur';lens.style.backdropFilter=supported?'url(#download-live-glass)':'blur(2px) saturate(115%)';lens.style.webkitBackdropFilter=lens.style.backdropFilter;
- return {draw(x,y,w,h,p,visible,snap){w=Math.max(20,w);h=Math.max(20,h);const mw=Math.min(600,Math.max(40,Math.round(w/4)*2)),mh=Math.min(300,Math.max(28,Math.round(h/4)*2)),sp=Math.round(snap*16)/16,pr=Math.round(Math.max(0,p)*16)/16,next=[mw,mh,sp,pr].join(':'),now=performance.now();
- if(supported&&next!==key&&(now-last>=32||!key)){key=next;last=now;map.width=mw;map.height=mh;
- for(let c=0;c<3;c++){const pixels=ctx.createImageData(mw,mh);for(let py=0;py<mh;py++)for(let px=0;px<mw;px++){const v=glassOffset((px+.5)*w/mw,(py+.5)*h/mh,w,h,sp,pr,1-c),i=(py*mw+px)*4;pixels.data[i]=Math.round(255*(.5+Math.max(-63,Math.min(63,v.x))/128));pixels.data[i+1]=Math.round(255*(.5+Math.max(-63,Math.min(63,v.y))/128));pixels.data[i+2]=128;pixels.data[i+3]=255;}ctx.putImageData(pixels,0,0);images[c].setAttribute('href',map.toDataURL());}}
+ const images=[...svg.querySelectorAll('feImage')],map=document.createElement('canvas'),ctx=map.getContext('2d');let key='',last=0;const cache=new Map();const displacement=svg.querySelector('feDisplacementMap');
+ const supported=/Chrome|Chromium|Edg\//.test(navigator.userAgent)&&CSS.supports('backdrop-filter','url(#download-live-glass)');lens.dataset.renderer=supported?'backdrop-refraction':'backdrop-blur';lens.style.backdropFilter=supported?'url(#download-live-glass)':'blur(2px) saturate(115%)';lens.style.webkitBackdropFilter=lens.style.backdropFilter;
+ return {draw(x,y,w,h,p,visible,snap){w=Math.max(20,w);h=Math.max(20,h);const mw=Math.min(600,Math.max(40,Math.round(w/16)*16)),mh=Math.min(300,Math.max(28,Math.round(h/8)*8)),sp=Math.round(snap*16)/16,pr=Math.round(Math.max(0,p)*16)/16,next=[mw,mh,Math.round(sp*4)/4].join(':'),now=performance.now();
+ if(supported&&next!==key&&(now-last>=80||!key)){key=next;last=now;map.width=mw;map.height=mh;
+ const cached=cache.get(next);if(cached){images[0].setAttribute('href',cached);}else for(let c=0;c<1;c++){const pixels=ctx.createImageData(mw,mh);for(let py=0;py<mh;py++)for(let px=0;px<mw;px++){const v=glassOffset((px+.5)*w/mw,(py+.5)*h/mh,w,h,Math.round(sp*4)/4,0,0),i=(py*mw+px)*4;pixels.data[i]=Math.round(255*(.5+Math.max(-63,Math.min(63,v.x))/128));pixels.data[i+1]=Math.round(255*(.5+Math.max(-63,Math.min(63,v.y))/128));pixels.data[i+2]=128;pixels.data[i+3]=255;}ctx.putImageData(pixels,0,0);const url=map.toDataURL();cache.set(next,url);if(cache.size>32)cache.delete(cache.keys().next().value);images[c].setAttribute('href',url);}}
+ displacement.setAttribute('scale',String(128*(1+Math.max(0,p)*.15)));
  lens.style.width=w+'px';lens.style.height=h+'px';lens.style.transform='translate3d('+(x-w/2)+'px,'+(y-h/2)+'px,0)';lens.style.opacity=visible?'1':'0';}};
 }
 function mountLiquidCursor() {

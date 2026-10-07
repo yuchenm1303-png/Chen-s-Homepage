@@ -666,7 +666,7 @@ function mountLiquidCursor() {
     };
     refreshMagneticTargets();
     const findSnapTarget = () => {
-        if (activeTarget?.isConnected) {
+        if (activeTarget?.isConnected && !activeTarget.closest("[hidden], [inert]") && (!(root.querySelector(".modal-layer:not([hidden])")) || activeTarget.closest(".modal-layer"))) {
             if (rectDistance(activeTarget.getBoundingClientRect(), pointerX, pointerY) <= RELEASE_DISTANCE)
                 return activeTarget;
         }

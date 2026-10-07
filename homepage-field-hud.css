@@ -1,0 +1,229 @@
+/* Stellar field masthead — compact atlas-style HUD.
+   Root fix for production: the local-field corner only needs two things —
+   one intentional return control and the field title. Everything else is
+   removed from the visual hierarchy instead of being restyled again. */
+
+body .smirel-field-hud {
+  --field-nav-size: clamp(32px, 2.55vw, 40px);
+  --field-back-width: calc(var(--field-nav-size) + 4px);
+
+  left: clamp(32px, 3.45vw, 56px) !important;
+  top: clamp(28px, 3.5vh, 40px) !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: calc(100vw - 64px) !important;
+
+  display: grid !important;
+  grid-template-columns: var(--field-back-width) minmax(0, auto) !important;
+  grid-template-rows: var(--field-nav-size) !important;
+  column-gap: 14px !important;
+  row-gap: 0 !important;
+  align-items: center !important;
+  padding: 0 !important;
+
+  color: rgba(250, 252, 255, 0.97) !important;
+  filter: none !important;
+  isolation: isolate;
+}
+
+/* No corner card, atlas metadata, field number, description or decorative rail. */
+body .smirel-field-hud::before,
+body .smirel-field-hud::after,
+body .smirel-field-copy::after,
+body .smirel-field-kicker,
+body .smirel-field-subtitle {
+  display: none !important;
+  content: none !important;
+}
+
+/*
+   Alignment root fix:
+   the control and title previously used independent heights (36/34/32px for
+   the button versus a responsive 32–40px title line box). Grid centering only
+   aligned those outer boxes, so their visible top/bottom edges still drifted.
+   Both elements now share one responsive navigation line size.
+*/
+body .smirel-field-copy {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  align-self: stretch !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: var(--field-nav-size) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: static !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/*
+   Return control root fix:
+   the previous Unicode arrow was aligned by font metrics, not by its visible
+   geometry, so its optical center drifted inside the circle. The icon below is
+   drawn from two CSS primitives on an explicit optical box. This makes the
+   arrow mathematically centered and independent of OS/browser font glyphs.
+*/
+body .smirel-field-back {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: stretch !important;
+  justify-self: start !important;
+
+  position: relative !important;
+  width: var(--field-back-width) !important;
+  height: var(--field-nav-size) !important;
+  min-width: var(--field-back-width) !important;
+  min-height: var(--field-nav-size) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  overflow: hidden !important;
+  border: 1px solid rgba(229, 238, 248, 0.14) !important;
+  border-radius: 12px !important;
+  background:
+    linear-gradient(180deg, rgba(245, 249, 255, 0.060) 0%, rgba(245, 249, 255, 0.020) 48%, rgba(245, 249, 255, 0.010) 100%),
+    rgba(5, 8, 12, 0.30) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.075),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+    0 7px 22px rgba(0, 0, 0, 0.16) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(118%) !important;
+  backdrop-filter: blur(16px) saturate(118%) !important;
+
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+  cursor: pointer !important;
+
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 220ms ease,
+    transform 220ms cubic-bezier(.2,.8,.2,1) !important;
+}
+
+/* Arrow shaft: explicit optical center, no font glyph involved. */
+body .smirel-field-back::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 13px !important;
+  height: 1.25px !important;
+  border-radius: 999px !important;
+  background: rgba(242, 247, 253, 0.78) !important;
+  transform: translate(-43%, -50%) !important;
+  transform-origin: center !important;
+  transition:
+    background-color 180ms ease,
+    transform 220ms cubic-bezier(.2,.8,.2,1) !important;
+}
+
+/* Arrow head: shares the same geometric center as the shaft. */
+body .smirel-field-back::after {
+  content: "" !important;
+  position: absolute !important;
+  left: calc(50% - 5px) !important;
+  top: 50% !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-left: 1.25px solid rgba(242, 247, 253, 0.78) !important;
+  border-bottom: 1.25px solid rgba(242, 247, 253, 0.78) !important;
+  transform: translate(-50%, -50%) rotate(45deg) !important;
+  transform-origin: 50% 50% !important;
+  transition:
+    border-color 180ms ease,
+    transform 220ms cubic-bezier(.2,.8,.2,1) !important;
+}
+
+body .smirel-field-back:hover,
+body .smirel-field-back:focus-visible {
+  border-color: rgba(232, 241, 251, 0.28) !important;
+  background:
+    linear-gradient(180deg, rgba(245, 249, 255, 0.090) 0%, rgba(245, 249, 255, 0.034) 52%, rgba(245, 249, 255, 0.018) 100%),
+    rgba(7, 11, 17, 0.38) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.105),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.24),
+    0 8px 26px rgba(0, 0, 0, 0.20),
+    0 0 0 1px rgba(174, 211, 244, 0.022) !important;
+  transform: translateY(-1px) !important;
+  outline: none !important;
+}
+
+body .smirel-field-back:hover::before,
+body .smirel-field-back:focus-visible::before {
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+body .smirel-field-back:hover::after,
+body .smirel-field-back:focus-visible::after {
+  border-color: rgba(255, 255, 255, 0.98) !important;
+}
+
+body .smirel-field-back:active {
+  transform: translateY(0) scale(0.96) !important;
+  border-color: rgba(232, 241, 251, 0.22) !important;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.18),
+    0 4px 14px rgba(0, 0, 0, 0.14) !important;
+}
+
+body .smirel-field-title {
+  margin: 0 !important;
+  max-width: none !important;
+  height: var(--field-nav-size) !important;
+  color: rgba(250, 252, 255, 0.975) !important;
+  font-family: "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  font-size: var(--field-nav-size) !important;
+  font-weight: 610 !important;
+  line-height: var(--field-nav-size) !important;
+  letter-spacing: -0.045em !important;
+  white-space: nowrap !important;
+  text-shadow:
+    0 2px 16px rgba(0, 0, 0, 0.82),
+    0 0 24px rgba(176, 214, 255, 0.035) !important;
+}
+
+@media (max-width: 820px) {
+  body .smirel-field-hud {
+    --field-nav-size: clamp(30px, 5.4vw, 36px);
+    left: 24px !important;
+    top: 24px !important;
+    max-width: calc(100vw - 48px) !important;
+    column-gap: 12px !important;
+  }
+
+  body .smirel-field-back {
+    border-radius: 11px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  body .smirel-field-hud {
+    --field-nav-size: clamp(28px, 8.8vw, 34px);
+    left: 16px !important;
+    top: 16px !important;
+    max-width: calc(100vw - 32px) !important;
+    column-gap: 11px !important;
+  }
+
+  body .smirel-field-back {
+    border-radius: 10px !important;
+  }
+
+  body .smirel-field-back::before {
+    width: 12px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .smirel-field-back,
+  body .smirel-field-back::before,
+  body .smirel-field-back::after {
+    transition-duration: 0.01ms !important;
+  }
+}

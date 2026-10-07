@@ -308,6 +308,28 @@
   padding: 0 2px;
 }
 
+.brand-mark,
+.release-product-icon {
+  color: transparent;
+  font-size: 0;
+  letter-spacing: 0;
+  background-color: transparent;
+  background-image: url("./listing-studio-product-icon.png?v=20260829-1");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.brand-mark {
+  border-radius: 12px;
+}
+
+.release-product-icon {
+  overflow: hidden;
+}
+
 @media (max-width: 980px) {
   .portal-nav { display: none; }
   .portal-title { grid-template-columns: 1fr; gap: 12px; }

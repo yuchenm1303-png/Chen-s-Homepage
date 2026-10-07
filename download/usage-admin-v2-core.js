@@ -37,6 +37,13 @@ const auditSearch = document.getElementById("auditSearch");
 const auditFilter = document.getElementById("auditFilter");
 const auditHint = document.getElementById("auditHint");
 
+const MONITOR_TIME_ZONE = "Asia/Shanghai";
+const ACTIVITY_RANGE_SPECS = Object.freeze({
+  "24h": Object.freeze({ key: "24h", label: "24H", periodLabel: "24 小时", hours: 24, granularity: "hour", axisMode: "hour" }),
+  "7d": Object.freeze({ key: "7d", label: "7D", periodLabel: "7 天", hours: 24 * 7, granularity: "hour", axisMode: "date" }),
+  "30d": Object.freeze({ key: "30d", label: "30D", periodLabel: "30 天", days: 30, granularity: "day", axisMode: "day" })
+});
+
 let supabase = null;
 let refreshing = false;
 let autoRefresh = null;
@@ -48,6 +55,10 @@ let currentActivityRange = "24h";
 let dailyActivity = null;
 let hasRenderedData = false;
 
+function activityRangeSpec(range = currentActivityRange) {
+  return ACTIVITY_RANGE_SPECS[range] || ACTIVITY_RANGE_SPECS["24h"];
+}
+
 function asNumber(value) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -58,15 +69,17 @@ function formatTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: MONITOR_TIME_ZONE
   }).format(date);
 }
 
-function formatHour(value) {
+function formatHour(value, detailed = false) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+  return new Intl.DateTimeFormat("zh-CN", detailed
+    ? { month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: MONITOR_TIME_ZONE }
+    : { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: MONITOR_TIME_ZONE }).format(date);
 }
 
 function formatDay(value, detailed = false) {
@@ -74,12 +87,18 @@ function formatDay(value, detailed = false) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("zh-CN", detailed
-    ? { month: "2-digit", day: "2-digit", weekday: "short", timeZone: "Asia/Shanghai" }
-    : { month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" }).format(date);
+    ? { month: "2-digit", day: "2-digit", weekday: "short", timeZone: MONITOR_TIME_ZONE }
+    : { month: "2-digit", day: "2-digit", timeZone: MONITOR_TIME_ZONE }).format(date);
 }
 
 function formatBucket(value, granularity = "hour", detailed = false) {
-  return granularity === "day" ? formatDay(value, detailed) : formatHour(value);
+  return granularity === "day" ? formatDay(value, detailed) : formatHour(value, detailed);
+}
+
+function formatAxisBucket(value, { granularity = "hour", range = currentActivityRange } = {}) {
+  if (granularity === "day") return formatDay(value);
+  if (range === "7d") return formatDay(value);
+  return formatHour(value);
 }
 
 function formatDuration(startValue, endValue) {
@@ -101,8 +120,9 @@ function setStatus(text, state = "neutral") {
 }
 
 function hourlyActivityForUser(user, hours = 24) {
-  const source = Array.isArray(user?.activity_7d_hourly)
-    ? user.activity_7d_hourly.slice(-hours)
+  const sevenDay = Array.isArray(user?.activity_7d_hourly) ? user.activity_7d_hourly : [];
+  const source = sevenDay.length
+    ? sevenDay.slice(-hours)
     : (hours === 24 && Array.isArray(user?.activity_24h) ? user.activity_24h : []);
   return source.map((bucket) => ({
     bucket_start: bucket?.bucket_start || null,
@@ -115,32 +135,38 @@ function hourlyActivityForUser(user, hours = 24) {
 
 function activityTotals(buckets) {
   return buckets.reduce((acc, bucket) => {
-    if (bucket.active) acc.activeHours += 1;
+    if (bucket.active) acc.activeBuckets += 1;
     acc.launches += asNumber(bucket.launches);
     acc.completed += asNumber(bucket.completed);
     acc.failed += asNumber(bucket.failed);
     return acc;
-  }, { activeHours: 0, launches: 0, completed: 0, failed: 0 });
+  }, { activeBuckets: 0, launches: 0, completed: 0, failed: 0 });
 }
 
 function aggregateHourlyActivity(users, hours = 24) {
-  const histories = users.map((user) => hourlyActivityForUser(user, hours));
-  const bucketCount = histories.reduce((max, history) => Math.max(max, history.length), 0);
-  const result = [];
-  for (let index = 0; index < bucketCount; index += 1) {
-    const source = histories.find((history) => history[index]?.bucket_start)?.[index];
-    const bucket = { bucket_start: source?.bucket_start || null, active_count: 0, launches: 0, completed: 0, failed: 0 };
-    histories.forEach((history) => {
-      const item = history[index];
-      if (!item) return;
+  const byBucket = new Map();
+  users.forEach((user) => {
+    hourlyActivityForUser(user, hours).forEach((item) => {
+      const key = String(item?.bucket_start || "");
+      if (!key) return;
+      if (!byBucket.has(key)) {
+        byBucket.set(key, { bucket_start: key, active_count: 0, launches: 0, completed: 0, failed: 0 });
+      }
+      const bucket = byBucket.get(key);
       if (item.active) bucket.active_count += 1;
       bucket.launches += asNumber(item.launches);
       bucket.completed += asNumber(item.completed);
       bucket.failed += asNumber(item.failed);
     });
-    result.push(bucket);
-  }
-  return result;
+  });
+  return [...byBucket.values()]
+    .sort((a, b) => {
+      const aTime = Date.parse(a.bucket_start || "");
+      const bTime = Date.parse(b.bucket_start || "");
+      if (Number.isFinite(aTime) && Number.isFinite(bTime)) return aTime - bTime;
+      return String(a.bucket_start || "").localeCompare(String(b.bucket_start || ""));
+    })
+    .slice(-hours);
 }
 
 function createStatusLine(label, value, state = "neutral") {
@@ -166,13 +192,14 @@ function createMetaItem(label, value) {
   return item;
 }
 
-function renderAxis(target, buckets, { granularity = "hour" } = {}) {
+function renderAxis(target, buckets, { granularity = "hour", range = currentActivityRange } = {}) {
   target.replaceChildren();
   if (!buckets.length) return;
-  const values = [buckets[0]?.bucket_start, buckets[Math.floor((buckets.length - 1) / 2)]?.bucket_start, buckets[buckets.length - 1]?.bucket_start];
-  values.forEach((value) => {
+  const lastIndex = buckets.length - 1;
+  const indices = [0, Math.floor(lastIndex / 2), lastIndex];
+  indices.forEach((index) => {
     const label = document.createElement("span");
-    label.textContent = formatBucket(value, granularity);
+    label.textContent = formatAxisBucket(buckets[index]?.bucket_start, { granularity, range });
     target.append(label);
   });
 }
@@ -226,31 +253,30 @@ function renderThroughputChart(target, buckets, { granularity = "hour" } = {}) {
 }
 
 function createAccountMonitor(user) {
+  const spec = activityRangeSpec();
   const buckets = selectedActivityForUser(user);
   const totals = activityTotals(buckets);
-  const isDaily = currentActivityRange === "30d";
-  const rangeLabel = currentActivityRange === "7d" ? "7D HOURLY" : currentActivityRange === "30d" ? "30D DAILY" : "24H";
-  const unitLabel = isDaily ? "天" : "h";
+  const unitLabel = spec.granularity === "day" ? "天" : "h";
   const monitor = document.createElement("div");
   monitor.className = "usage-account-monitor";
   const head = document.createElement("div");
   head.className = "usage-account-monitor-head";
   const label = document.createElement("span");
-  label.textContent = `${rangeLabel} CLIENT ACTIVITY`;
+  label.textContent = `${spec.label} CLIENT ACTIVITY`;
   const summary = document.createElement("strong");
-  summary.textContent = `${totals.activeHours}${unitLabel} 活跃 · ${totals.completed} 完成 · ${totals.failed} 失败`;
+  summary.textContent = `${totals.activeBuckets}${unitLabel} 活跃 · ${totals.completed} 完成 · ${totals.failed} 失败`;
   head.append(label, summary);
   const rail = document.createElement("div");
   rail.className = "usage-presence-rail";
-  rail.setAttribute("aria-label", `${user.display_name || user.email || "客户"} ${rangeLabel}在线活动`);
-  renderPresenceRail(rail, buckets, { granularity: isDaily ? "day" : "hour" });
+  rail.setAttribute("aria-label", `${user.display_name || user.email || "客户"}过去${spec.periodLabel}活动`);
+  renderPresenceRail(rail, buckets, { granularity: spec.granularity });
   const chart = document.createElement("div");
   chart.className = "usage-throughput-chart usage-account-throughput";
-  chart.setAttribute("aria-label", `${user.display_name || user.email || "客户"} ${rangeLabel}任务执行`);
-  renderThroughputChart(chart, buckets, { granularity: isDaily ? "day" : "hour" });
+  chart.setAttribute("aria-label", `${user.display_name || user.email || "客户"}过去${spec.periodLabel}任务执行`);
+  renderThroughputChart(chart, buckets, { granularity: spec.granularity });
   const axis = document.createElement("div");
   axis.className = "usage-monitor-axis";
-  renderAxis(axis, buckets, { granularity: isDaily ? "day" : "hour" });
+  renderAxis(axis, buckets, { granularity: spec.granularity, range: spec.key });
   monitor.append(head, rail, chart, axis);
   return monitor;
 }
@@ -326,6 +352,8 @@ function renderUser(user) {
 }
 
 function renderGlobalHourlyActivity(users, hours) {
+  const range = hours === ACTIVITY_RANGE_SPECS["7d"].hours ? "7d" : "24h";
+  const spec = activityRangeSpec(range);
   const buckets = aggregateHourlyActivity(users, hours);
   const activeUserCount = users.filter((user) => hourlyActivityForUser(user, hours).some((bucket) => bucket.active)).length;
   const totals = buckets.reduce((acc, bucket) => {
@@ -336,10 +364,10 @@ function renderGlobalHourlyActivity(users, hours) {
     acc.peakOnline = Math.max(acc.peakOnline, asNumber(bucket.active_count));
     return acc;
   }, { launches: 0, completed: 0, failed: 0, activeHours: 0, peakOnline: 0 });
-  activityKicker.textContent = `${hours}H ACTIVITY`;
-  activityMeta.textContent = `${activeUserCount} 个账号在过去 ${hours} 小时出现真实心跳 · ${totals.launches} 次客户端启动`;
+  activityKicker.textContent = `${spec.label} ACTIVITY`;
+  activityMeta.textContent = `${activeUserCount} 个账号在过去 ${spec.periodLabel}出现真实心跳 · ${totals.launches} 次客户端启动`;
   presenceSummary.textContent = `${totals.activeHours}/${hours} 小时有活动 · 峰值 ${totals.peakOnline} 在线`;
-  if (hours === 24 * 7 && Array.isArray(dailyActivity?.days)) {
+  if (range === "7d" && Array.isArray(dailyActivity?.days)) {
     const dailyTotals = dailyBucketsForRange(dailyActivity, 7).reduce((acc, bucket) => {
       acc.tasks += asNumber(bucket.tasks);
       acc.completed += asNumber(bucket.completed);
@@ -351,12 +379,12 @@ function renderGlobalHourlyActivity(users, hours) {
   } else {
     throughputSummary.textContent = `${totals.completed} 批次/单任务事件完成 · ${totals.failed} 失败`;
   }
-  renderPresenceRail(globalPresenceRail, buckets, { totalUsers: users.length, global: true });
-  renderAxis(globalPresenceAxis, buckets);
-  renderThroughputChart(globalTaskSpark, buckets);
-  renderAxis(globalTaskAxis, buckets);
-  globalPresenceRail.setAttribute("aria-label", `过去${hours}小时活动覆盖`);
-  globalTaskSpark.setAttribute("aria-label", `过去${hours}小时任务处理`);
+  renderPresenceRail(globalPresenceRail, buckets, { totalUsers: users.length, global: true, granularity: "hour" });
+  renderAxis(globalPresenceAxis, buckets, { granularity: "hour", range });
+  renderThroughputChart(globalTaskSpark, buckets, { granularity: "hour" });
+  renderAxis(globalTaskAxis, buckets, { granularity: "hour", range });
+  globalPresenceRail.setAttribute("aria-label", `过去${spec.periodLabel}逐小时活动覆盖`);
+  globalTaskSpark.setAttribute("aria-label", `过去${spec.periodLabel}逐小时任务处理`);
   activitySection.hidden = false;
 }
 
@@ -388,16 +416,18 @@ function dailyActivityForUser(user, days = 30) {
 }
 
 function selectedActivityForUser(user) {
-  if (currentActivityRange === "7d") return hourlyActivityForUser(user, 24 * 7);
-  if (currentActivityRange === "30d") return dailyActivityForUser(user, 30);
-  return hourlyActivityForUser(user, 24);
+  const spec = activityRangeSpec();
+  if (spec.key === "7d") return hourlyActivityForUser(user, spec.hours);
+  if (spec.key === "30d") return dailyActivityForUser(user, spec.days);
+  return hourlyActivityForUser(user, spec.hours);
 }
 
 function renderDailyActivity(payload, days) {
+  const spec = activityRangeSpec("30d");
   const buckets = dailyBucketsForRange(payload, days);
   if (!buckets.length) {
-    activityKicker.textContent = `${days}D ACTIVITY`;
-    activityMeta.textContent = `正在读取过去 ${days} 天的每日汇总…`;
+    activityKicker.textContent = `${spec.label} ACTIVITY`;
+    activityMeta.textContent = `正在读取过去 ${spec.periodLabel}的每日汇总…`;
     presenceSummary.textContent = "—";
     throughputSummary.textContent = "—";
     globalPresenceRail.replaceChildren();
@@ -418,16 +448,16 @@ function renderDailyActivity(payload, days) {
     return acc;
   }, { tasks: 0, completed: 0, failed: 0, review: 0, launches: 0, activeDays: 0, peakAccounts: 0 });
 
-  activityKicker.textContent = `${days}D ACTIVITY`;
-  activityMeta.textContent = `过去 ${days} 天 · ${totals.activeDays} 个活跃日 · ${totals.launches} 次客户端启动`;
+  activityKicker.textContent = `${spec.label} ACTIVITY`;
+  activityMeta.textContent = `过去 ${spec.periodLabel} · ${totals.activeDays} 个活跃日 · ${totals.launches} 次客户端启动`;
   presenceSummary.textContent = `${totals.activeDays}/${days} 天有活动 · 单日峰值 ${totals.peakAccounts} 个账号`;
   throughputSummary.textContent = `${totals.tasks} 个任务 · ${totals.completed} 成功 · ${totals.failed} 失败${totals.review ? ` · ${totals.review} 复核` : ""}`;
   renderPresenceRail(globalPresenceRail, buckets, { totalUsers: Math.max(1, totals.peakAccounts), global: true, granularity: "day" });
-  renderAxis(globalPresenceAxis, buckets, { granularity: "day" });
+  renderAxis(globalPresenceAxis, buckets, { granularity: "day", range: spec.key });
   renderThroughputChart(globalTaskSpark, buckets, { granularity: "day" });
-  renderAxis(globalTaskAxis, buckets, { granularity: "day" });
-  globalPresenceRail.setAttribute("aria-label", `过去${days}天每日活动覆盖`);
-  globalTaskSpark.setAttribute("aria-label", `过去${days}天每日任务处理`);
+  renderAxis(globalTaskAxis, buckets, { granularity: "day", range: spec.key });
+  globalPresenceRail.setAttribute("aria-label", `过去${spec.periodLabel}每日活动覆盖`);
+  globalTaskSpark.setAttribute("aria-label", `过去${spec.periodLabel}每日任务处理`);
   activitySection.hidden = false;
 }
 
@@ -440,12 +470,11 @@ function updateActivityRangeControl() {
 
 function renderSelectedActivity() {
   updateActivityRangeControl();
-  if (currentActivityRange === "24h") {
-    renderGlobalHourlyActivity(currentUsers, 24);
-  } else if (currentActivityRange === "7d") {
-    renderGlobalHourlyActivity(currentUsers, 24 * 7);
+  const spec = activityRangeSpec();
+  if (spec.granularity === "day") {
+    renderDailyActivity(dailyActivity, spec.days);
   } else {
-    renderDailyActivity(dailyActivity, 30);
+    renderGlobalHourlyActivity(currentUsers, spec.hours);
   }
   if (currentUsers.length) usersPanel.replaceChildren(...currentUsers.map(renderUser));
 }
@@ -453,7 +482,7 @@ function renderSelectedActivity() {
 activityRangeControl?.addEventListener("click", (event) => {
   const button = event.target instanceof Element ? event.target.closest("[data-range]") : null;
   const range = button?.dataset.range;
-  if (range !== "24h" && range !== "7d" && range !== "30d") return;
+  if (!ACTIVITY_RANGE_SPECS[range]) return;
   currentActivityRange = range;
   renderSelectedActivity();
 });

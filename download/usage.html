@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="wallpaper-pending" data-wallpaper-src="./wallpaper-rain-anime-v1.png?v=20260825-1540">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,7 +7,7 @@
   <title>Listing Studio · Service Monitor</title>
   <link rel="stylesheet" href="./styles-v3.css" />
   <link rel="stylesheet" href="./cosmic-bright-v1.css" />
-  <link rel="stylesheet" href="./portal-polish-v1.css" />
+  <link rel="stylesheet" href="./portal-polish-v1.css?v=20260829-product-icon-1" />
   <link rel="stylesheet" href="./portal-polish-v2.css" />
   <link rel="stylesheet" href="./portal-account-v1.css" />
   <link rel="stylesheet" href="./portal-account-v2.css" />
@@ -16,10 +16,22 @@
   <link rel="stylesheet" href="./usage-admin-v1.css?v=20260821-1800" />
   <link rel="stylesheet" href="./usage-ops-v1.css?v=20260818-0950" />
   <link rel="stylesheet" href="./usage-ops-layout-v2.css?v=20260819-1304" />
-  <script defer src="./beach-wallpaper-v1.js?v=20260821-1545"></script>
+  <link rel="preload" as="image" href="./wallpaper-rain-anime-v1.png?v=20260825-1540" />
+  <link rel="preload" as="image" href="./listing-studio-product-icon.png?v=20260829-monitor-direct-2" />
+  <link rel="stylesheet" href="./beach-wallpaper-v1.css?v=20260829-first-paint-1" />
+  <link rel="stylesheet" href="./wallpaper-ready-v1.css?v=20260829-1521" />
+  <script type="importmap">
+  {
+    "imports": {
+      "https://esm.sh/@supabase/supabase-js@2": "./usage-supabase-router-v1.js?v=20260829-1"
+    }
+  }
+  </script>
+  <script defer src="./wallpaper-ready-v1.js?v=20260829-1521"></script>
 </head>
-<body>
-  <div class="cosmos" aria-hidden="true">
+<body class="beach-wallpaper-active">
+  <div class="cosmos beach-wallpaper-active" aria-hidden="true">
+    <div class="beach-wallpaper" data-wallpaper="rain-anime" style="--beach-image: url('./wallpaper-rain-anime-v1.png?v=20260825-1540'); --beach-position-x: 54%; --beach-position-mobile-x: 57%; --beach-veil-top: .17; --beach-veil-bottom: .28;"></div>
     <div class="cosmos-sky"></div>
     <div class="cosmos-glow"></div>
     <div class="cosmos-nebula cosmos-nebula-cyan"></div>
@@ -66,7 +78,7 @@
   <main class="release-shell usage-shell">
     <header class="topbar fade">
       <a class="brand" href="/" aria-label="返回 Smirel 首页">
-        <span class="brand-mark">LS</span>
+        <img src="./listing-studio-product-icon.png?v=20260829-monitor-direct-2" alt="" aria-hidden="true" width="42" height="42" style="display:block;width:42px;height:42px;flex:0 0 42px;object-fit:contain;border:0;background:transparent;box-shadow:none;" />
         <span class="brand-copy">
           <strong>Listing Studio</strong>
           <small>Service Monitor</small>
@@ -143,7 +155,7 @@
           </div>
         </div>
         <div class="account-footer usage-monitor-legend">
-          <span><i class="usage-legend-dot is-active"></i>在线</span><span><i class="usage-legend-dot is-idle"></i>无记录</span><span><i class="usage-legend-dot is-failed"></i>存在失败</span><span>柱高表示对应小时的完成与失败任务数量</span>
+          <span><i class="usage-legend-dot is-active"></i>在线</span><span><i class="usage-legend-dot is-idle"></i>无记录</span><span><i class="usage-legend-dot is-failed"></i>存在失败</span><span>柱高表示对应时段的完成与失败任务数量</span>
         </div>
       </article>
     </section>
@@ -183,8 +195,8 @@
   </main>
 
   <script src="./config-v6.js"></script>
-  <script type="module" src="./usage-admin-v2.js?v=20260821-1800"></script>
-  <script type="module" src="./usage-ops-v1.js?v=20260820-1600"></script>
+  <script type="module" src="./usage-admin-v2.js?v=20260830-0910"></script>
+  <script type="module" src="./usage-ops-v1.js?v=20260830-0910"></script>
   <script src="./cursor-desktop-v2.js?v=20260813-2"></script>
 </body>
 </html>

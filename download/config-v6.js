@@ -4,11 +4,12 @@ window.DOWNLOAD_PORTAL_CONFIG = {
     domain: "Downloads"
   },
   release: {
-    version: "v0.1.2",
-    publishedAt: "2026.08.13",
+    version: "",
+    publishedAt: "",
     platform: "Windows 10 / 11 · x64",
-    fileSize: "156 MB",
+    fileSize: "",
     downloadUrl: "",
+    metadataReady: false,
     notes: [
       "修复上架流程与界面稳定性问题。"
     ],
@@ -36,3 +37,28 @@ window.DOWNLOAD_PORTAL_CONFIG = {
     downloadFunctionUrl: "https://nfzkphjbelyltrzgkdwt.supabase.co/functions/v1/portal-download"
   }
 };
+
+(() => {
+  const path = String(window.location.pathname || "").replace(/\/+$/, "");
+  const isDownloadEntry = path === "/download" || path === "/download/index.html" || path === "/download/direct.html";
+  if (!isDownloadEntry) return;
+
+  const url = new URL(window.location.href);
+  const direct = path === "/download/direct.html" || url.searchParams.get("source") === "direct";
+  window.DOWNLOAD_PORTAL_REGISTRATION_CHANNEL = direct ? "direct" : "first-client";
+
+  if (direct && url.searchParams.get("source") === "direct" && path !== "/download/direct.html") {
+    url.searchParams.delete("source");
+    const search = url.searchParams.toString();
+    window.history.replaceState({}, "", `/download/direct.html${search ? `?${search}` : ""}${window.location.hash}`);
+  }
+
+  const importMap = document.createElement("script");
+  importMap.type = "importmap";
+  importMap.textContent = JSON.stringify({
+    imports: {
+      "https://esm.sh/@supabase/supabase-js@2": "./registration-supabase-router-v1.js?v=20260829-1"
+    }
+  });
+  document.currentScript?.after(importMap);
+})();

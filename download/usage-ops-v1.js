@@ -1,5 +1,6 @@
 const config = window.DOWNLOAD_PORTAL_CONFIG ?? {};
 const auth = config.auth ?? {};
+const MONITOR_TIME_ZONE = "Asia/Shanghai";
 
 const opsSection = document.getElementById("opsSection");
 const opsKpis = document.getElementById("opsKpis");
@@ -46,7 +47,7 @@ function fmtTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: MONITOR_TIME_ZONE
   }).format(date);
 }
 
@@ -238,7 +239,7 @@ function renderTaskPerformance(snapshot) {
   const names = userNameMap(snapshot);
   taskPerformancePanel.replaceChildren();
 
-  const zone = "Asia/Shanghai";
+  const zone = MONITOR_TIME_ZONE;
   const dayParts = new Intl.DateTimeFormat("en-CA", {
     timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit"
   });

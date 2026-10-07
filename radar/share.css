@@ -1,0 +1,15 @@
+.radar-share-page, .radar-share-page button, .radar-share-page input, .radar-share-page textarea { font-family: STZhongsong, "华文中宋", "Songti SC", SimSun, serif; }
+.radar-share-shell { max-width: 820px; }
+.radar-share-card { padding: clamp(24px,5vw,42px); }
+.radar-share-card h1 { margin-top: 8px; font-size: clamp(2rem,5vw,3.4rem); font-weight: 500; line-height: 1.1; }
+.radar-share-intro { max-width: 680px; margin-top: 14px; color: rgba(255,255,255,.56); font-size: .76rem; line-height: 1.85; }
+.radar-share-field, .radar-share-form label { display: grid; gap: 7px; color: rgba(255,255,255,.42); font-size: .62rem; }
+.radar-share-field { margin-top: 24px; }
+.radar-share-page input, .radar-share-page textarea { width: 100%; box-sizing: border-box; border: 1px solid rgba(255,255,255,.09); border-radius: 6px; outline: none; color: #fff; background: rgba(0,0,0,.20); padding: 11px 12px; resize: vertical; font-size: .76rem; line-height: 1.65; }
+.radar-share-page input:focus, .radar-share-page textarea:focus { border-color: rgba(255,255,255,.22); background: rgba(0,0,0,.28); }
+.radar-share-parse { width: 100%; margin-top: 9px; border: 0; cursor: pointer; }
+.radar-share-form { display: grid; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.08); }
+.radar-share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.radar-share-submit { margin-top: 4px; }
+.radar-share-result { margin-top: 14px; min-height: 18px; color: rgba(255,255,255,.45); font-size: .65rem; line-height: 1.6; }
+@media (max-width: 620px) { .radar-share-shell { width: min(100% - 20px, 820px); } .radar-share-grid { grid-template-columns: 1fr; } .radar-share-card { padding: 22px; } }

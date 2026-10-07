@@ -1,0 +1,32 @@
+.radar-import-page, .radar-import-page button, .radar-import-page input, .radar-import-page textarea { font-family: STZhongsong, "华文中宋", "Songti SC", SimSun, serif; }
+.radar-import-shell { max-width: 1080px; }
+.radar-import-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; padding: clamp(26px, 4vw, 42px); }
+.radar-import-hero h1 { margin-top: 7px; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 500; }
+.radar-import-hero p:last-child { max-width: 690px; margin-top: 14px; color: rgba(255,255,255,.58); line-height: 1.8; font-size: .78rem; }
+.radar-import-summary { min-width: 120px; text-align: right; font-family: ui-rounded, "SF Pro Rounded", sans-serif; }
+.radar-import-summary span, .radar-import-summary small { display: block; color: rgba(255,255,255,.36); font-size: .56rem; letter-spacing: .1em; }
+.radar-import-summary strong { display: block; margin: 4px 0; font-size: 2.3rem; font-weight: 500; }
+.radar-import-panel { margin-top: 16px; padding: 26px; }
+.radar-import-list { display: grid; gap: 10px; margin-top: 18px; }
+.radar-import-item { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 12px; padding: 17px; }
+.radar-import-check { width: 18px; height: 18px; margin-top: 4px; accent-color: rgba(255,255,255,.9); }
+.radar-import-fields { display: grid; gap: 10px; }
+.radar-import-fields label > span { display: block; margin-bottom: 5px; color: rgba(255,255,255,.4); font-size: .58rem; letter-spacing: .06em; }
+.radar-import-fields input, .radar-import-fields textarea { width: 100%; border: 1px solid rgba(255,255,255,.09); border-radius: 6px; outline: none; color: #fff; background: rgba(0,0,0,.18); padding: 10px 11px; font-size: .72rem; }
+.radar-import-fields textarea { min-height: 90px; resize: vertical; line-height: 1.65; }
+.radar-import-fields input:focus, .radar-import-fields textarea:focus { border-color: rgba(255,255,255,.2); background: rgba(0,0,0,.27); }
+.radar-import-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.radar-import-url { color: rgba(255,255,255,.44); font-family: ui-rounded, "SF Pro Rounded", sans-serif; font-size: .6rem; overflow-wrap: anywhere; }
+.radar-import-submitbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.08); }
+.radar-import-submit-actions { display: flex; gap: 8px; }
+.radar-import-submit-actions .radar-action { width: auto; min-width: 116px; }
+.radar-import-submit { min-width: 220px; }
+.radar-import-empty { min-height: 220px; display: grid; place-items: center; text-align: center; color: rgba(255,255,255,.48); }
+@media (max-width: 720px) {
+  .radar-import-hero { align-items: flex-start; flex-direction: column; }
+  .radar-import-summary { text-align: left; }
+  .radar-import-grid { grid-template-columns: 1fr; }
+  .radar-import-submitbar { align-items: stretch; flex-direction: column; }
+  .radar-import-submit-actions { flex-direction: column-reverse; }
+  .radar-import-submit, .radar-import-submit-actions .radar-action { width: 100%; }
+}

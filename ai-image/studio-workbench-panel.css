@@ -1,0 +1,31 @@
+/*
+ * Solid workbench panel component.
+ * This intentionally does not sample the wallpaper. The previous translucent
+ * glass component still exposed photographic detail, which is undesirable for
+ * the dense ecommerce workspace.
+ */
+html[data-image-mode="studio"] .studio-sidebar.studio-workbench-panel,
+html[data-image-mode="studio"] .studio-plan-panel.studio-workbench-panel {
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.105);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, #435a73 0%, #394f67 48%, #334960 100%);
+  box-shadow:
+    0 20px 56px rgba(13,29,47,.22),
+    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 -1px 0 rgba(8,22,38,.20);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  transform: none;
+  transition: border-color .24s ease, box-shadow .24s ease;
+}
+
+html[data-image-mode="studio"] .studio-sidebar.studio-workbench-panel:hover,
+html[data-image-mode="studio"] .studio-plan-panel.studio-workbench-panel:hover {
+  border-color: rgba(255,255,255,.14);
+  box-shadow:
+    0 22px 62px rgba(13,29,47,.25),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(8,22,38,.22);
+}

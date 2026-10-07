@@ -1,5 +1,5 @@
 (() => {
-  const ASSET_VERSION = "20260821-1545";
+  const ASSET_VERSION = "20260825-1540";
   const STYLE_ID = "beach-wallpaper-v1-style";
   const STYLE_URL = `./beach-wallpaper-v1.css?v=${ASSET_VERSION}`;
   const WALLPAPER = {

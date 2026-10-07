@@ -1,0 +1,21 @@
+/* Radar rendering stability only. Glass materials come from the shared .cards system. */
+
+/* Avoid a visible fade every time a remote cover is reattached. */
+.scan-post-cover-image {
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+.scan-post-cover-fallback {
+  transition: none !important;
+}
+
+.scan-post-cover.is-image-ready .scan-post-cover-fallback {
+  visibility: hidden;
+}
+
+/* Make review cards visually stable while remote images decode. */
+.scan-post-card,
+.scan-post-cover {
+  contain: layout paint;
+}

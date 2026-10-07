@@ -1,0 +1,30 @@
+/*
+ * Studio main-card component derived from the existing download portal's
+ * beach-wallpaper glass behavior. The wallpaper and the glass surfaces must
+ * stay on the same backdrop sampling path; promoted transform layers can make
+ * Chromium show only transparency without the photographic blur.
+ */
+html[data-image-mode="studio"] .wallpaper {
+  transform: none;
+}
+
+html[data-image-mode="studio"] .studio-sidebar.studio-beach-glass-card,
+html[data-image-mode="studio"] .studio-plan-panel.studio-beach-glass-card {
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.085);
+  border-radius: 14px;
+  background: rgba(4,18,30,.42);
+  box-shadow:
+    0 18px 48px rgba(34,50,82,.10),
+    inset 0 1px 0 rgba(255,255,255,.035);
+  -webkit-backdrop-filter: blur(22px) saturate(120%);
+  backdrop-filter: blur(22px) saturate(120%);
+  transform: none;
+  transition: background-color .3s ease, border-color .3s ease, box-shadow .3s ease;
+}
+
+html[data-image-mode="studio"] .studio-sidebar.studio-beach-glass-card:hover,
+html[data-image-mode="studio"] .studio-plan-panel.studio-beach-glass-card:hover {
+  border-color: rgba(255,255,255,.11);
+  transform: none;
+}

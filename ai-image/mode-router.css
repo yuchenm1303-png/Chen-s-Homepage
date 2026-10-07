@@ -1,0 +1,148 @@
+/*
+ * AI Image mode shell.
+ *
+ * Primary cards intentionally mirror the production Download / Service Monitor
+ * frosted surface. The critical rule is architectural: no ancestor of a glass
+ * card may carry a non-none view-transition-name, because CSS View Transitions
+ * make that element a Backdrop Root and stop descendant backdrop-filter from
+ * sampling the wallpaper outside it.
+ */
+
+/* Keep the photographic wallpaper on the same sampling path as every card. */
+.wallpaper {
+  transform: none !important;
+}
+
+/* Exact production Download / Monitor beach-glass surface. */
+.cards {
+  border: 0 !important;
+  border-radius: 6px !important;
+  background-color: rgba(4, 18, 30, .42) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: blur(22px) saturate(120%) !important;
+  backdrop-filter: blur(22px) saturate(120%) !important;
+  transform: none;
+}
+
+.cards:hover { transform: scale(1.01); }
+.cards:active { transform: scale(.98); }
+
+/* Never turn a mode container into a View Transition capture. A named view
+ * transition forms a Backdrop Root by specification, which is incompatible
+ * with descendant cards that need to blur the page wallpaper. */
+.studio-workbench,
+.mode-inline-host,
+.mode-inline-workspace,
+.mode-switch a {
+  view-transition-name: none !important;
+}
+
+/* Studio's historic entrance animation used filter/opacity/transform on the
+ * parent of both primary cards. Keep the parent completely neutral. */
+.studio-workbench.fade-in,
+.feature-grid.fade-in {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
+}
+
+.studio-workbench {
+  isolation: auto !important;
+  contain: none !important;
+  transform: none !important;
+  filter: none !important;
+  perspective: none !important;
+}
+
+/* studio.css has an older independent gradient/tint recipe. Remove its image
+ * layers so the primary panels use only the Download production card surface. */
+.studio-sidebar.cards,
+.studio-plan-panel.cards,
+.mode-inline-workspace > .panel.cards,
+.feature-card.cards {
+  background-image: none !important;
+  background-color: rgba(4, 18, 30, .42) !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: blur(22px) saturate(120%) !important;
+  backdrop-filter: blur(22px) saturate(120%) !important;
+}
+
+/* Single-image panels must not retain their old fade/filter animation state. */
+.mode-inline-workspace > .panel.cards.fade-in,
+.panel.cards.fade-in {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
+}
+
+/* Other non-card entrance animations may run, but release their compositor
+ * after completion. */
+.page-shell .fade-in {
+  animation-fill-mode: none !important;
+}
+
+/* Studio and single-image modes share one document so every active panel can
+ * sample the exact same wallpaper. */
+.mode-inline-host {
+  display: none;
+  width: 100%;
+  min-height: 650px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: none;
+  filter: none;
+  isolation: auto;
+  contain: none;
+}
+
+html[data-image-mode="lock"] .mode-inline-host,
+html[data-image-mode="legacy"] .mode-inline-host {
+  display: block;
+}
+
+html[data-image-mode="lock"] .studio-workbench,
+html[data-image-mode="legacy"] .studio-workbench {
+  display: none !important;
+}
+
+html[data-image-mode="studio"] .mode-inline-host {
+  display: none !important;
+}
+
+.mode-inline-workspace.workspace {
+  width: 100%;
+  margin: 0;
+  transform: none;
+  filter: none;
+  isolation: auto;
+  contain: none;
+}
+
+/* Lightweight no-refresh transition. Animate the glass cards themselves, not
+ * a parent capture layer, so backdrop sampling remains intact. */
+html.mode-enter[data-image-mode="studio"] .studio-workbench > .cards,
+html.mode-enter[data-image-mode="lock"] .mode-inline-workspace > .panel.cards,
+html.mode-enter[data-image-mode="legacy"] .mode-inline-workspace > .panel.cards {
+  animation: smirelModeCardIn .18s cubic-bezier(.2,.78,.24,1) both;
+}
+
+@keyframes smirelModeCardIn {
+  from { transform: translateY(5px) scale(.997); }
+  to { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.mode-enter[data-image-mode="studio"] .studio-workbench > .cards,
+  html.mode-enter[data-image-mode="lock"] .mode-inline-workspace > .panel.cards,
+  html.mode-enter[data-image-mode="legacy"] .mode-inline-workspace > .panel.cards {
+    animation: none !important;
+  }
+}

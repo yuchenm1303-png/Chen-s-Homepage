@@ -1,0 +1,1173 @@
+/*
+ * retro-authentic.css — 复古渲染层
+ *
+ * 目标不是换一套配色，而是换一套「渲染语言」。
+ * 90 年代的画面之所以是那个味道，靠的是三件事：
+ *   1. 硬边（没有高斯模糊、没有辉光、没有圆角）
+ *   2. 抖动（dither：用 2px 棋盘格模拟色深不足）
+ *   3. 有限调色板（渐变必须分成可数的色带，而不是连续过渡）
+ * 这一层把粉紫身份保留下来，但让它服从上面三条规则。
+ * 最后加载，可以整层删掉回到原样。
+ */
+
+:root {
+  /*
+   * 深夜工作台。
+   *
+   * 这套配色不是挑出来的，是从这个站自己的背景里取的。桌面本来就是一片夜空，
+   * 之前那版浅粉窗口浮在上面，两者没有任何关系 —— 窗口是贴上去的，不是长在那儿的。
+   * 现在窗口比夜空更深、更沉，读起来像夜里亮着的一块面板，而不是一张白天的纸。
+   *
+   * 强调色 #ffd166 直接取自 star-theme.css 里的金色星点，本来就在这个站的调色板里。
+   * 琥珀配深靛蓝也是夜间终端的老信号，跟任务栏那个 CRT 开关是一路的。
+   * 用得极省：只给强调色三个位置 —— 标题、当前栏目、链接。其余全部走灰阶。
+   * 一旦强调色铺开，精致就没了。
+   */
+  --r-face: #1c1730;        /* 窗口面：比夜空更深一档，才立得住 */
+  --r-titlebar: #241d3c;    /* 标题栏：只比窗口面亮一点点，平涂 */
+  --r-canvas: #14101f;      /* 内容区：整扇窗最深的一块 */
+
+  --r-edge-dk: #0b0814;     /* 斜角外暗边 */
+  --r-edge-sh: #2e2748;     /* 斜角内暗边 */
+  --r-edge-lt: #3a3157;     /* 斜角外亮边 */
+  --r-edge-hi: #4a4068;     /* 斜角内亮边 */
+
+  /* 正文不用纯白。纯白在深底上会发光晕开，点阵字尤其明显。 */
+  --r-ink: #ddd7ec;
+  --r-muted: #8f88a8;
+  --r-hairline: #2a2440;    /* 通用发丝线 */
+  --r-rule: #322b4c;        /* 列表行分隔线，比发丝线再实一档 */
+
+  --r-accent: #ffd166;      /* 琥珀，取自站内的金色星点 */
+  --r-link: #ffd166;
+  --r-select: #262040;      /* 选中／悬停：抬亮一档，不用色块 */
+
+  --r-dither: repeating-conic-gradient(rgba(255, 255, 255, .04) 0% 25%, transparent 0% 50%);
+
+  /* 四层斜角。深色系里亮边要压住，太亮会显得塑料。 */
+  --r-raise:
+    inset -1px -1px 0 0 var(--r-edge-dk),
+    inset 1px 1px 0 0 var(--r-edge-lt),
+    inset -2px -2px 0 0 var(--r-edge-sh),
+    inset 2px 2px 0 0 var(--r-edge-hi);
+  --r-press:
+    inset 1px 1px 0 0 var(--r-edge-dk),
+    inset -1px -1px 0 0 var(--r-edge-lt),
+    inset 2px 2px 0 0 var(--r-edge-sh),
+    inset -2px -2px 0 0 var(--r-edge-hi);
+  --r-sunken:
+    inset 1px 1px 0 0 var(--r-edge-sh),
+    inset -1px -1px 0 0 var(--r-edge-hi),
+    inset 2px 2px 0 0 var(--r-edge-dk),
+    inset -2px -2px 0 0 var(--r-edge-lt);
+
+  --r-face-lt: var(--r-edge-hi);
+  --r-face-hi: var(--r-edge-lt);
+  --r-face-sh: var(--r-edge-sh);
+  --r-face-dk: var(--r-edge-dk);
+  --r-title-a: var(--r-titlebar);
+  --r-title-b: var(--r-titlebar);
+
+  /*
+   * 接管站内旧变量。
+   *
+   * styles.css / star-theme.css 定义了自己的一套令牌（--ink、--muted、--link、
+   * --window-face …），projects.css、contact-page.css、blog.css 全都读它们。
+   * 只定义新的 --r-* 而不接管这一套，等于每个用到旧变量的地方都要单独再覆盖一次，
+   * 改不完 —— 联系页的链接就是这么漏掉的：它读的是 --link，还是那支深蓝，
+   * 落在深底上几乎看不见。在这里一次性重定向，下游全部跟着走。
+   */
+  --window-face: var(--r-face);
+  --window-content: var(--r-canvas);
+  --window-light: var(--r-edge-hi);
+  --window-mid: var(--r-edge-sh);
+  --window-dark: var(--r-edge-dk);
+  --ink: var(--r-ink);
+  --muted: var(--r-muted);
+  --link: var(--r-link);
+  --accent: var(--r-accent);
+  --title-a: var(--r-titlebar);
+  --title-b: var(--r-titlebar);
+  --shadow: rgba(0, 0, 0, .62);
+  --pink-1: #2a2344;
+  --pink-2: #241d3c;
+  --pink-3: #1c1730;
+  --lavender: #3a3157;
+}
+
+/* 旧样式里写死的悬停色（紫 #7b1dc0 配粉底）在深色系里同样看不见 */
+.pixel-link:hover,
+.pixel-link:focus-visible,
+.contact-inline-action:hover,
+.contact-inline-action:focus-visible {
+  background: var(--r-select) !important;
+  outline: 0 !important;
+  color: #ffe29c !important;
+}
+
+.contact-inline-action {
+  color: var(--r-link);
+}
+
+.contact-inline-action.is-copied {
+  color: #7fd6a0 !important;
+}
+
+/* ------------------------------------------------------------------ *
+ * 0. 全局硬化：像素渲染、无圆角、无平滑动画
+ * ------------------------------------------------------------------ */
+
+.desktop,
+.desktop *:not(.blog-article):not(.blog-article *):not(.star):not(.stars) {
+  border-radius: 0 !important;
+}
+
+.window,
+.taskbar,
+.closed-dialog,
+.desktop-icons {
+  image-rendering: pixelated;
+}
+
+.window ::selection,
+.taskbar ::selection {
+  background: var(--r-select);
+  color: #fff;
+}
+
+:where(.window, .taskbar) :focus-visible {
+  outline: 1px dotted var(--r-ink);
+  outline-offset: -4px;
+}
+
+/*
+ * 字体：华文中宋
+ *
+ * 这一节从「点阵」整体换成了「衬线」，前后的取舍是反的，值得写清楚为什么。
+ *
+ * 之前用方舟像素 12px，为了让字模像素正好压住物理像素，附带了一整套约束：
+ * 字号锁死 12px、次级文字另配一套 10px 字模、关闭字重合成、关闭抗锯齿。
+ * 那些约束只对点阵成立。华文中宋是矢量衬线体，全部反过来：
+ *   - 字号要放开并提上去。衬线的笔画粗细对比在 12px 上会糊成一团，正文给到 14px。
+ *   - 行距要拉开。宋体字面方正，1.5 倍偏挤，给到 1.75。
+ *   - 抗锯齿必须开回来。关掉它衬线会碎成锯齿，这是当初为点阵才关的。
+ *   - 字重合成可以放开。华文中宋没有粗体字面，但衬线合成加粗不会像点阵那样毁边缘。
+ *
+ * 一个必须说明的限制：华文中宋是商业字体，不能自托管，只能引用访客本机已装的。
+ * 装了 Office 的 Windows 和 macOS 通常有；没有的会顺着下面的链退到宋体，
+ * 再退到系统衬线。所以这套排版必须在「拿不到华文中宋」时也成立 ——
+ * 后面的字号和行距是按宋体也能看得下去来定的。
+ *
+ * 方舟像素的两个 woff2 仍留在 assets/fonts/，只是不再被引用，方便随时退回去。
+ */
+
+:root {
+  --r-stack: "STZhongsong", "华文中宋", "STSong", "华文宋体", "SimSun", "宋体", "Songti SC", serif;
+  --r-cjk: var(--r-stack);
+  --pixel: var(--r-stack);
+  --terminal: var(--r-stack);
+}
+
+/*
+ * 字号：正文 14px，次级 12px，大标题 26px。
+ * 点阵时代是「一个字号打天下、层级靠颜色」，因为字号一动就糊。
+ * 衬线没有这个约束，层级可以重新交回字号和字重。
+ * 博客正文（.article-*）自成一套阅读版式，这里放过它。
+ */
+.window *:not([class*="article-"]):not([class*="article-"] *),
+.taskbar *,
+.closed-dialog * {
+  font-size: 14px;
+  font-family: var(--r-stack);
+}
+
+.profile-name {
+  font-size: 26px !important;
+  line-height: 38px !important;
+  letter-spacing: .02em;
+}
+
+.window,
+.taskbar,
+.closed-dialog,
+.desktop-icons,
+.window button,
+.window input,
+.window select,
+.window textarea,
+.window table,
+.menu-bar,
+.titlebar,
+.status-bar {
+  font-family: var(--r-stack);
+  font-size: 14px;
+  /* 下面四条全部是把点阵时代的设置解掉：
+     衬线需要抗锯齿和正常的字形渲染，也允许合成加粗。 */
+  font-synthesis: weight;
+  letter-spacing: 0;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.content-scroll,
+.content-scroll p,
+.content-scroll li,
+.content-scroll span,
+.content-scroll td,
+.content-scroll th,
+.copy,
+.profile-meta,
+.project-desc,
+.project-tags,
+.note,
+.status-cell,
+.terminal-box,
+.taskbar-item,
+.clock,
+.desktop-shortcut {
+  font-family: var(--r-stack);
+  font-size: 14px;
+  /* 宋体字面方正，行距给足才不挤 */
+  line-height: 1.75;
+  text-rendering: auto;
+}
+
+/* 标题靠字重拉开层级。点阵时代不能这么做（合成加粗会毁边缘），衬线可以。 */
+.section-title,
+.profile-name,
+.project-title,
+.contact-label,
+.dialog-title,
+.titlebar-title,
+.start-button {
+  font-family: var(--r-stack);
+  font-weight: 700;
+}
+
+
+/*
+ * 次级文字：12px。
+ *
+ * 站内原本的层级是靠字号拉开的（表头 8px、路径栏 9px、列表描述 10px）。
+ * 点阵时代只能在 12 / 10 两档之间选，因为字号一旦偏离字模的设计网格就发虚，
+ * 所以当时专门另配了一套 10px 字模。衬线没有这个限制，
+ * 直接用 12px 对 14px 正文，两档之间的差距反而更自然。
+ *
+ * 这些规则需要 !important：上面那条 .window * 的通配规则特异性是 (0,3,0)，
+ * 普通的类选择器压不过它。
+ */
+.project-browser-head,
+.project-browser-head span,
+.project-row-copy strong,
+.project-row-icon,
+.project-glyph,
+.contact-glyph,
+.contact-label,
+.projects-path,
+.project-filter,
+.retro-action,
+.project-detail-back,
+.project-usage-hint,
+.project-row-copy small,
+.project-row-status,
+.project-status,
+.project-tags,
+.project-fact,
+.note,
+.blog-index-hint,
+.contact-index-hint {
+  font-family: var(--r-stack) !important;
+  font-size: 12px !important;
+  line-height: 20px !important;
+}
+
+/* ------------------------------------------------------------------ *
+ * 1. 桌面背景：保持原样
+ *
+ * 这一节原本把星云改成了分色带 + 抖动的 VGA 落日，现按要求撤掉，
+ * 背景重新交回 star-theme.css / star-refinement.css 的柔光星云与圆形星点。
+ * 唯一要留意的是：本文件顶部的全局 border-radius: 0 会把圆形星点压成方块，
+ * 所以那条规则里专门放过了 .star 与 .stars。
+ * ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ *
+ * 2. 窗口：真正的双层斜角 + 硬投影（模糊投影是最出戏的一处）
+ * ------------------------------------------------------------------ */
+
+.window,
+.window:not(.maximized) {
+  /* 窄一点。760px 宽的窗口配上这几行短句，右边会留下一大片没被文字填满的空 ——
+     那不是从容，是没填满。参照的那扇窗虽然下半部也空着，但内容本身是撑满宽度的。 */
+  width: min(720px, calc(100vw - 44px));
+  border: 0;
+  padding: 3px;
+  background: var(--r-face);
+  box-shadow: var(--r-raise), 5px 5px 0 0 rgba(10, 4, 20, .62);
+  transition: none;
+}
+
+.window.maximized {
+  box-shadow: var(--r-raise);
+}
+
+.closed-dialog {
+  border: 0;
+  padding: 3px;
+  background: var(--r-face);
+  box-shadow: var(--r-raise), 5px 5px 0 0 rgba(10, 4, 20, .62);
+}
+
+/* ------------------------------------------------------------------ *
+ * 3. 标题栏：平涂淡粉 + 靛蓝粗体字，重量全部卸掉
+ * ------------------------------------------------------------------ */
+
+/* 平涂，不做渐变。渐变是 Win98 原版的做法，但它会把标题栏变成整扇窗最重的一块。 */
+.titlebar,
+.dialog-title {
+  margin: 0 0 3px;
+  padding: 4px 3px 4px 5px;
+  background: var(--r-titlebar);
+}
+
+.titlebar {
+  min-height: 22px;
+}
+
+.titlebar-title {
+  color: var(--r-accent);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+
+.dialog-title {
+  color: var(--r-accent);
+  font-weight: 700;
+  text-shadow: none;
+}
+
+/* 窗口按钮：18px 方块，字形换成硬边像素图标 */
+/*
+ * 标题栏按钮要单独处理。四层斜角是给大面积控件设计的：在 16x14 的小方块上，
+ * 亮边（#f2dfe7）和淡粉标题栏几乎同色，看不出来；能看见的只剩右下那条靛蓝暗边，
+ * 于是四个按钮读起来不是按钮，是四条竖分隔线。
+ * 小控件改用单层斜角 + 一圈外描边，才能在浅色标题栏上立住。
+ */
+/*
+ * 标题栏按钮用单层斜角 + 一圈外描边。四层斜角是给大面积控件设计的，
+ * 在 17x15 的小方块上分不出四层，只会糊成一团。
+ */
+.window-button,
+.lang-switch {
+  min-width: 17px;
+  height: 15px;
+  padding: 0;
+  border: 0;
+  background: #2b2447;
+  box-shadow:
+    0 0 0 1px #100c1c,
+    inset -1px -1px 0 0 #191430,
+    inset 1px 1px 0 0 #4a4068;
+  color: var(--r-ink);
+  transform: none !important;
+}
+
+.window-button:active,
+.lang-switch:active {
+  box-shadow:
+    0 0 0 1px #100c1c,
+    inset 1px 1px 0 0 #191430,
+    inset -1px -1px 0 0 #4a4068;
+}
+
+.lang-switch {
+  min-width: 24px;
+  padding: 0 3px;
+  color: var(--r-accent);
+  font-weight: 700;
+}
+
+#minimizeButton,
+#maximizeButton,
+.close-button {
+  font-size: 0 !important;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+#minimizeButton {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Crect x='1' y='6' width='6' height='2' fill='%23ddd7ec'/%3E%3C/svg%3E");
+}
+
+#maximizeButton {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' shape-rendering='crispEdges'%3E%3Crect x='0' y='0' width='9' height='2' fill='%23ddd7ec'/%3E%3Crect x='0' y='2' width='1' height='7' fill='%23ddd7ec'/%3E%3Crect x='8' y='2' width='1' height='7' fill='%23ddd7ec'/%3E%3Crect x='0' y='8' width='9' height='1' fill='%23ddd7ec'/%3E%3C/svg%3E");
+}
+
+.close-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' shape-rendering='crispEdges'%3E%3Cpath fill='%23ddd7ec' d='M0 0h1v1H0zM6 0h1v1H6zM1 1h1v1H1zM5 1h1v1H5zM2 2h1v1H2zM4 2h1v1H4zM3 3h1v1H3zM2 4h1v1H2zM4 4h1v1H4zM1 5h1v1H1zM5 5h1v1H5zM0 6h1v1H0zM6 6h1v1H6z'/%3E%3C/svg%3E");
+}
+
+/* ------------------------------------------------------------------ *
+ * 4. 菜单栏：平时纯文字，选中用淡粉底而不是反白
+ * ------------------------------------------------------------------ */
+
+/*
+ * 导航从横排挪到左栏。
+ *
+ * 这一步改的是剪影，不是配色。「标题栏 → 一行横向菜单 → 一张表格铺在留白上」
+ * 是参照站的轮廓；把导航竖过来之后整扇窗变成资源管理器的形状，一眼就不是同一个东西了。
+ * 纯 CSS 实现：.window-body 变成两列栅格，菜单栏落进左列，内容区落进右列，
+ * HTML 和 JS 一行都不用动。
+ */
+.window-body {
+  display: grid;
+  grid-template-columns: 122px minmax(0, 1fr);
+  align-items: start;
+  padding: 0;
+}
+
+.menu-bar {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 1px;
+  margin: 0;
+  padding: 6px 8px 6px 3px;
+  border-bottom: 0;
+  border-right: 1px solid var(--r-hairline);
+  box-shadow: none;
+}
+
+.menu-item,
+.menu-item:active,
+.menu-item.active {
+  min-height: 22px;
+  padding: 4px 9px;
+  border: 0 !important;
+  background: transparent;
+  box-shadow: none;
+  color: var(--r-muted);
+  text-align: left;
+  transform: none !important;
+}
+
+/* 选中态用淡粉底 + 靛蓝字。反白深色块在这套浅色系里会变成整屏最重的一处。 */
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--r-select);
+  outline: 0;
+  color: var(--r-ink);
+}
+
+/* 当前栏目：抬亮一档 + 左侧一条琥珀竖线。整扇窗只有这里和链接用强调色。 */
+.menu-item.active {
+  background: var(--r-select);
+  color: var(--r-ink);
+  font-weight: 700;
+  box-shadow: inset 2px 0 0 0 var(--r-accent);
+}
+
+/* ------------------------------------------------------------------ *
+ * 5. 内容区：纯白画布 + 发丝分隔线 + 更大的留白
+ * ------------------------------------------------------------------ */
+
+.content-frame {
+  margin: 0;
+  border: 0;
+  background: var(--r-canvas);
+  box-shadow: none;
+}
+
+/* interface-simplify.css 在最大化时把 .window-body 改成了纵向 flex，
+   那会让左栏塌回横排，所以最大化状态也要按住栅格。 */
+.window.maximized .window-body {
+  display: grid !important;
+  grid-template-columns: 122px minmax(0, 1fr);
+  flex-direction: unset;
+}
+
+.window.maximized .menu-bar {
+  height: 100%;
+}
+
+/*
+ * 滚动条改成按需出现。之前特意让它常驻，理由是 Win98 的窗口即使内容不满也留着
+ * 那条立体滚动槽。在深色厚重的版本里那条竖线是结构；换到这套近白配色之后，
+ * 一条内容并未溢出却始终存在的滚动槽只会读成"这里出错了"。参照的那扇窗没有滚动条。
+ */
+.content-scroll {
+  padding: 18px 20px;
+  overflow-y: auto;
+  color: var(--r-ink);
+}
+
+.section-title {
+  margin-bottom: 14px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--r-hairline);
+  box-shadow: none;
+  color: var(--r-ink);
+  font-weight: 700;
+}
+
+.divider {
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--r-hairline);
+  box-shadow: none;
+}
+
+/* 层级靠颜色分两档：正文用深色作落点，真正的次级信息才压成灰。
+   之前把 .copy 也一并灰掉，整页没有一处深色，读起来是发白的。 */
+.copy,
+.copy p {
+  color: var(--r-ink);
+}
+
+.profile-meta,
+.project-desc,
+.note,
+.status-cell {
+  color: var(--r-muted);
+}
+
+.project-row-copy strong {
+  color: var(--r-ink);
+}
+
+.project-row-copy small {
+  color: var(--r-muted);
+}
+
+.profile-name {
+  color: var(--r-ink);
+  font-weight: 700;
+}
+
+.role-list li::before {
+  content: "\25AA";
+  margin-right: 7px;
+  color: var(--r-accent);
+}
+
+.avatar-frame {
+  padding: 2px;
+  border: 0;
+  background: var(--r-face);
+  box-shadow: inset 0 0 0 1px var(--r-hairline);
+}
+
+/* 终端条整块拿掉：这套浅色系里留一个黑底亮绿的方块会破坏全部克制。 */
+.terminal-box {
+  display: none !important;
+}
+
+.pixel-link {
+  color: var(--r-link);
+}
+
+.pixel-link:hover,
+.pixel-link:focus-visible {
+  background: var(--r-select);
+  outline: 0;
+  color: #ffe29c;
+}
+
+/* border-collapse 会吃掉单元格上的 inset 阴影，表头就凸不起来 —— 改回 separate */
+/*
+ * 表格外框不能用 --r-sunken：它的内暗边是靛蓝，铺在白底表格的左侧会拉出一条
+ * 很重的竖线，整张表看起来像被什么东西压着。收成一圈发丝线即可。
+ * （border-collapse 仍要用 separate，collapse 会吃掉单元格上的阴影。）
+ */
+.file-table {
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  box-shadow: inset 0 0 0 1px var(--r-hairline);
+}
+
+.file-table th {
+  border: 0;
+  padding: 5px 9px;
+  background: var(--r-titlebar);
+  box-shadow: inset 0 -1px 0 0 var(--r-hairline);
+  color: var(--r-muted);
+  font-weight: 700;
+  text-align: left;
+}
+
+.file-table td {
+  padding: 6px 9px;
+  border-bottom: 1px solid var(--r-rule);
+}
+
+.file-table tr:hover td {
+  background: var(--r-select);
+}
+
+.file-icon {
+  color: var(--r-accent);
+}
+
+.project-glyph,
+.contact-glyph {
+  border: 0;
+  background: var(--r-face);
+  box-shadow: var(--r-raise);
+  color: var(--r-accent);
+}
+
+/* ------------------------------------------------------------------ *
+ * 6. 任务栏 / START
+ * ------------------------------------------------------------------ */
+
+/* 状态栏整条移除（见文件末尾的减法一节）。 */
+
+.taskbar {
+  height: 32px;
+  padding: 2px 3px;
+  border: 0;
+  background: var(--r-face);
+  box-shadow: inset 0 1px 0 0 var(--r-face-lt), inset 0 2px 0 0 var(--r-face-hi);
+}
+
+.start-button {
+  gap: 5px;
+  min-width: 0;
+  height: 24px;
+  padding: 0 7px 0 5px;
+  border: 0;
+  background: var(--r-face);
+  box-shadow: var(--r-raise);
+  color: var(--r-accent);
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: default;
+}
+
+/* START 的方块换成四色像素窗旗 */
+.start-mark {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' shape-rendering='crispEdges'%3E%3Crect x='1' y='2' width='5' height='5' fill='%23ddd7ec'/%3E%3Crect x='7' y='1' width='6' height='6' fill='%23c98bb8'/%3E%3Crect x='1' y='8' width='5' height='5' fill='%23c98bb8'/%3E%3Crect x='7' y='8' width='6' height='5' fill='%23ddd7ec'/%3E%3C/svg%3E") no-repeat center;
+  opacity: 1;
+}
+
+.taskbar-item,
+button.taskbar-item,
+.clock,
+.crt-toggle {
+  height: 24px;
+  border: 0 !important;
+  background: var(--r-face);
+  color: var(--r-ink);
+}
+
+/* 任务栏按钮前面补一个 16px 的程序图标：Win98 的任务栏从来不是纯文字 */
+button.taskbar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 5px;
+}
+
+button.taskbar-item::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  background: url("assets/icon.svg") no-repeat center / 16px 16px;
+  image-rendering: pixelated;
+}
+
+button.taskbar-item:not(.is-active) {
+  box-shadow: var(--r-raise) !important;
+}
+
+.taskbar-item.is-active {
+  box-shadow: var(--r-press) !important;
+  font-weight: 700;
+}
+
+.clock {
+  padding: 3px 8px;
+  box-shadow: var(--r-sunken);
+}
+
+.crt-toggle {
+  box-shadow: var(--r-raise);
+}
+
+.crt-toggle:active,
+.crt-toggle.is-on {
+  box-shadow: var(--r-press);
+}
+
+.crt-toggle-led {
+  box-shadow: none;
+}
+
+.crt-toggle.is-on .crt-toggle-led {
+  background: var(--r-accent);
+  box-shadow: none;
+}
+
+/* 通用按钮 */
+.retro-button,
+.retro-action,
+.project-filter,
+.project-detail-back {
+  border: 0 !important;
+  background: var(--r-face);
+  box-shadow: var(--r-raise) !important;
+  color: var(--r-ink);
+  transform: none !important;
+}
+
+.retro-button:active,
+.retro-action:active,
+.project-filter:active,
+.project-filter.is-active,
+.project-detail-back:active {
+  box-shadow: var(--r-press) !important;
+}
+
+.projects-path,
+.project-explorer,
+.inspector-file {
+  border: 0 !important;
+  box-shadow: var(--r-sunken) !important;
+}
+
+/*
+ * 选中行。projects.css 那边给选中态铺了深紫渐变并把文字全部刷成白色
+ * （连描述文字都单独指定了 #f5dfe9），换成淡粉底之后这些白字会直接消失，
+ * 所以要把行内所有后代的颜色一并收回来，只留一条靛蓝竖线作标记。
+ */
+.project-row.is-selected {
+  background: var(--r-select) !important;
+  outline: 0 !important;
+  box-shadow: inset 3px 0 0 0 var(--r-accent);
+}
+
+.project-row.is-selected,
+.project-row.is-selected *,
+.project-row.is-selected .project-row-copy strong,
+.project-row.is-selected .project-row-copy small {
+  color: var(--r-ink) !important;
+}
+
+.project-row.is-selected .project-row-copy small,
+.project-row.is-selected .project-row-status {
+  color: var(--r-muted) !important;
+}
+
+/* ------------------------------------------------------------------ *
+ * 7. CRT：开启时给到真的像 CRT，而不是几乎看不见
+ * ------------------------------------------------------------------ */
+
+.crt-overlay {
+  opacity: 1;
+  background:
+    repeating-linear-gradient(to bottom,
+      rgba(0, 0, 0, .30) 0 1px,
+      transparent 1px 3px),
+    repeating-linear-gradient(90deg,
+      rgba(255, 40, 40, .045) 0 1px,
+      rgba(40, 255, 40, .045) 1px 2px,
+      rgba(40, 40, 255, .045) 2px 3px);
+  animation: crtFlicker 5s steps(4, end) infinite;
+}
+
+@keyframes crtFlicker {
+  0%, 100% { opacity: .9; }
+  50% { opacity: 1; }
+}
+
+/* 切换栏目时的重绘：改成硬扫描刷新 */
+@keyframes screenRefresh {
+  0% { opacity: .2; filter: brightness(2.4) contrast(.45); }
+  33% { opacity: .75; filter: brightness(1.5); }
+  66% { opacity: 1; filter: brightness(1.15); }
+  100% { opacity: 1; filter: none; }
+}
+
+.screen-refresh {
+  animation: screenRefresh .28s steps(4, end);
+}
+
+/* ------------------------------------------------------------------ *
+ * 8. 滚动条：压到跟窗口面同一档，不要成为右边一条深色带
+ * ------------------------------------------------------------------ */
+
+:root {
+  --retro-track-a: #f9ebf3;
+  --retro-track-b: #fdf5f9;
+}
+
+/*
+ * 关键：只要元素上出现了标准属性 scrollbar-color / scrollbar-width，
+ * Chrome 就会切到自己那套现代滚动条，把所有 ::-webkit-scrollbar-* 规则全部忽略，
+ * 于是棋盘槽、立体滑块、三角箭头一个都不会出现。站内旧样式设过这两个属性，
+ * 这里必须先还原成 auto，下面的复古滚动条才有机会生效。
+ */
+*,
+.content-scroll,
+.project-explorer {
+  scrollbar-color: auto;
+  scrollbar-width: auto;
+}
+
+/* 站内旧样式用的是 .content-scroll::-webkit-scrollbar-*（0,1,0），
+   通配选择器（0,0,0）压不过它，所以这里必须同样带上类名。 */
+.desktop ::-webkit-scrollbar,
+.content-scroll::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+.desktop ::-webkit-scrollbar-track,
+.content-scroll::-webkit-scrollbar-track {
+  border-left: 1px solid var(--r-hairline);
+  background-color: var(--retro-track-a);
+  background-image:
+    linear-gradient(45deg, rgba(61, 40, 188, .09) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(61, 40, 188, .09) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, .9) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, .9) 75%);
+  background-size: 4px 4px;
+  background-position: 0 0, 0 2px, 2px -2px, -2px 0;
+}
+
+.desktop ::-webkit-scrollbar-thumb,
+.content-scroll::-webkit-scrollbar-thumb {
+  min-height: 28px;
+  border: 0;
+  background: var(--r-face);
+  box-shadow: var(--r-raise);
+}
+
+.desktop ::-webkit-scrollbar-button:vertical:start:decrement,
+.desktop ::-webkit-scrollbar-button:vertical:single-button:decrement,
+.desktop ::-webkit-scrollbar-button:vertical:end:increment,
+.desktop ::-webkit-scrollbar-button:vertical:single-button:increment {
+  background-color: var(--r-face);
+  box-shadow: var(--r-raise);
+}
+
+.desktop ::-webkit-scrollbar-corner {
+  background: var(--r-face);
+}
+
+/* ------------------------------------------------------------------ *
+ * 9. 减法
+ *
+ * 这一节不改样子，只是把东西拿掉，而它对观感的影响比前面所有配色改动加起来还大。
+ *
+ * 参照的那扇窗从上到下只有三样东西：标题栏、两个菜单项、一张两列表格，剩下六成
+ * 是空白。项目页原本叠了八层：标题栏、四个菜单页签、路径栏、四个筛选按钮、操作
+ * 提示、表头、每行的图标块＋标题＋描述＋状态色点、滚动条、状态栏、任务栏。
+ * 每一层单独看都不算过分，叠在一起就没有任何一处能让眼睛停下来。
+ *
+ * 拿掉的都是不承载信息的层。要恢复某一项，把对应的 display:none 删掉即可。
+ * ------------------------------------------------------------------ */
+
+/* 三个页面的路径栏 C:\YUCHEN\... —— 纯装饰，同一样东西三个类名 */
+.projects-path,
+.blog-index-path,
+.contact-index-path {
+  display: none !important;
+}
+
+/* 操作提示「单击选择 · 双击或 Enter 打开详情」—— 试一下就知道，不必写出来 */
+.project-usage-hint {
+  display: none !important;
+}
+
+/* 每行左侧的彩色图标块 AI / LS / GLS —— 六个饱和色块是列表里最吵的东西 */
+.project-row-icon {
+  display: none !important;
+}
+
+/* 分类筛选按钮 —— 六个项目不需要四个筛选器；默认「全部」，去掉后照常全部列出 */
+.project-toolbar {
+  display: none !important;
+}
+
+/* 状态的绿色小灯 —— 状态只留文字，并压到次级灰 */
+.project-row-status i,
+.projects-led {
+  display: none !important;
+}
+
+.project-row-status {
+  color: var(--r-muted) !important;
+}
+
+.project-row.is-selected .project-row-status {
+  color: var(--r-muted) !important;
+}
+
+/* 窗口底部状态栏「在线 · 最后更新 2026.08」 */
+.status-bar {
+  display: none !important;
+}
+
+/*
+ * 图标块拿掉之后，行的栅格要从「图标｜正文｜状态」收回两列，
+ * 行高也跟着降下来 —— 否则会留下一块空出来的左边距。
+ */
+/* 状态列给固定宽度。用 auto 的话每行会按自己的字数各撑各的（实测 40 / 50 / 60px
+   都有），表头也对不上，右边就成了一条毛边。固定宽度是这类两列表格显得齐整的关键。 */
+.project-row {
+  grid-template-columns: minmax(0, 1fr) 78px !important;
+  min-height: 0 !important;
+  gap: 12px !important;
+  padding: 9px 10px !important;
+  border-bottom: 1px solid var(--r-rule) !important;
+}
+
+.project-browser-head {
+  grid-template-columns: minmax(0, 1fr) 78px !important;
+  padding: 6px 10px !important;
+  background: var(--r-titlebar);
+  border-bottom: 1px solid var(--r-hairline) !important;
+  color: var(--r-accent) !important;
+}
+
+.project-browser-head > span:last-child {
+  display: block !important;
+}
+
+.project-row-status,
+.project-browser-head > span:last-child {
+  display: block !important;
+  grid-column: auto !important;
+  justify-self: stretch !important;
+  text-align: right;
+}
+
+/* 列表外框收成一条发丝线，不再是凹陷的立体槽 */
+.project-explorer {
+  box-shadow: inset 0 0 0 1px var(--r-hairline) !important;
+}
+
+.projects-heading {
+  color: var(--r-ink);
+}
+
+/* ------------------------------------------------------------------ *
+ * 9b. 翻面
+ *
+ * projects.css / retro-polish.css / blog.css / contact-page.css 里有一批写死的
+ * 浅色底（#fffafd、#f4e9f0 这类）。整套配色翻到深色之后，这些面还是白的，
+ * 于是深色文字落在白底上、浅色文字也落在白底上 —— 项目列表直接变成不可读。
+ * 令牌换不掉它们，只能逐个按住。
+ * ------------------------------------------------------------------ */
+
+.project-explorer,
+.project-browser,
+.project-inspector,
+.projects-app,
+.inspector-panel,
+.inspector-file,
+.project-fact,
+.project-stack span,
+.blog-index-app,
+.contact-index-app {
+  background: var(--r-canvas) !important;
+  color: var(--r-ink);
+}
+
+.project-row:hover,
+.project-row:focus-visible,
+.file-table tr:hover td {
+  background: var(--r-select) !important;
+}
+
+.inspector-titlebar,
+.project-detail-nav {
+  background: var(--r-titlebar) !important;
+  color: var(--r-ink);
+}
+
+.inspector-panel h4,
+.projects-counters span,
+.inspector-status {
+  background: transparent !important;
+  color: var(--r-muted) !important;
+}
+
+/* 表头那条带：走灰阶，强调色只留给可点的东西 */
+.project-browser-head,
+.project-browser-head > span {
+  background: var(--r-titlebar) !important;
+  color: var(--r-muted) !important;
+}
+
+/* 详情页返回按钮等控件 */
+.project-detail-back,
+.retro-action,
+.retro-button {
+  background: var(--r-face) !important;
+  color: var(--r-ink) !important;
+}
+
+/* 项目行的标题与描述：深色底下要重新给色，否则继承的是浅色系里的深字 */
+.project-row-copy strong {
+  color: var(--r-ink) !important;
+}
+
+.project-row-copy small,
+.project-row-status {
+  color: var(--r-muted) !important;
+}
+
+/* 选中行：抬亮一档 + 左侧一条琥珀竖线，跟左栏当前项同一套语言 */
+.project-row.is-selected {
+  background: var(--r-select) !important;
+  box-shadow: inset 2px 0 0 0 var(--r-accent) !important;
+}
+
+.project-row.is-selected .project-row-copy strong {
+  color: var(--r-ink) !important;
+}
+
+/* 白底表格 */
+.file-table,
+.blog-file-table {
+  background: var(--r-canvas) !important;
+}
+
+.file-table td {
+  color: var(--r-ink);
+}
+
+/* ------------------------------------------------------------------ *
+ * 9c. 桌面图标
+ *
+ * styles.css 里这套样式一直都在，只是 HTML 里没有图标，等于睡着了。
+ * 现在唤醒它，并按深色主题重新配色。原来的规则在 900px 以下会整个隐藏，
+ * 但手机上窗口并不占满屏幕，图标该留着。
+ * ------------------------------------------------------------------ */
+
+.desktop-icons {
+  display: flex !important;
+  top: 22px;
+  left: 20px;
+  gap: 16px;
+}
+
+.desktop-shortcut {
+  width: 76px;
+  padding: 5px 3px 6px;
+  color: var(--r-ink);
+  text-shadow: 1px 1px 0 rgba(6, 4, 14, .9);
+  line-height: 1.3;
+}
+
+.desktop-shortcut:hover,
+.desktop-shortcut:focus-visible {
+  outline: 1px dotted rgba(255, 209, 102, .8);
+  outline-offset: -2px;
+  background: rgba(255, 209, 102, .10);
+  color: #fff;
+}
+
+.shortcut-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 7px;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+}
+
+@media (max-width: 620px) {
+  .desktop-icons {
+    top: 12px;
+    left: 10px;
+    gap: 10px;
+  }
+
+  .desktop-shortcut {
+    width: 68px;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * 9d. 渲染开销
+ *
+ * 背景还原之后整个界面点击发卡。查下来不是 JS —— 同步处理只要 0.5~5ms ——
+ * 而是背景在持续占用渲染管线，把每一帧都拖住，交互跟着一起延迟。
+ * 两处元凶，都在 star-theme.css 里：
+ *
+ *   1. 星星的 twinkle 关键帧动的是 filter: brightness()。filter 交不给合成器，
+ *      41 颗星每帧各要做一次滤镜通道。改成只动 opacity 与 transform，
+ *      这两个属性能走合成，亮度那点变化被透明度盖过，观感几乎不变。
+ *
+ *   2. 三层全屏高斯模糊（58px 与两个 68px）同时在动 transform。
+ *      不提升成独立层的话，每一帧都要把整屏的高斯模糊重算一遍。
+ *      提升之后模糊只栅格化一次，之后每帧只是搬运这张位图。
+ *
+ * 这一节只改渲染方式，不改任何视觉参数 —— 模糊半径、颜色、动画轨迹都没动。
+ * ------------------------------------------------------------------ */
+
+@keyframes twinkle {
+  0%, 100% { opacity: .40; transform: scale(.84); }
+  45% { opacity: 1; transform: scale(1.14); }
+  60% { opacity: .84; transform: scale(.98); }
+}
+
+.desktop::before,
+.cloud-layer {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* ------------------------------------------------------------------ *
+ * 10. 小屏
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 620px) {
+  /*
+   * styles.css 在小屏下给菜单项设了 flex:1 1 42%，四个项目会排成 2x2 并且各自
+   * 撑满半行。选中态本来是个小色块，被撑成半行之后就成了一整条粉色横带。
+   * 菜单栏应该始终是一行左对齐的文字，宽度由文字决定。
+   */
+  /* 小屏放不下左栏，收回横排一行 */
+  .window-body,
+  .window.maximized .window-body {
+    display: block !important;
+  }
+
+  .menu-bar {
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    padding: 4px 4px 5px !important;
+    border-right: 0;
+    border-bottom: 1px solid var(--r-hairline);
+  }
+
+  .menu-item {
+    flex: 0 0 auto !important;
+    padding: 3px 9px !important;
+  }
+
+  .menu-item.active {
+    box-shadow: inset 0 -2px 0 0 var(--r-accent) !important;
+  }
+
+  .window,
+  .window:not(.maximized) {
+    box-shadow: var(--r-raise), 3px 3px 0 0 rgba(10, 4, 20, .62);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crt-overlay {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,131 @@
+:root {
+  --usage-running-motion-period: 1800ms;
+}
+
+/*
+ * RUNNING motion is intentionally compositor-only.
+ * The moving overlay contains two identical visual periods; translating it by
+ * exactly one period makes the 100% frame visually identical to the 0% frame.
+ * This removes the old sweep pause / snap-back at every loop boundary.
+ */
+.usage-presence-segment.has-running {
+  overflow: hidden;
+  animation: none;
+  box-shadow: 0 0 0 1px rgba(182, 156, 255, .18), 0 0 9px rgba(182, 156, 255, .26);
+}
+
+.usage-presence-segment.has-running::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  left: -100%;
+  width: 200%;
+  pointer-events: none;
+  opacity: .68;
+  background-image: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 34%,
+    rgba(255, 255, 255, .10) 42%,
+    rgba(255, 255, 255, .52) 50%,
+    rgba(255, 255, 255, .10) 58%,
+    transparent 66%,
+    transparent 100%
+  );
+  background-size: 50% 100%;
+  background-repeat: repeat-x;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  animation: usage-running-seamless-translate var(--usage-running-motion-period) linear infinite;
+  animation-delay: var(--usage-running-phase, 0ms);
+}
+
+.usage-throughput-state.is-running {
+  position: relative;
+  overflow: hidden;
+  background: var(--usage-status-running);
+  box-shadow: 0 0 10px rgba(182, 156, 255, .30);
+  animation: none;
+  transform: translateZ(0);
+}
+
+.usage-throughput-state.is-running::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -100%;
+  width: 200%;
+  pointer-events: none;
+  opacity: .72;
+  background-image: linear-gradient(
+    112deg,
+    rgba(126, 93, 231, .18) 0%,
+    rgba(126, 93, 231, .18) 30%,
+    rgba(255, 255, 255, .14) 42%,
+    rgba(255, 255, 255, .52) 50%,
+    rgba(255, 255, 255, .14) 58%,
+    rgba(126, 93, 231, .18) 70%,
+    rgba(126, 93, 231, .18) 100%
+  );
+  background-size: 50% 100%;
+  background-repeat: repeat-x;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  animation: usage-running-seamless-translate var(--usage-running-motion-period) linear infinite;
+  animation-delay: var(--usage-running-phase, 0ms);
+}
+
+.usage-legend-dot.is-running {
+  box-shadow: 0 0 8px rgba(182, 156, 255, .42);
+  will-change: transform, opacity;
+  animation: usage-running-compositor-pulse var(--usage-running-motion-period) ease-in-out infinite;
+  animation-delay: var(--usage-running-phase, 0ms);
+}
+
+.usage-task-status[data-state="running"] {
+  text-shadow: 0 0 9px rgba(182, 156, 255, .34);
+  will-change: opacity;
+  animation: usage-running-opacity-pulse var(--usage-running-motion-period) ease-in-out infinite;
+  animation-delay: var(--usage-running-phase, 0ms);
+}
+
+.usage-task-status[data-state="running"]::before {
+  will-change: transform, opacity;
+  animation: usage-running-compositor-pulse var(--usage-running-motion-period) ease-in-out infinite;
+  animation-delay: var(--usage-running-phase, 0ms);
+}
+
+.usage-chart-tooltip .usage-chart-tooltip-value[data-kind="running"] {
+  color: #b69cff;
+  text-shadow: 0 0 8px rgba(182, 156, 255, .32);
+  will-change: opacity;
+  animation: usage-running-opacity-pulse var(--usage-running-motion-period) ease-in-out infinite;
+  animation-delay: var(--usage-running-phase, 0ms);
+}
+
+@keyframes usage-running-seamless-translate {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(50%, 0, 0); }
+}
+
+@keyframes usage-running-compositor-pulse {
+  0%, 100% { opacity: .66; transform: scale(.88); }
+  50% { opacity: 1; transform: scale(1.22); }
+}
+
+@keyframes usage-running-opacity-pulse {
+  0%, 100% { opacity: .76; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usage-presence-segment.has-running::before,
+  .usage-throughput-state.is-running::after,
+  .usage-legend-dot.is-running,
+  .usage-task-status[data-state="running"],
+  .usage-task-status[data-state="running"]::before,
+  .usage-chart-tooltip .usage-chart-tooltip-value[data-kind="running"] {
+    animation: none;
+  }
+}

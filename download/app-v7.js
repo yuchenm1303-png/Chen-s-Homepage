@@ -39,10 +39,10 @@ let accessCheckSerial = 0;
 let toastTimer = null;
 
 function applyConfig() {
-  versionNumber.textContent = release.version || "—";
-  publishedAt.textContent = `${release.publishedAt || "待发布"} 发布`;
+  versionNumber.textContent = release.version || "最新版";
+  publishedAt.textContent = release.publishedAt ? `${release.publishedAt} 发布` : "版本信息暂不可用";
   platformText.textContent = release.platform || "Windows x64";
-  fileSizeText.textContent = release.fileSize && release.fileSize !== "待发布" ? release.fileSize : "待发布";
+  fileSizeText.textContent = release.fileSize || "—";
 }
 
 function showToast(message) {
@@ -281,7 +281,10 @@ downloadButton.addEventListener("click", async () => {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ platform: "windows-x64", version: release.version })
+        body: JSON.stringify({
+          action: "download_latest",
+          platform: "windows-x64"
+        })
       });
 
       if (!response.ok) throw new Error(`download function returned ${response.status}`);

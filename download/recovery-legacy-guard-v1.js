@@ -19,55 +19,9 @@
   document.head.appendChild(script);
 })();
 
-// Use the exact PNG source embedded by the packaged Listing Studio app.
-(() => {
-  const APP_ICON_SOURCE = "https://raw.githubusercontent.com/yuchenm1303-png/ecommerce-agent/feat/local-test-gui/app/app_icon_data.py";
-
-  const applyBrandIcon = async () => {
-    const mark = document.querySelector(".brand-mark");
-    if (!mark) return;
-
-    mark.textContent = "";
-    mark.style.width = "42px";
-    mark.style.height = "42px";
-    mark.style.flex = "0 0 42px";
-    mark.style.padding = "0";
-    mark.style.border = "0";
-    mark.style.borderRadius = "12px";
-    mark.style.overflow = "hidden";
-    mark.style.background = "transparent";
-    mark.style.boxShadow = "none";
-
-    try {
-      const response = await fetch(APP_ICON_SOURCE, { cache: "force-cache" });
-      if (!response.ok) throw new Error(`icon source ${response.status}`);
-      const source = await response.text();
-      const block = source.match(/APP_ICON_PNG_BASE64\s*=\s*\(([\s\S]*?)\n\)/)?.[1];
-      if (!block) throw new Error("icon data not found");
-      const base64 = Array.from(block.matchAll(/"([^"]+)"/g), (match) => match[1]).join("");
-      if (!base64) throw new Error("icon data empty");
-
-      const icon = document.createElement("img");
-      icon.src = `data:image/png;base64,${base64}`;
-      icon.alt = "";
-      icon.width = 42;
-      icon.height = 42;
-      icon.style.display = "block";
-      icon.style.width = "100%";
-      icon.style.height = "100%";
-      icon.style.objectFit = "contain";
-      mark.replaceChildren(icon);
-    } catch (error) {
-      console.warn("Listing Studio icon load failed", error);
-    }
-  };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", applyBrandIcon, { once: true });
-  } else {
-    applyBrandIcon();
-  }
-})();
+void import("./portal-brand-v1.js?v=20260829-3").catch((error) => {
+  console.warn("Listing Studio product branding failed", error);
+});
 
 // Registration v2 keeps email confirmation inside the original registration
 // window by verifying the email OTP in-place. No confirmation-page redirect is

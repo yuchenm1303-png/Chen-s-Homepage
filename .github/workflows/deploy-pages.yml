@@ -1,4 +1,3 @@
-# Deployment trigger refreshed by ChatGPT on 2026-08-07
 name: Deploy homepage to GitHub Pages
 
 on:
@@ -22,8 +21,287 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout production repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+          persist-credentials: false
+
+      - name: Checkout pinned galaxy homepage release
+        uses: actions/checkout@v4
+        with:
+          ref: 62b249436ed540f865ec5fcdd580c37a8dad017e
+          path: galaxy-release
+          persist-credentials: false
+
+      - name: Verify committed Listing Studio icon
+        shell: bash
+        run: test -s production/download/listing-studio-product-icon.png
+
+      - name: Assemble production homepage
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p published
+          rsync -a --exclude='.git' production/ published/
+          rsync -a galaxy-release/galaxy-homepage-lab/ published/
+          test -s production/homepage-field-hud.css
+          cp production/homepage-field-hud.css published/homepage-field-hud.css
+          sed -i "/homepage-star-detail.css/a\\  <link rel=\"stylesheet\" href=\"./homepage-field-hud.css?build=${GITHUB_SHA::12}\" />" published/index.html
+          sed -i -E "s#homepage-detail-star-ui-canvas\\.css\\?build=[^\"]+#homepage-detail-star-ui-canvas.css?build=${GITHUB_SHA::12}#g" published/index.html
+          test -s published/index.html
+          test -s published/homepage-field-hud.css
+          test -s published/homepage-star-activity.js
+          test -s published/homepage-star-emission-boost.js
+          test -s published/homepage-star-temporal-stability.js
+          test -s published/homepage-star-first-flight-prewarm.js
+          test -s published/homepage-star-detail.js
+          test -s published/homepage-detail-star-ui.js
+          test -s published/homepage-detail-star-ui-canvas.css
+          test -s published/homepage-detail-star-postprocess-factory.js
+          test -s published/homepage-detail-camera-cinematic.js
+          test -s published/homepage-star-picker-entry-v3.js
+          test -s published/homepage-star-picker-v3.js
+          test -s published/homepage-blog-constellation-layout.js
+          test -s published/homepage-project-detail-content.js
+          test -s published/homepage-project-detail.css
+          test -s published/homepage-project-overview-scale-v3.css
+          test -s published/homepage-project-overview-minimal-v5.js
+          test -s published/homepage-project-overview-minimal-v5.css
+          test -s published/homepage-project-copy-layout-v6.css
+          test -s published/astra-homepage-glass-capture-loader.js
+          test -s published/homepage-language.js
+          test -s published/homepage-language.css
+          test -s published/homepage-content-i18n.js
+          test -s published/homepage-project-language-bridge.js
+          test -s published/homepage-project-ui-polish-v4.css
+          node --check published/homepage-star-detail.js
+          node --check published/homepage-detail-star-ui.js
+          node --check published/homepage-detail-camera-cinematic.js
+          node --check published/homepage-star-first-flight-prewarm.js
+          node --check published/homepage-project-overview-minimal-v5.js
+          node --check published/astra-homepage-glass-capture-loader.js
+          node --check published/homepage-star-temporal-stability.js
+          node --check published/homepage-language.js
+          node --check published/homepage-content-i18n.js
+          node --check published/homepage-project-language-bridge.js
+          grep -Fq "homepage-field-hud.css?build=${GITHUB_SHA::12}" published/index.html
+          grep -q 'compact atlas-style HUD' published/homepage-field-hud.css
+          grep -q 'homepage-star-picker-entry-v3.js?build=93c984f4' published/index.html
+          grep -q 'homepage-star-picker-v3.js?build=' published/index.html
+          grep -q 'homepage-star-emission-boost.js?build=aaec8612' published/index.html
+          grep -q 'homepage-star-temporal-stability.js?build=5acaac50' published/index.html
+          grep -q 'homepage-star-detail.js?build=b2d79ec4' published/index.html
+          grep -q 'homepage-detail-star-ui.js?build=handoff-v5-1ed5e74d' published/index.html
+          grep -Fq "homepage-detail-star-ui-canvas.css?build=${GITHUB_SHA::12}" published/index.html
+          grep -q 'homepage-detail-star-postprocess-factory.js?build=bloom-v1-7186f16e' published/index.html
+          grep -q 'homepage-detail-camera-cinematic.js?build=camera-v1-b6fd4f3c' published/index.html
+          grep -q 'homepage-project-overview-scale-v3.css?build=e80a0bba' published/index.html
+          grep -q 'homepage-project-ui-polish-v4.css?build=3598df03' published/index.html
+          grep -q 'homepage-project-overview-minimal-v5.css?build=text-only-v5' published/index.html
+          grep -q 'homepage-project-copy-layout-v6.css?build=copy-v6-7dba9dcc' published/index.html
+          grep -q 'homepage-project-detail-content.js?build=overview-base-d998e601' published/index.html
+          grep -q 'homepage-project-overview-minimal-v5.js?build=text-only-v5' published/index.html
+          grep -q 'project-overview--text-only' published/homepage-project-overview-minimal-v5.js
+          grep -Fq "querySelector('.project-overview-facts')?.remove()" published/homepage-project-overview-minimal-v5.js
+          grep -Fq "querySelector('.project-overview-points')?.remove()" published/homepage-project-overview-minimal-v5.js
+          grep -q 'Text-only project overview' published/homepage-project-overview-minimal-v5.css
+          grep -q 'Project cover copy layout v6' published/homepage-project-copy-layout-v6.css
+          grep -q 'white-space: nowrap' published/homepage-project-copy-layout-v6.css
+          grep -q 'Versioned project UI polish' published/homepage-project-ui-polish-v4.css
+          grep -q 'homepage-language.js?build=restore-20260907' published/index.html
+          grep -q 'homepage-content-i18n.js?build=restore-20260907' published/index.html
+          grep -q 'homepage-project-language-bridge.js?build=restore-20260907' published/index.html
+          grep -q 'smirel-language-toggle' published/homepage-language.js
+          grep -q 'CLOSE_APPROACH_START = 0.82' published/homepage-star-emission-boost.js
+          grep -q 'CLOSE_APPROACH_FULL = 0.985' published/homepage-star-emission-boost.js
+          grep -q 'CORE_MAX_BOOST = 1.85' published/homepage-star-emission-boost.js
+          grep -q 'CHROMOSPHERE_MAX_BOOST = 1.45' published/homepage-star-emission-boost.js
+          grep -q 'CORONA_MAX_BOOST = 1.25' published/homepage-star-emission-boost.js
+          grep -q 'model.halo.material.opacity = 0' published/homepage-star-emission-boost.js
+          grep -q 'uEmissionBoost' published/homepage-star-emission-boost.js
+          grep -q 'STONE_B_STABLE' published/homepage-star-temporal-stability.js
+          grep -q 'MICRO_A_STABLE' published/homepage-star-temporal-stability.js
+          grep -q 'MICRO_B_STABLE' published/homepage-star-temporal-stability.js
+          grep -q 'DETAIL_CORE_SPIN_RAD_S = 0.012' published/homepage-star-temporal-stability.js
+          grep -q 'DETAIL_CORONA_SPIN_RAD_S = -0.006' published/homepage-star-temporal-stability.js
+          grep -q 'bloom.intensity = CONFIG.bloomIntensity' published/astra-homepage-glass-capture-loader.js
+          grep -q 'bloom.mipmapBlurPass.radius = CONFIG.bloomRadius' published/astra-homepage-glass-capture-loader.js
+
+          # First-flight invariants: world-space stellar allocation, final wrapper
+          # shader compilation and the first geometry/texture upload must happen
+          # during idle time rather than on the user's first click.
+          grep -q 'prewarmWorldStar()' published/homepage-star-flight.js
+          grep -q '__smirelWorldStarPrewarmV1' published/homepage-star-first-flight-prewarm.js
+          grep -q 'IDLE_TIMEOUT_MS = 160' published/homepage-star-first-flight-prewarm.js
+          grep -q 'renderer.compileAsync' published/homepage-star-first-flight-prewarm.js
+          grep -q 'new THREE.WebGLRenderTarget(8, 8' published/homepage-star-first-flight-prewarm.js
+          grep -q '__SMIREL_WORLD_STAR_PREWARM_READY__' published/homepage-star-first-flight-prewarm.js
+          grep -q 'homepage-star-first-flight-prewarm.js?build=world-prewarm-v1-65ea4f76' published/astra-homepage-glass-capture-loader.js
+          grep -q '^  renderer,$' published/astra-homepage-glass-capture-loader.js
+
+          # Detail-star handoff invariants: fixed canvas, centered camera and
+          # compositor transform animation remain unchanged. V5 moves all costly
+          # pipeline allocation/compilation before the handoff and halves the
+          # independent Bloom cadence only while the canvas itself is moving.
+          grep -q '__smirelDetailStarUiV5' published/homepage-detail-star-ui.js
+          grep -q 'CANVAS_SIZE = 512' published/homepage-detail-star-ui.js
+          grep -q 'UI_OWNED_FRAME_INTERVAL_MS = 1000 / 30' published/homepage-detail-star-ui.js
+          grep -q 'UI_MOVING_FRAME_INTERVAL_MS = 1000 / 15' published/homepage-detail-star-ui.js
+          grep -q 'GALAXY_DETAIL_INTERVAL_MS = 1000 / 24' published/homepage-detail-star-ui.js
+          grep -q 'new THREE.WebGLRenderer' published/homepage-detail-star-ui.js
+          grep -q 'alpha: false' published/homepage-detail-star-ui.js
+          grep -q 'renderer.setPixelRatio(1)' published/homepage-detail-star-ui.js
+          grep -q 'renderer.setSize(CANVAS_SIZE, CANVAS_SIZE, false)' published/homepage-detail-star-ui.js
+          grep -q 'renderer.setClearColor(0x000000, 1)' published/homepage-detail-star-ui.js
+          grep -q 'uiScene.background = new THREE.Color(0x000000)' published/homepage-detail-star-ui.js
+          grep -q 'new THREE.PerspectiveCamera(UI_FOV, 1' published/homepage-detail-star-ui.js
+          grep -q 'uiCamera.aspect = 1' published/homepage-detail-star-ui.js
+          grep -q 'overlay.animate' published/homepage-detail-star-ui.js
+          grep -q 'function warmPipelineInfrastructure' published/homepage-detail-star-ui.js
+          grep -q 'pipeline.render(0)' published/homepage-detail-star-ui.js
+          grep -q 'requestPrewarm' published/homepage-detail-star-ui.js
+          grep -q 'renderer.compileAsync' published/homepage-detail-star-ui.js
+          grep -q 'if (!pipelinePrewarmed || !prewarmed) return false' published/homepage-detail-star-ui.js
+          grep -q 'lastUiRenderMs = performance.now()' published/homepage-detail-star-ui.js
+          grep -q 'uiGroup = group.clone(true)' published/homepage-detail-star-ui.js
+          grep -q 'uiScene.add(uiGroup)' published/homepage-detail-star-ui.js
+          grep -q 'sourceGroup.visible = false' published/homepage-detail-star-ui.js
+          grep -q 'function ensurePostprocess' published/homepage-detail-star-ui.js
+          grep -q '__SMIREL_CREATE_DETAIL_STELLAR_POSTPROCESS__' published/homepage-detail-star-ui.js
+          grep -q 'pipeline.render(1 / 30)' published/homepage-detail-star-ui.js
+          grep -q 'will-change: transform, opacity' published/homepage-detail-star-ui-canvas.css
+          grep -q 'contain: strict' published/homepage-detail-star-ui-canvas.css
+          grep -q 'mix-blend-mode: screen' published/homepage-detail-star-ui-canvas.css
+          grep -q 'background: #000' published/homepage-detail-star-ui-canvas.css
+          grep -q 'mask-image: radial-gradient' published/homepage-detail-star-ui-canvas.css
+          grep -q 'circle closest-side at 50% 50%' published/homepage-detail-star-ui-canvas.css
+          grep -q '#000 68%' published/homepage-detail-star-ui-canvas.css
+
+          # Independent star reuses the galaxy's real Astra bloom path directly.
+          # The renderer instance invokes this factory itself; never intercept
+          # WebGLRenderer.prototype.render because Three r180 assigns render as an
+          # instance method in the constructor, shadowing prototype monkeypatches.
+          grep -q '__SMIREL_DETAIL_STELLAR_POSTPROCESS_V1__' published/homepage-detail-star-postprocess-factory.js
+          grep -q 'class AstraBloomEffect extends BloomEffect' published/homepage-detail-star-postprocess-factory.js
+          grep -q 'ASTRA_BLOOM_PREFILTER' published/homepage-detail-star-postprocess-factory.js
+          grep -q 'ASTRA_BLOOM_RECONSTRUCTION' published/homepage-detail-star-postprocess-factory.js
+          grep -q 'intensity: 0.7' published/homepage-detail-star-postprocess-factory.js
+          grep -q 'threshold: 0.08' published/homepage-detail-star-postprocess-factory.js
+          grep -q 'radius: 0.72' published/homepage-detail-star-postprocess-factory.js
+          grep -q 'levels: 5' published/homepage-detail-star-postprocess-factory.js
+          grep -q 'ToneMappingMode.ACES_FILMIC' published/homepage-detail-star-postprocess-factory.js
+          grep -q 'frameBufferType: THREE.HalfFloatType' published/homepage-detail-star-postprocess-factory.js
+          grep -q 'multisampling: 0' published/homepage-detail-star-postprocess-factory.js
+          if grep -q 'homepage-detail-star-postprocess-hook.js' published/index.html; then
+            echo 'Detail bloom must be invoked directly; prototype render hook is ineffective in Three r180' >&2
+            exit 1
+          fi
+          if grep -q 'alpha: true' published/homepage-detail-star-ui.js; then
+            echo 'Detail bloom canvas must stay opaque black for screen compositing' >&2
+            exit 1
+          fi
+          if grep -Eq 'box-shadow|filter:[[:space:]]*blur|::before|::after' published/homepage-detail-star-ui-canvas.css; then
+            echo 'Detail star must use real Astra bloom; only framebuffer-edge masking is allowed in CSS' >&2
+            exit 1
+          fi
+
+          if grep -Eq 'new[[:space:]]+EffectComposer|EffectComposer[[:space:]]*\\(' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI controller must obtain postprocess from the shared factory, not duplicate its implementation' >&2
+            exit 1
+          fi
+          if grep -q 'cloneMaterial' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI must share stellar materials instead of cloning material state every frame' >&2
+            exit 1
+          fi
+          if grep -q 'setViewport' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI movement must stay in compositor transforms, not WebGL viewport animation' >&2
+            exit 1
+          fi
+          if grep -q 'setScissor' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI movement must stay in compositor transforms, not WebGL scissor animation' >&2
+            exit 1
+          fi
+          if grep -q 'renderDetailStarUi' published/homepage-detail-star-ui.js; then
+            echo 'Detail UI must render independently from the galaxy composer frame loop' >&2
+            exit 1
+          fi
+          if grep -q 'applyCameraBlend' published/homepage-star-detail.js; then
+            echo 'Detail shell must not reposition the galaxy camera' >&2
+            exit 1
+          fi
+          if grep -q 'camera\.fov' published/homepage-star-detail.js; then
+            echo 'Detail shell must not mutate galaxy FOV' >&2
+            exit 1
+          fi
+          if grep -q 'getBoundingClientRect' published/homepage-star-detail.js; then
+            echo 'Detail shell must not measure the stellar slot every frame' >&2
+            exit 1
+          fi
+          grep -q 'delete shell.dataset.starKind' published/homepage-star-detail.js
+          grep -q 'delete shell.dataset.starId' published/homepage-star-detail.js
+          if grep -q 'homepage-detail-star-ui-viewport-fix.js' published/index.html; then
+            echo 'Legacy viewport correction runtime must not be loaded' >&2
+            exit 1
+          fi
+          if grep -q 'homepage-article-star-ui.js' published/index.html; then
+            echo 'Legacy note-only star UI runtime must not be loaded' >&2
+            exit 1
+          fi
+
+          # Cinematic camera is deliberately separate from the independent star UI.
+          # It may dolly/zoom the galaxy, but must never read the DOM star slot or
+          # derive an NDC target for placing the detail star.
+          grep -q '__smirelDetailCameraCinematicV1' published/homepage-detail-camera-cinematic.js
+          grep -q 'OPEN_MS = reducedMotion ? 1 : 1080' published/homepage-detail-camera-cinematic.js
+          grep -q 'RETURN_MS = reducedMotion ? 1 : 400' published/homepage-detail-camera-cinematic.js
+          grep -q 'arrivalDepth \* 5.1' published/homepage-detail-camera-cinematic.js
+          grep -q "object?.kind === 'note' ? 28 : 26" published/homepage-detail-camera-cinematic.js
+          grep -q 'detailStarUiState' published/homepage-detail-camera-cinematic.js
+          if grep -Eq 'getBoundingClientRect|star-detail-star-slot|targetNdc' published/homepage-detail-camera-cinematic.js; then
+            echo 'Cinematic camera must not place the star from DOM slot coordinates' >&2
+            exit 1
+          fi
+
+          grep -q 'data-project-detail-open' published/homepage-project-detail-content.js
+          grep -q 'data-project-detail-overlay' published/homepage-project-detail-content.js
+          grep -q 'project-detail-expanded' published/homepage-project-detail-content.js
+          grep -q '把供应商商品链接整理成可审核的 Makro 上架任务' published/homepage-project-detail-content.js
+          grep -q 'height: 100dvh' published/homepage-project-detail.css
+          grep -q 'grid-template-areas:' published/homepage-project-detail.css
+          grep -q 'counter-reset: project-overview-point' published/homepage-project-detail.css
+          grep -q 'width: 190px' published/homepage-project-detail.css
+          grep -q 'width: min(680px, 43vw)' published/homepage-project-overview-scale-v3.css
+          grep -q 'width: min(940px, 59vw)' published/homepage-project-overview-scale-v3.css
+          grep -q 'grid-template-columns: repeat(4, minmax(0, 1fr))' published/homepage-project-overview-scale-v3.css
+          grep -q 'font-size: clamp(56px, 4vw, 66px)' published/homepage-project-overview-scale-v3.css
+          grep -q 'font-size: clamp(34px, 2.35vw, 40px)' published/homepage-project-overview-scale-v3.css
+          grep -q 'font-size: clamp(13px, .84vw, 14px)' published/homepage-project-overview-scale-v3.css
+          if grep -q 'stellarBloomActive ? 4.2' published/astra-homepage-glass-capture-loader.js; then
+            echo 'Global flight bloom amplification must not return' >&2
+            exit 1
+          fi
+          if grep -q 'starFlightActive ? 4.2' published/astra-homepage-glass-capture-loader.js; then
+            echo 'Global flight bloom amplification must not return' >&2
+            exit 1
+          fi
+          if grep -q 'SelectiveBloomEffect' published/astra-homepage-glass-capture-loader.js; then
+            echo 'Depth-dependent SelectiveBloomEffect must not enter the depthless composer' >&2
+            exit 1
+          fi
+          grep -q '__SMIREL_STAR_PICKER_BOOTSTRAP_V4__' published/homepage-star-picker-entry-v3.js
+          grep -q 'about: 12089' published/homepage-blog-constellation-layout.js
+          grep -q "'about-study': 1420" published/homepage-blog-constellation-layout.js
+          grep -q 'projects: 12636' published/homepage-blog-constellation-layout.js
+          grep -q "'computer-use': 9208" published/homepage-blog-constellation-layout.js
+          grep -q 'blog: 1363' published/homepage-blog-constellation-layout.js
+          grep -q 'contact: 3644' published/homepage-blog-constellation-layout.js
+          if grep -q 'stellar-homepage' published/index.html; then
+            echo 'Unexpected stellar-homepage path in production root index' >&2
+            exit 1
+          fi
+          test "$(tr -d '\r\n' < published/CNAME)" = "smirel.com"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -31,7 +309,7 @@ jobs:
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "."
+          path: published
 
       - name: Deploy to GitHub Pages
         id: deployment

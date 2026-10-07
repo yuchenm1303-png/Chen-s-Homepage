@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#91c7e3" />
+  <title>AI Lead Radar · 接单雷达</title>
+  <meta name="description" content="AI 接单雷达：发现最新公开开发需求并进行智能筛选。" />
+  <link rel="stylesheet" href="../download/styles-v3.css" />
+  <link rel="stylesheet" href="../download/cosmic-bright-v1.css" />
+  <link rel="stylesheet" href="../download/portal-polish-v1.css" />
+  <link rel="stylesheet" href="../download/portal-polish-v2.css" />
+  <link rel="stylesheet" href="../download/layout-visual-restore-v1.css" />
+  <link rel="stylesheet" href="../download/cursor-reference-source-v1.css" />
+  <link rel="stylesheet" href="../download/beach-wallpaper-v1.css" />
+  <link rel="stylesheet" href="./live.css?v=20260824-2" />
+  <link rel="stylesheet" href="./style.css?v=20260826-dashboard-3" />
+  <link rel="stylesheet" href="./scan-summary.css?v=20260826-1" />
+  <link rel="stylesheet" href="./post-preview.css?v=20260826-3" />
+  <link rel="stylesheet" href="./radar-stability.css?v=20260826-3" />
+</head>
+<body class="beach-wallpaper-active radar-page">
+  <div class="cosmos beach-wallpaper-active" aria-hidden="true">
+    <div class="beach-wallpaper is-ready" style="--beach-image:url('../download/wallpaper-rain-anime-v1.png');--beach-position-x:54%;--beach-position-mobile-x:57%;--beach-veil-top:.17;--beach-veil-bottom:.28"></div>
+    <div class="cosmos-sky"></div><div class="cosmos-glow"></div><div class="cosmos-nebula cosmos-nebula-cyan"></div><div class="cosmos-nebula cosmos-nebula-violet"></div><div class="cosmos-vignette"></div>
+  </div>
+  <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div><div class="cursor-follow" id="cursorFollow" aria-hidden="true"></div>
+
+  <main class="release-shell radar-shell">
+    <header class="topbar fade radar-topbar">
+      <a class="brand" href="/" aria-label="返回 Smirel 首页">
+        <span class="brand-mark">AR</span>
+        <span class="brand-copy"><strong>AI Lead Radar</strong><small>接单雷达</small></span>
+      </a>
+      <div class="radar-topbar-meta">
+        <span class="radar-source-note">PUBLIC · AUTHORIZED</span>
+        <div class="service-status"><i></i><span id="serviceStatusText">Connecting API</span></div>
+      </div>
+    </header>
+
+    <section class="radar-overview" id="radar">
+      <article class="cards radar-scan-console">
+        <div class="console-head">
+          <div><p class="kicker">SCANNER</p><h1>扫描控制</h1></div>
+          <span class="secure-pill">LIVE API</span>
+        </div>
+
+        <div class="scan-primary-row">
+          <div class="console-status">
+            <div class="scan-pulse" id="scanPulse" aria-hidden="true"><i></i></div>
+            <div><span>STATUS</span><strong id="scanStatus">正在连接 API</strong></div>
+          </div>
+          <div class="radar-console-actions">
+            <button class="download-button radar-scan-button" id="scanButton" type="button">
+              <span class="download-copy"><strong id="scanButtonText">立即扫描</strong><small id="scanButtonMeta">多路检索 · 智能调度</small></span><span class="download-arrow">↻</span>
+            </button>
+            <button class="login-button radar-import-button" id="importButton" type="button">＋ 导入需求</button>
+            <a class="login-button radar-helper-entry" id="browserHelperLink" href="./helper.html" aria-label="安装 AI Lead Radar 浏览器助手">⌁ 浏览器助手</a>
+          </div>
+        </div>
+
+        <div class="console-data">
+          <div><span>PLATFORM</span><strong id="scannerPlatform">小红书 · Just One V4</strong></div>
+          <div><span>LAST SCAN</span><strong id="lastScan">读取中</strong></div>
+          <div><span>CLASSIFIER</span><strong id="scannerProvider">RULES</strong></div>
+        </div>
+      </article>
+
+      <section class="radar-signal-strip" aria-label="机会统计">
+        <article class="cards signal-stat signal-stat-primary"><span class="signal-label">HIGH INTENT</span><strong id="highCount">0</strong><small>AI Score ≥ 80</small><span id="heroHighCount" hidden>0</span></article>
+        <article class="cards signal-stat"><span class="signal-label">NEW</span><strong id="newCount">0</strong><small>新发现</small></article>
+        <article class="cards signal-stat"><span class="signal-label">SAVED</span><strong id="savedCount">0</strong><small>已收藏</small></article>
+        <article class="cards signal-stat"><span class="signal-label">CONTACTED</span><strong id="contactedCount">0</strong><small>已联系</small></article>
+      </section>
+    </section>
+
+    <section class="release-card cards fade radar-feed-panel" id="opportunities">
+      <div class="feed-heading">
+        <div>
+          <p class="kicker">OPPORTUNITY FEED</p>
+          <h2>机会列表</h2>
+          <p class="radar-muted">按 AI Score 与发布时间排序，只保留值得判断的真实公开需求。</p>
+        </div>
+        <div class="feed-count"><strong id="resultCount">0</strong><span>VISIBLE</span></div>
+      </div>
+
+      <div class="radar-toolbar">
+        <div class="radar-filters" role="group" aria-label="潜客筛选">
+          <button class="release-badge filter-chip active" data-filter="high" type="button">高意向</button>
+          <button class="release-badge filter-chip" data-filter="new" type="button">新发现</button>
+          <button class="release-badge filter-chip" data-filter="saved" type="button">已收藏</button>
+          <button class="release-badge filter-chip" data-filter="contacted" type="button">已联系</button>
+          <button class="release-badge filter-chip" data-filter="ignored" type="button">已忽略</button>
+          <button class="release-badge filter-chip" data-filter="all" type="button">全部</button>
+        </div>
+        <label class="radar-search-wrap" for="searchInput"><span>⌕</span><input id="searchInput" class="radar-search" type="search" placeholder="搜索需求 / 技术 / 关键词" autocomplete="off" /></label>
+      </div>
+
+      <div class="radar-scope-line" aria-label="接单范围">
+        <span>监控范围</span>
+        <div><i>小程序</i><i>网页</i><i>独立站</i><i>Python</i><i>AI / 自动化</i></div>
+      </div>
+      <div id="leadList" class="radar-lead-list"></div>
+    </section>
+
+    <footer class="footer fade radar-footer"><span>AI Lead Radar</span><span class="footer-status"><i></i>Smirel · Opportunity Intelligence</span></footer>
+  </main>
+
+  <div class="modal-layer" id="leadModal" hidden><div class="modal-mask" data-close-lead-modal></div><article class="modal-card cards" role="dialog" aria-modal="true" aria-labelledby="leadModalTitle"><button class="modal-close" id="leadModalClose" type="button" aria-label="关闭机会详情">×</button><p class="modal-kicker" id="leadModalKicker">OPPORTUNITY ANALYSIS</p><h2 id="leadModalTitle">机会详情</h2><div class="modal-body" id="leadModalBody"></div></article></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js?v=20260825-2"></script><script src="./scan-summary.js?v=20260826-3"></script><script src="./post-preview.js?v=20260826-4"></script><script src="./notify.js?v=20260826-3"></script><script src="../download/cursor-desktop-v2.js?v=20260813-2"></script>
+</body>
+</html>

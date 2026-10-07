@@ -40,14 +40,14 @@ html.usage-detail-modal-open body {
   max-height: 56vh;
 }
 
-/* Portal cards are launchers only. Their detail body never expands in-page. */
-.usage-task-card[open] > .usage-task-body,
+/* Real task cards are launchers only. History day groups expand in-page. */
+.usage-task-card:not([data-task-history-day])[open] > .usage-task-body,
 #deviceHealthPanel > .usage-diagnostic-item[open] > .usage-diagnostic-body,
 #diagnosticsPanel > .usage-diagnostic-item[open] > .usage-diagnostic-body {
   display: none !important;
 }
 
-.usage-task-card[open] {
+.usage-task-card:not([data-task-history-day])[open] {
   grid-column: auto;
 }
 

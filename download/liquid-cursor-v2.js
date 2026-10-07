@@ -1,3 +1,4 @@
+import { glassOffset } from './liquid-glass-math.mjs?v=20261007-2';
 // Live backdrop lens: original Loom interaction springs, browser-rendered background.
 (()=>{
 const FREE_ROI_SIZE = 420;
@@ -29,34 +30,18 @@ function intersects(rect, left, top, width, height) {
     return rect.right >= left && rect.left <= left + width && rect.bottom >= top && rect.top <= top + height;
 }
 
-function createBackdropLens(lens) {
- const ns='http://www.w3.org/2000/svg';
- const svg=document.createElementNS(ns,'svg'); svg.setAttribute('width','0');svg.setAttribute('height','0');svg.style.position='absolute';svg.dataset.loomLiquidCursor='true';
- svg.innerHTML='<defs><filter id="download-live-glass" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB"><feImage result="map" preserveAspectRatio="none"/><feDisplacementMap in="SourceGraphic" in2="map" scale="14" xChannelSelector="R" yChannelSelector="G"/></filter></defs>';
- document.body.appendChild(svg);
- const image=svg.querySelector('feImage'), displacement=svg.querySelector('feDisplacementMap');
- const map=document.createElement('canvas'),ctx=map.getContext('2d');let lastKey='';
- const chromium=/Chrome|Chromium|Edg\//.test(navigator.userAgent) && !/Firefox/.test(navigator.userAgent);
- lens.dataset.renderer=chromium?'backdrop-displacement':'backdrop-blur';
- lens.style.backdropFilter=chromium?'url(#download-live-glass)':'blur(2px) saturate(115%)';
- lens.style.webkitBackdropFilter=lens.style.backdropFilter;
- return {draw(x,y,w,h,pressure,visible){
-  w=Math.max(20,w);h=Math.max(20,h);
-  // Bucket map updates: pointer movement reuses the same map, spring resizing does not rebuild every pixel every frame.
-  const mw=Math.max(24,Math.round(w/8)*4),mh=Math.max(24,Math.round(h/8)*4),key=mw+':'+mh;
-  if(chromium && key!==lastKey){
-   lastKey=key;map.width=mw;map.height=mh;const pixels=ctx.createImageData(mw,mh);const radius=Math.min(mw,mh)/2;
-   for(let py=0;py<mh;py++)for(let px=0;px<mw;px++){
-    const cx=Math.max(radius,Math.min(mw-radius,px)),cy=mh/2;const dx=px-cx,dy=py-cy;const distance=Math.hypot(dx,dy);const edge=Math.pow(Math.min(1,distance/radius),5);const i=(py*mw+px)*4;
-    pixels.data[i]=128+(distance?dx/distance:0)*edge*105;pixels.data[i+1]=128+(distance?dy/distance:0)*edge*105;pixels.data[i+2]=128;pixels.data[i+3]=255;
-   }
-   ctx.putImageData(pixels,0,0);image.setAttribute('href',map.toDataURL());
-  }
-  displacement.setAttribute('scale',String(14+Math.max(0,pressure)*7));
-  lens.style.width=w+'px';lens.style.height=h+'px';lens.style.transform='translate3d('+(x-w/2)+'px,'+(y-h/2)+'px,0)';lens.style.opacity=visible?'1':'0';
- }};
+function createBackdropLens(lens){
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('width','0');svg.setAttribute('height','0');svg.setAttribute('aria-hidden','true');svg.style.position='absolute';svg.dataset.loomLiquidCursor='true';let nodes='';
+ for(let i=0;i<3;i++){const matrix=Array.from({length:20},(_,j)=>(j===i*5+i||j===18)?1:0).join(' ');nodes+='<feImage result="map'+i+'" preserveAspectRatio="none"/><feDisplacementMap in="SourceGraphic" in2="map'+i+'" scale="128" xChannelSelector="R" yChannelSelector="G" result="sample'+i+'"/><feColorMatrix in="sample'+i+'" type="matrix" values="'+matrix+'" result="rgb'+i+'"/>';}
+ nodes+='<feComposite in="rgb0" in2="rgb1" operator="arithmetic" k2="1" k3="1" result="rg"/><feComposite in="rg" in2="rgb2" operator="arithmetic" k2="1" k3="1"/>';
+ svg.innerHTML='<defs><filter id="download-live-glass" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">'+nodes+'</filter></defs>';document.body.appendChild(svg);
+ const images=[...svg.querySelectorAll('feImage')],map=document.createElement('canvas'),ctx=map.getContext('2d');let key='',last=0;
+ const supported=/Chrome|Chromium|Edg\//.test(navigator.userAgent)&&CSS.supports('backdrop-filter','url(#download-live-glass)');lens.dataset.renderer=supported?'backdrop-rgb-refraction':'backdrop-blur';lens.style.backdropFilter=supported?'url(#download-live-glass)':'blur(2px) saturate(115%)';lens.style.webkitBackdropFilter=lens.style.backdropFilter;
+ return {draw(x,y,w,h,p,visible,snap){w=Math.max(20,w);h=Math.max(20,h);const mw=Math.min(600,Math.max(40,Math.round(w/4)*2)),mh=Math.min(300,Math.max(28,Math.round(h/4)*2)),sp=Math.round(snap*16)/16,pr=Math.round(Math.max(0,p)*16)/16,next=[mw,mh,sp,pr].join(':'),now=performance.now();
+ if(supported&&next!==key&&(now-last>=32||!key)){key=next;last=now;map.width=mw;map.height=mh;
+ for(let c=0;c<3;c++){const pixels=ctx.createImageData(mw,mh);for(let py=0;py<mh;py++)for(let px=0;px<mw;px++){const v=glassOffset((px+.5)*w/mw,(py+.5)*h/mh,w,h,sp,pr,1-c),i=(py*mw+px)*4;pixels.data[i]=Math.round(255*(.5+Math.max(-63,Math.min(63,v.x))/128));pixels.data[i+1]=Math.round(255*(.5+Math.max(-63,Math.min(63,v.y))/128));pixels.data[i+2]=128;pixels.data[i+3]=255;}ctx.putImageData(pixels,0,0);images[c].setAttribute('href',map.toDataURL());}}
+ lens.style.width=w+'px';lens.style.height=h+'px';lens.style.transform='translate3d('+(x-w/2)+'px,'+(y-h/2)+'px,0)';lens.style.opacity=visible?'1':'0';}};
 }
-
 function mountLiquidCursor() {
     const root = document.body;
     const canvas = document.createElement('div');
@@ -261,7 +246,7 @@ function mountLiquidCursor() {
         // Firm compression on contact, then one softer elastic release.
         stepSpring(pressure, dt, pressed ? 620 : 400, pressed ? 38 : 23);
         const deformation = Math.max(-0.22, Math.min(1.08, pressure.value));
-        renderer.draw(x.value, y.value, width.value * (1 + 0.025 * deformation), height.value * (1 - 0.085 * deformation), deformation, pointerInside);
+        renderer.draw(x.value, y.value, width.value * (1 + 0.025 * deformation), height.value * (1 - 0.085 * deformation), deformation, pointerInside, snap.value);
         const settled = Math.abs(x.target - x.value) < 0.08 &&
             Math.abs(y.target - y.value) < 0.08 &&
             Math.abs(width.target - width.value) < 0.08 &&

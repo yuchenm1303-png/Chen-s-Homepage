@@ -1,4 +1,3 @@
-html.loom-liquid-cursor-active body, html.loom-liquid-cursor-active body * { cursor: none !important; }
 
 .loom-liquid-cursor-canvas {
   position: fixed;
@@ -36,9 +35,6 @@ html.loom-liquid-cursor-active body, html.loom-liquid-cursor-active body * { cur
     display: none !important;
   }
 }
-#cursorDot, #cursorFollow { display: none !important; }
+#cursorDot, #cursorFollow { z-index: 2147483002 !important; }
+.loom-liquid-cursor-dot { display: none !important; }
 .portal-title h1, #versionNumber, .utility-card h3 { width: fit-content; }
-
-html:not(.loom-liquid-cursor-active) body { cursor: auto !important; }
-html:not(.loom-liquid-cursor-active) a, html:not(.loom-liquid-cursor-active) button, html:not(.loom-liquid-cursor-active) summary { cursor: pointer !important; }
-html:not(.loom-liquid-cursor-active) input { cursor: text !important; }

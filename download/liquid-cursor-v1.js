@@ -101,7 +101,9 @@ function drawWallpaper(ctx, image, roiLeft, roiTop, viewportWidth, viewportHeigh
         const scale = Math.max(viewportWidth / image.naturalWidth, viewportHeight / image.naturalHeight);
         const drawnWidth = image.naturalWidth * scale;
         const drawnHeight = image.naturalHeight * scale;
-        const pageX = (viewportWidth - drawnWidth) * 0.54;
+        const layer = document.querySelector(".beach-wallpaper");
+        const position = layer ? parseFloat(getComputedStyle(layer).backgroundPositionX) / 100 : 0.54;
+        const pageX = (viewportWidth - drawnWidth) * (Number.isFinite(position) ? position : 0.54);
         const pageY = (viewportHeight - drawnHeight) * 0.5;
         const srcX = Math.max(0, (roiLeft - pageX) / scale);
         const srcY = Math.max(0, (roiTop - pageY) / scale);
@@ -259,7 +261,7 @@ function rasterizePortal(root, canvas, scratch, wallpaper, roiLeft, roiTop, roiW
     drawWallpaper(ctx, wallpaper, roiLeft, roiTop, window.innerWidth, window.innerHeight, roiWidth, roiHeight);
     const content = root;
     const renderElement = (el, parentOpacity) => {
-        if (el.dataset.loomLiquidCursor === "true" || el.closest("[data-loom-liquid-cursor='true']"))
+        if (el.id === "cursorDot" || el.id === "cursorFollow" || el.dataset.loomLiquidCursor === "true" || el.closest("[data-loom-liquid-cursor='true']"))
             return;
         if (["SCRIPT", "STYLE", "LINK"].includes(el.tagName) || el.closest(".cosmos") || el.classList.contains("beach-wallpaper"))
             return;
@@ -344,7 +346,10 @@ function rasterizePortal(root, canvas, scratch, wallpaper, roiLeft, roiTop, roiW
             }
         }
     };
-    renderElement(content, 1);
+    // Wallpaper is already painted; the body background must not cover it.
+    for (const child of Array.from(content.children)) {
+        if (child instanceof HTMLElement) renderElement(child, 1);
+    }
     return true;
 }
 function createShader(gl, type, source) {
@@ -840,6 +845,13 @@ function mountLiquidCursor() {
         raf = window.requestAnimationFrame(frame);
     };
     const frame = (now) => {
+        const layer = root.querySelector(".beach-wallpaper");
+        const background = layer && getComputedStyle(layer).backgroundImage;
+        const source = background && background.match(/url\(["']?(.*?)["']?\)/)?.[1];
+        if (source && wallpaper.src !== new URL(source, document.baseURI).href) {
+            wallpaper.src = source;
+            rasterDirty = true;
+        }
         const dt = Math.min(0.032, Math.max(0.001, (now - lastTime) / 1000));
         lastTime = now;
         const magneticSettled = updateMagneticTargets(dt);
@@ -962,7 +974,7 @@ function mountLiquidCursor() {
     observer.observe(root, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["type", "value", "placeholder", "hidden", "disabled", "open"] });
     const resizeObserver = new ResizeObserver(() => { rasterDirty = true; snapDirty = true; wake(); });
     resizeObserver.observe(root);
-    wallpaper.addEventListener("load", () => { rasterDirty = true; wake(); }, { once: true });
+    wallpaper.addEventListener("load", () => { rasterDirty = true; wake(); });
     document.fonts?.ready.then(() => { rasterDirty = true; wake(); }).catch(() => { });
     root.addEventListener("pointermove", handlePointerMove);
     root.addEventListener("pointerdown", handlePointerDown);

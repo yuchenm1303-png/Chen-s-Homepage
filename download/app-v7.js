@@ -248,8 +248,9 @@ loginForm.addEventListener("submit", async (event) => {
     }
   } catch (error) {
     console.error("download portal sign in failed", error);
-    loginMessage.textContent = "邮箱或密码错误，请重试。";
-    showToast("登录失败");
+    const banned = error?.code === "user_banned" || /user.banned/i.test(String(error?.message || ""));
+    loginMessage.textContent = banned ? "该账号已被管理员封禁，请联系管理员。" : "邮箱或密码错误，请重试。";
+    showToast(banned ? "账号已封禁" : "登录失败");
   } finally {
     submitButton.disabled = false;
     submitLabel.textContent = "登录并验证权限";

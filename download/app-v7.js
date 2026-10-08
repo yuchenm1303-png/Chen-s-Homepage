@@ -177,7 +177,7 @@ async function verifyPortalAccess(nextSession) {
 async function loadOAuthProviders() {
   if (!socialLogin || !authConfig.supabaseUrl || !authConfig.supabaseAnonKey) return;
   try {
-    const response = await fetch(`${authConfig.supabaseUrl.replace(/\\/+$/, "")}/auth/v1/settings`, {
+    const response = await fetch(`${authConfig.supabaseUrl.replace(/\/+$/, "")}/auth/v1/settings`, {
       headers: { apikey: authConfig.supabaseAnonKey },
       cache: "no-store"
     });

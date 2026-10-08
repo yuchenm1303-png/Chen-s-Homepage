@@ -409,11 +409,16 @@ async function changeAccountBan(user, account, button) {
     setStatus(banned ? `已解除「${identity}」的封禁` : `已封禁「${identity}」`, "ok");
   } catch (error) {
     console.error("account ban change failed", error);
-    setStatus("账号操作失败，请确认管理员权限及后端部署状态。", "warn");
-    window.alert("账号操作失败，请检查授权和网络后重试。");
+    // The database ban may have succeeded while Supabase Auth sync failed.
+    // Refresh so the UI never presents outdated permission state.
+    await refresh();
+    setStatus("账号操作未完全成功，请检查当前状态后重试。", "warn");
+    window.alert("账号操作未完全成功，请检查状态和网络后重试。");
   } finally {
     accountMutationPending = false;
-    button.disabled = false;
+    if (hasRenderedData && currentUsers.length) {
+      usersPanel.replaceChildren(...currentUsers.map(renderUser));
+    }
   }
 }
 

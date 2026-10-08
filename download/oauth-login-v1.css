@@ -1,0 +1,83 @@
+/* Listing Studio download portal · Supabase social login (v1).
+ * No changes to existing email/session styles or site glass assets. */
+.social-login[hidden],
+.social-provider[hidden] { display: none !important; }
+
+.social-login {
+  margin-top: 22px;
+}
+.social-login-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.social-provider {
+  min-width: 0;
+  min-height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid rgba(182, 229, 245, .17);
+  border-radius: 10px;
+  background: rgba(228, 246, 255, .075);
+  color: rgba(247, 252, 255, .93);
+  font: inherit;
+  font-size: .68rem;
+  font-weight: 650;
+  line-height: 1.45;
+  cursor: pointer;
+  transition: border-color .18s ease, background-color .18s ease,
+              transform .18s ease, box-shadow .18s ease;
+}
+.social-provider:hover:not(:disabled) {
+  background: rgba(228, 246, 255, .13);
+  border-color: rgba(182, 229, 245, .34);
+  box-shadow: 0 8px 22px rgba(19, 42, 58, .10);
+  transform: translateY(-1px);
+}
+.social-provider:active:not(:disabled) { transform: scale(.985); }
+.social-provider:focus-visible {
+  outline: 2px solid rgba(164, 230, 250, .8);
+  outline-offset: 3px;
+}
+.social-provider:disabled { opacity: .55; cursor: wait; }
+.social-google-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 23px;
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .94);
+  font: 800 15px/1 Arial, sans-serif;
+  background-image: linear-gradient(white, white);
+  color: #4285f4;
+  box-shadow: 0 1px 7px rgba(0, 0, 0, .08);
+}
+.social-github-mark { flex: 0 0 21px; width: 21px; height: 21px; }
+.social-separator {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 17px 0 -2px;
+  color: rgba(241, 250, 255, .46);
+  font-size: .64rem;
+  white-space: nowrap;
+}
+.social-separator::before, .social-separator::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: rgba(255, 255, 255, .13);
+}
+.social-login + .login-form { margin-top: 17px; }
+.social-login[hidden] + .login-form { margin-top: 25px; }
+@media (max-width: 480px) {
+  .social-login-buttons { grid-template-columns: 1fr; gap: 8px; }
+  .social-provider { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .social-provider { transition: none; }
+}

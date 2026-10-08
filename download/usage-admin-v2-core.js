@@ -49,6 +49,8 @@ let refreshing = false;
 let autoRefresh = null;
 let currentAudits = [];
 let currentUsers = [];
+let currentAccountStatuses = new Map();
+let accountMutationPending = false;
 let currentAuditLimit = 0;
 let currentSnapshot = null;
 let currentActivityRange = "24h";
@@ -303,6 +305,9 @@ function userAuditStats(userId) {
 function renderUser(user) {
   const card = document.createElement("article");
   card.className = "account-card cards usage-account-card";
+  const account = currentAccountStatuses.get(String(user.user_id || ""));
+  const banned = Boolean(account?.banned_at);
+  if (banned) card.classList.add("is-account-banned");
   const stats = userAuditStats(user.user_id);
   const attempts = stats.success + stats.failed;
   const success = attempts ? `${((stats.success / attempts) * 100).toFixed(1)}%` : "—";
@@ -325,7 +330,12 @@ function renderUser(user) {
   const statePanel = document.createElement("div");
   statePanel.className = "account-status-panel";
   statePanel.append(
-    createStatusLine("运行状态", user.online ? "在线" : "离线", user.online ? "ok" : "neutral"),
+    ...(account ? [createStatusLine(
+      "账号权限",
+      banned ? "已封禁" : account.enabled ? "正常" : "未启用",
+      banned ? "warn" : account.enabled ? "ok" : "neutral"
+    )] : []),
+    createStatusLine("运行状态", user.online && !banned ? "在线" : "离线", user.online && !banned ? "ok" : "neutral"),
     createStatusLine("客户端版本", user.latest_app_version || "—"),
     createStatusLine("最后活跃", formatTime(user.last_seen_at)),
     createStatusLine("最近商品任务成功率", success, attempts ? (stats.failed ? "warn" : "ok") : "neutral")
@@ -345,10 +355,66 @@ function renderUser(user) {
   const telemetry = document.createElement("span");
   telemetry.textContent = "Usage telemetry · per supplier link";
   const authorization = document.createElement("span");
-  authorization.textContent = user.enabled ? "AUTHORIZED" : "DISABLED";
+  authorization.textContent = banned ? "BANNED" : user.enabled ? "AUTHORIZED" : "DISABLED";
+  if (account?.banned_at) {
+    statePanel.append(createStatusLine("封禁时间", formatTime(account.banned_at)));
+    if (account.ban_reason) statePanel.append(createStatusLine("封禁原因", account.ban_reason));
+  }
   footer.append(telemetry, authorization);
   card.append(head, createAccountMonitor(user), statePanel, metrics, footer);
+  if (account) {
+    const controls = document.createElement("div");
+    controls.className = "usage-account-ban-controls";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "usage-account-ban-button";
+    button.dataset.danger = String(!banned);
+    button.textContent = banned ? "解除封禁" : "封禁账号";
+    button.disabled = accountMutationPending || Boolean(account.is_admin);
+    button.title = account.is_admin ? "管理员账号不可封禁" : "";
+    button.addEventListener("click", () => void changeAccountBan(user, account, button));
+    controls.append(button);
+    card.append(controls);
+  }
   return card;
+}
+
+async function changeAccountBan(user, account, button) {
+  if (!supabase || accountMutationPending || account.is_admin) return;
+  const banned = Boolean(account.banned_at);
+  const identity = user.display_name || user.email || account.display_name || user.user_id;
+  let reason = "";
+  if (banned) {
+    if (!window.confirm(`确定解除「${identity}」的封禁？设备仍需重新登录激活。`)) return;
+  } else {
+    const answer = window.prompt(`封禁「${identity}」\n请输入封禁原因（必填，最多 500 字）：`, "");
+    if (answer === null) return;
+    reason = answer.trim();
+    if (!reason || reason.length > 500) {
+      window.alert("封禁原因必须填写，且不能超过 500 个字符。");
+      return;
+    }
+    if (!window.confirm(`确定封禁「${identity}」？账号会失去授权，已激活设备将被撤销。`)) return;
+  }
+
+  accountMutationPending = true;
+  button.disabled = true;
+  button.textContent = "正在处理…";
+  try {
+    const { data, error } = await supabase.functions.invoke("portal-usage-admin", {
+      body: { action: banned ? "unban" : "ban", target_user_id: user.user_id, reason }
+    });
+    if (error || !data?.ok) throw new Error(data?.error || error?.message || "操作失败");
+    await refresh();
+    setStatus(banned ? `已解除「${identity}」的封禁` : `已封禁「${identity}」`, "ok");
+  } catch (error) {
+    console.error("account ban change failed", error);
+    setStatus("账号操作失败，请确认管理员权限及后端部署状态。", "warn");
+    window.alert("账号操作失败，请检查授权和网络后重试。");
+  } finally {
+    accountMutationPending = false;
+    button.disabled = false;
+  }
 }
 
 function renderGlobalHourlyActivity(users, hours) {
@@ -931,7 +997,17 @@ function renderTaskAudits() {
 }
 
 function renderSnapshot(snapshot) {
-  const users = Array.isArray(snapshot?.users) ? snapshot.users : [];
+  const users = Array.isArray(snapshot?.users) ? [...snapshot.users] : [];
+  const statuses = Array.isArray(snapshot?.account_statuses) ? snapshot.account_statuses : [];
+  currentAccountStatuses = new Map(statuses.map((account) => [String(account.user_id || ""), account]));
+  // Account management must also show users who have never sent telemetry.
+  const seen = new Set(users.map((user) => String(user.user_id || "")));
+  for (const account of statuses) {
+    const userId = String(account.user_id || "");
+    if (!userId || seen.has(userId)) continue;
+    users.push({ user_id: userId, display_name: account.display_name || userId, enabled: account.enabled, online: false });
+    seen.add(userId);
+  }
   currentSnapshot = snapshot;
   currentUsers = users;
   currentAudits = Array.isArray(snapshot?.task_audits) ? snapshot.task_audits : [];

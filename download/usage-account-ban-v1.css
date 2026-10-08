@@ -1,0 +1,48 @@
+/* Owner-only account moderation controls. */
+.usage-account-card.is-account-banned {
+  border-color: rgba(215, 79, 92, .35);
+}
+.usage-account-card.is-account-banned .secure-pill {
+  background: rgba(194, 66, 83, .14);
+  color: #a93851;
+}
+.usage-account-ban-controls {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 20px 18px;
+}
+.usage-account-ban-button {
+  min-height: 36px;
+  border-radius: 10px;
+  padding: 6px 14px;
+  border: 1px solid rgba(52, 115, 106, .26);
+  background: rgba(89, 179, 157, .13);
+  color: #205b52;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease;
+}
+.usage-account-ban-button[data-danger="true"] {
+  border-color: rgba(182, 48, 71, .28);
+  background: rgba(218, 80, 93, .10);
+  color: #9d3043;
+}
+.usage-account-ban-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  background: rgba(107, 184, 164, .22);
+}
+.usage-account-ban-button[data-danger="true"]:not(:disabled):hover {
+  background: rgba(218, 80, 93, .2);
+}
+.usage-account-ban-button:focus-visible {
+  outline: 2px solid #528dc1;
+  outline-offset: 3px;
+}
+.usage-account-ban-button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+@media (prefers-reduced-motion: reduce) {
+  .usage-account-ban-button { transition: none; }
+}

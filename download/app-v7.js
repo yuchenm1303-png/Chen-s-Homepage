@@ -110,6 +110,10 @@ function renderAccessResult(result) {
     accountStateText.textContent = "已过期";
     downloadButtonHint.textContent = "下载权限已过期";
     setAccessLabel(downloadAccessText, "已过期", "warn");
+  } else if (result.status === "banned") {
+    accountStateText.textContent = "已封禁";
+    downloadButtonHint.textContent = "该账号已被管理员封禁";
+    setAccessLabel(downloadAccessText, "已封禁", "warn");
   } else if (result.status === "disabled") {
     accountStateText.textContent = "已停用";
     downloadButtonHint.textContent = "下载权限已停用";
@@ -139,7 +143,7 @@ async function verifyPortalAccess(nextSession) {
     const table = authConfig.accessTable || "download_portal_users";
     const { data, error } = await supabase
       .from(table)
-      .select("enabled, expires_at, display_name")
+      .select("enabled, expires_at, display_name, banned_at")
       .eq("user_id", nextSession.user.id)
       .maybeSingle();
 
@@ -149,6 +153,8 @@ async function verifyPortalAccess(nextSession) {
     let result;
     if (!data) {
       result = { status: "unauthorized" };
+    } else if (data.banned_at) {
+      result = { status: "banned", displayName: data.display_name };
     } else if (!data.enabled) {
       result = { status: "disabled", displayName: data.display_name };
     } else if (data.expires_at && Date.parse(data.expires_at) <= Date.now()) {
@@ -231,6 +237,8 @@ loginForm.addEventListener("submit", async (event) => {
       showToast("登录成功，下载权限已解锁");
     } else if (access.status === "expired") {
       showToast("登录成功，但下载权限已过期");
+    } else if (access.status === "banned") {
+      showToast("账号已被管理员封禁");
     } else if (access.status === "disabled") {
       showToast("登录成功，但下载权限已停用");
     } else if (access.status === "error") {
@@ -240,8 +248,9 @@ loginForm.addEventListener("submit", async (event) => {
     }
   } catch (error) {
     console.error("download portal sign in failed", error);
-    loginMessage.textContent = "邮箱或密码错误，请重试。";
-    showToast("登录失败");
+    const banned = error?.code === "user_banned" || /user.banned/i.test(String(error?.message || ""));
+    loginMessage.textContent = banned ? "该账号已被管理员封禁，请联系管理员。" : "邮箱或密码错误，请重试。";
+    showToast(banned ? "账号已封禁" : "登录失败");
   } finally {
     submitButton.disabled = false;
     submitLabel.textContent = "登录并验证权限";

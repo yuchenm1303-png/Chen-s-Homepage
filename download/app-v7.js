@@ -12,6 +12,9 @@ const loginMessage = $("loginMessage");
 const emailInput = $("emailInput");
 const passwordInput = $("passwordInput");
 const passwordToggle = $("passwordToggle");
+const socialLogin = $("socialLogin");
+const oauthButtons = [...document.querySelectorAll("[data-oauth-provider]")];
+let oauthStarting = false;
 const loggedOutState = $("loggedOutState");
 const loggedInState = $("loggedInState");
 const accountEmail = $("accountEmail");
@@ -168,6 +171,80 @@ async function verifyPortalAccess(nextSession) {
   }
 }
 
+
+/* OAuth uses the same Supabase account session and download entitlement check
+ * as password login. A provider identity alone never authorizes a download. */
+async function loadOAuthProviders() {
+  if (!socialLogin || !authConfig.supabaseUrl || !authConfig.supabaseAnonKey) return;
+  try {
+    const response = await fetch(`${authConfig.supabaseUrl.replace(/\/+$/, "")}/auth/v1/settings`, {
+      headers: { apikey: authConfig.supabaseAnonKey },
+      cache: "no-store"
+    });
+    if (!response.ok) throw new Error("Provider settings unavailable");
+    const settings = await response.json();
+    const providers = settings?.external || {};
+    let enabledCount = 0;
+    for (const button of oauthButtons) {
+      const provider = button.dataset.oauthProvider;
+      const enabled = provider === "google" || provider === "github"
+        ? providers[provider] === true
+        : false;
+      button.hidden = !enabled;
+      if (enabled) enabledCount += 1;
+    }
+    socialLogin.hidden = enabledCount === 0;
+  } catch (error) {
+    // Fail closed: never display buttons that might lead to a broken provider.
+    socialLogin.hidden = true;
+    console.warn("Download portal OAuth availability could not be checked");
+  }
+}
+
+function showOAuthReturnError() {
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : "");
+  const failed = url.searchParams.has("error") || hash.has("error");
+  if (!failed) return;
+  const code = url.searchParams.get("error_code") || hash.get("error_code") || "";
+  loginMessage.textContent = code === "access_denied"
+    ? "已取消第三方授权，可继续使用邮箱登录。"
+    : "快捷登录未完成，请检查授权状态后重试。";
+  ["error", "error_code", "error_description"].forEach((key) => url.searchParams.delete(key));
+  if (hash.has("error")) url.hash = "";
+  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+}
+
+async function startOAuth(provider) {
+  if (oauthStarting || !supabase) return;
+  if (!["google", "github"].includes(provider)) return;
+  const button = oauthButtons.find((item) => item.dataset.oauthProvider === provider);
+  if (!button || button.hidden) return;
+  oauthStarting = true;
+  oauthButtons.forEach((item) => { item.disabled = true; });
+  loginMessage.textContent = "正在安全跳转至第三方登录…";
+  const redirectTo = new URL("/download/", window.location.origin).href;
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo }
+    });
+    if (error) throw error;
+    // Supabase handles the full-page redirect; do not create a local session.
+  } catch (error) {
+    console.error("download portal OAuth initiation failed", error);
+    loginMessage.textContent = "快捷登录暂时无法启动，请稍后重试或使用邮箱登录。";
+    showToast("快捷登录失败");
+  } finally {
+    oauthStarting = false;
+    oauthButtons.forEach((item) => { item.disabled = false; });
+  }
+}
+
+oauthButtons.forEach((button) => {
+  button.addEventListener("click", () => void startOAuth(button.dataset.oauthProvider));
+});
+
 async function initAuth() {
   if (!authConfig.supabaseUrl || !authConfig.supabaseAnonKey) {
     loginMessage.textContent = "登录服务尚未配置。";
@@ -185,9 +262,12 @@ async function initAuth() {
       }
     });
 
+    void loadOAuthProviders();
+
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
     await verifyPortalAccess(data.session);
+    showOAuthReturnError();
 
     supabase.auth.onAuthStateChange((_event, nextSession) => {
       void verifyPortalAccess(nextSession);

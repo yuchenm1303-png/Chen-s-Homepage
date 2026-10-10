@@ -2,8 +2,10 @@ const PANEL_ID = "taskAuditPanel";
 const CARD_SELECTOR = ":scope > .usage-task-card:not([data-task-history-day])";
 const MODAL_PAGE_SIZE = 8;
 const HISTORY_PAGE_SIZE = 120;
-const DETAIL_MODAL_MODULE = "./usage-detail-modal-v1.js?v=20260826-2359";
+const DETAIL_MODAL_MODULE = "./usage-detail-modal-v1.js?v=20261010-full-logs-1";
 const HISTORY_FUNCTION = "portal-task-history";
+const HISTORY_VIEW = "revisions";
+const HISTORY_REFRESH_MS = 30_000;
 
 const loadedByDay = new Map();
 const taskCards = new Map();
@@ -17,6 +19,10 @@ let historyHasMore = true;
 let historyLoading = false;
 let historyInitialized = false;
 let historyError = "";
+let historyComplete = false;
+const historyRows = new Map();
+let historyRefreshBusy = false;
+let focusedUserId = "";
 
 function dayKeyFromCard(card) {
   const meta = card.querySelector(".usage-task-summary .usage-account-email");
@@ -210,6 +216,10 @@ function makePagedTaskCard(audit) {
   card.dataset.auditId = String(audit?.id || "");
   card.dataset.sourceAuditId = String(audit?.source_audit_id || audit?.id || "").split(":")[0];
   card.dataset.hydrated = "false";
+  card.dataset.userId = String(audit?.user_id || "");
+  card.dataset.revisionId = String(audit?.revision_id || "");
+  card.dataset.searchText = [audit?.user_id, audit?.product_url, audit?.error_text, audit?.phase,
+    audit?.review_reason, audit?.app_version, audit?.snapshot_origin].filter(Boolean).join(" ").toLowerCase();
   card.dataset.taskKind = String(audit?.task_kind || "").toLowerCase();
   card.dataset.taskStatus = String(audit?.status || "").toLowerCase();
 
@@ -253,7 +263,7 @@ function makePagedTaskCard(audit) {
 function captureTaskCards(cards) {
   cards.forEach((card) => {
     const id = String(card?.dataset?.auditId || card?.dataset?.sourceAuditId || "").trim();
-    if (!id) return;
+    if (!id || (historyInitialized && !card.dataset.revisionId)) return;
     const existing = taskCards.get(id);
     if (!existing || card.dataset.hydrated === "true" || existing.dataset.hydrated !== "true") {
       taskCards.set(id, card);
@@ -265,7 +275,10 @@ function cardMatchesCurrentFilter(card) {
   const search = String(document.getElementById("auditSearch")?.value || "").trim().toLowerCase();
   const filter = String(document.getElementById("auditFilter")?.value || "all").toLowerCase();
   const status = String(card.dataset.taskStatus || statusOf(card)).toLowerCase();
-  const text = String(card.textContent || "").toLowerCase();
+  const account = window.UsageMonitorUsersById?.get(String(card.dataset.userId || ""));
+  const text = [card.textContent, card.dataset.searchText, account?.email, account?.display_name]
+    .filter(Boolean).join(" ").toLowerCase();
+  if (focusedUserId && String(card.dataset.userId || "") !== focusedUserId) return false;
   const kind = String(card.dataset.taskKind || (text.includes("batch") ? "batch" : text.includes("single") ? "single" : "")).toLowerCase();
 
   if (filter === "single" && kind !== "single") return false;
@@ -280,23 +293,34 @@ function cardMatchesCurrentFilter(card) {
 
 function historyFooter() {
   const footer = document.createElement("div");
-  footer.className = "account-footer";
+  footer.className = "account-footer usage-history-progress";
   footer.dataset.taskHistoryPager = "true";
-
   const progress = document.createElement("span");
-  if (historyError) progress.textContent = `较早记录加载失败：${historyError}`;
-  else if (!historyHasMore && historyInitialized) progress.textContent = `已加载 ${taskCards.size} 条 · 已到最早记录`;
-  else progress.textContent = `已加载 ${taskCards.size} 条轻量摘要 · 更早记录按需加载`;
+  progress.setAttribute("role", "status");
+  const loaded = historyRows.size;
+  if (historyError) progress.textContent = `历史记录同步中断 · 已加载 ${loaded} 条状态记录 · ${historyError}`;
+  else if (historyComplete) progress.textContent = `完整历史已同步 · ${loaded} 条状态记录（不含未上报的数据）`;
+  else progress.textContent = `正在自动同步全部历史 · 已读取 ${loaded} 条状态记录…`;
   footer.append(progress);
-
-  if (historyHasMore || !historyInitialized) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "switch-account-button usage-refresh";
-    button.disabled = historyLoading;
-    button.textContent = historyLoading ? "正在加载…" : "加载更早任务";
-    button.addEventListener("click", loadOlderTasks);
-    footer.append(button);
+  if (historyError || !historyComplete) {
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "switch-account-button usage-refresh";
+    retry.textContent = historyLoading ? "正在同步…" : historyError ? "重试继续同步" : "继续同步";
+    retry.disabled = historyLoading;
+    retry.addEventListener("click", historyComplete ? syncNewRevisions : loadOlderTasks);
+    footer.append(retry);
+  }
+  if (focusedUserId) {
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.className = "switch-account-button usage-refresh";
+    clear.textContent = "取消账号筛选";
+    clear.addEventListener("click", () => {
+      focusedUserId = "";
+      scheduleOrganize();
+    });
+    footer.append(clear);
   }
   return footer;
 }
@@ -304,8 +328,20 @@ function historyFooter() {
 function updateAuditHint(visibleCount) {
   const hint = document.getElementById("auditHint");
   if (!hint) return;
-  const tail = !historyHasMore && historyInitialized ? " · 已到最早记录" : " · 可加载更早记录";
-  hint.textContent = `${visibleCount} / 已加载 ${taskCards.size} 个商品任务${tail}`;
+  const state = historyError ? "同步失败，可重试" : historyComplete ? "全部已入库历史已加载" : "正在自动同步";
+  hint.textContent = `${visibleCount} 条匹配 · ${historyRows.size} 条状态历史 · ${state}`;
+}
+
+function publishHistoryProgress() {
+  window.dispatchEvent(new CustomEvent("usage:task-history-progress", {
+    detail: {
+      rows: Array.from(historyRows.values()),
+      loaded: historyRows.size,
+      complete: historyComplete,
+      loading: historyLoading,
+      error: historyError
+    }
+  }));
 }
 
 function renderGroupedPanel() {
@@ -319,7 +355,10 @@ function renderGroupedPanel() {
     if (!nodes.length) {
       const empty = document.createElement("div");
       empty.className = "usage-empty";
-      empty.textContent = taskCards.size ? "当前筛选下没有任务记录。" : "暂无任务记录";
+      empty.textContent = taskCards.size
+        ? "当前筛选下没有任务记录。可取消筛选查看全部。"
+        : (historyError ? "历史加载失败，请使用下方按钮重试。" :
+           historyComplete ? "数据库没有可显示的历史任务。" : "正在读取完整历史任务…");
       nodes.push(empty);
     }
     nodes.push(historyFooter());
@@ -339,8 +378,6 @@ function organize() {
 
   const freshCards = Array.from(panel.querySelectorAll(CARD_SELECTOR));
   captureTaskCards(freshCards);
-  if (!taskCards.size) return;
-
   const groups = new Map();
   Array.from(taskCards.values()).filter(cardMatchesCurrentFilter).forEach((card) => {
     const key = dayKeyFromCard(card);
@@ -380,48 +417,92 @@ function mergeHistoryAudits(audits) {
   let added = 0;
   for (const audit of audits) {
     const id = String(audit?.id || "").trim();
-    if (!id || taskCards.has(id)) continue;
+    if (!id || !audit?.revision_id || historyRows.has(id)) continue;
+    historyRows.set(id, audit);
     taskCards.set(id, makePagedTaskCard(audit));
-    added += 1;
+    added++;
   }
   return added;
 }
 
-async function requestHistoryPage(beforeAuditId) {
+async function requestHistoryPage(beforeRevisionId) {
   const client = await getHistoryClient();
-  const body = { limit: HISTORY_PAGE_SIZE };
-  if (beforeAuditId) body.before_audit_id = beforeAuditId;
+  const body = { view: HISTORY_VIEW, limit: HISTORY_PAGE_SIZE };
+  if (beforeRevisionId) body.before_revision_id = beforeRevisionId;
   const { data, error } = await client.functions.invoke(HISTORY_FUNCTION, { body });
   if (error) throw error;
-  if (!data || !Array.isArray(data.task_audits)) throw new Error("历史分页响应无效");
+  if (!data || data.query_architecture !== "usage_monitor_task_revisions_v1" ||
+      !Array.isArray(data.task_audits)) throw new Error("历史修订接口不可用或响应不完整");
+  if (data.has_more && !data.next_before_revision_id) throw new Error("服务端还有数据，但未提供下一页游标");
   return data;
 }
 
 async function loadOlderTasks(event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
-  if (historyLoading || (!historyHasMore && historyInitialized)) return;
-
+  if (historyLoading || historyComplete) return;
   historyLoading = true;
   historyError = "";
-  renderGroupedPanel();
+  publishHistoryProgress();
+  scheduleOrganize();
   try {
-    let added = 0;
-    let hops = 0;
-    do {
-      const page = await requestHistoryPage(historyInitialized ? historyCursor : null);
+    const client = await getHistoryClient();
+    const { data: authData, error: authError } = await client.auth.getSession();
+    if (authError || !authData?.session) throw new Error("未登录管理员账号，无法读取历史记录");
+    const visitedCursors = new Set();
+    while (!historyComplete) {
+      const before = historyInitialized ? historyCursor : null;
+      if (before && visitedCursors.has(before)) throw new Error("历史分页游标重复，已停止以防漏数");
+      if (before) visitedCursors.add(before);
+      const page = await requestHistoryPage(before);
+      if (!historyInitialized) {
+        historyRows.clear();
+        taskCards.clear();
+      }
       historyInitialized = true;
+      mergeHistoryAudits(page.task_audits);
       historyHasMore = Boolean(page.has_more);
-      historyCursor = page.next_before_audit_id ? String(page.next_before_audit_id) : null;
-      added += mergeHistoryAudits(page.task_audits);
-      hops += 1;
-      if (!historyHasMore) break;
-    } while (added === 0 && historyCursor && hops < 3);
+      historyCursor = page.next_before_revision_id ? String(page.next_before_revision_id) : null;
+      historyComplete = !historyHasMore;
+      if (historyHasMore && !historyCursor) throw new Error("历史分页不完整，缺失下一页位置");
+      publishHistoryProgress();
+      scheduleOrganize();
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    }
   } catch (error) {
-    console.error("usage task history pagination failed", error);
+    console.error("usage exhaustive task history sync failed", error);
     historyError = String(error?.message || error || "未知错误");
   } finally {
     historyLoading = false;
+    publishHistoryProgress();
+    scheduleOrganize();
+  }
+}
+
+async function syncNewRevisions() {
+  if (!historyComplete || historyLoading || historyRefreshBusy || !document.getElementById(PANEL_ID)) return;
+  historyRefreshBusy = true;
+  const oldIds = new Set(historyRows.keys());
+  let before = null;
+  const visited = new Set();
+  try {
+    while (true) {
+      if (before && visited.has(before)) throw new Error("增量历史分页游标重复");
+      if (before) visited.add(before);
+      const page = await requestHistoryPage(before);
+      const overlap = page.task_audits.some((entry) => oldIds.has(String(entry?.id || "")));
+      mergeHistoryAudits(page.task_audits);
+      if (overlap || !page.has_more) break;
+      before = page.next_before_revision_id ? String(page.next_before_revision_id) : "";
+      if (!before) throw new Error("增量任务分页中断");
+    }
+    historyError = "";
+  } catch (error) {
+    historyError = `新增历史校验失败：${String(error?.message || error || "未知错误")}`;
+    console.error("usage task history incremental refresh failed", error);
+  } finally {
+    historyRefreshBusy = false;
+    publishHistoryProgress();
     scheduleOrganize();
   }
 }
@@ -445,8 +526,23 @@ function install() {
   });
   observer.observe(panel, { childList: true });
 
+  window.addEventListener("usage:core-audits-rendered", scheduleOrganize);
   document.getElementById("auditSearch")?.addEventListener("input", scheduleOrganize);
   document.getElementById("auditFilter")?.addEventListener("change", scheduleOrganize);
+  window.addEventListener("usage:monitor-user-filter", (event) => {
+    focusedUserId = String(event?.detail?.userId || "");
+    const search = document.getElementById("auditSearch");
+    const filter = document.getElementById("auditFilter");
+    if (search) search.value = "";
+    if (filter) filter.value = "all";
+    scheduleOrganize();
+    document.getElementById("taskAuditSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  window.setTimeout(() => void loadOlderTasks(), 400);
+  window.setInterval(() => {
+    if (historyComplete) void syncNewRevisions();
+    else if (!historyLoading) void loadOlderTasks();
+  }, HISTORY_REFRESH_MS);
   scheduleOrganize();
 }
 

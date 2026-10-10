@@ -51,6 +51,10 @@ let currentAudits = [];
 let currentUsers = [];
 let currentAuditLimit = 0;
 let currentSnapshot = null;
+let completeHistoryRows = [];
+let historyComplete = false;
+let historySyncError = "";
+let historySyncLoaded = 0;
 let currentActivityRange = "24h";
 let dailyActivity = null;
 let hasRenderedData = false;
@@ -296,13 +300,91 @@ function auditStats(audits) {
   }, { success: 0, failed: 0, singleCompleted: 0, batchCompleted: 0, batchReady: 0, batchReview: 0, batchFailed: 0 });
 }
 
+function historyOfUser(userId) {
+  const rows = completeHistoryRows.filter((row) => String(row?.user_id || "") === String(userId || ""));
+  rows.sort((a, b) => Number(b.revision_id || 0) - Number(a.revision_id || 0));
+  const latest = new Map();
+  for (const row of rows) {
+    const sourceId = String(row?.source_audit_id || row?.audit_id || row?.id || "").split(":")[0];
+    if (!latest.has(sourceId)) latest.set(sourceId, row);
+  }
+  return { revisions: rows, tasks: Array.from(latest.values()) };
+}
+
+function visibleCompleteAudits() {
+  if (!historyComplete) return currentAudits;
+  const byId = new Map();
+  for (const row of completeHistoryRows) {
+    const source = String(row?.source_audit_id || row?.audit_id || row?.id || "").split(":")[0];
+    const prior = byId.get(source);
+    if (!prior || Number(row.revision_id || 0) > Number(prior.revision_id || 0)) byId.set(source, row);
+  }
+  return Array.from(byId.values());
+}
+
+function renderAccountHistory(user) {
+  const panel = document.createElement("section");
+  panel.className = "usage-account-history";
+  const heading = document.createElement("div");
+  heading.className = "usage-account-history-heading";
+  const title = document.createElement("strong");
+  title.textContent = "任务历史";
+  const state = document.createElement("span");
+  const records = historyOfUser(user.user_id);
+  state.textContent = historySyncError
+    ? `同步异常 · 已载入 ${records.revisions.length} 条状态`
+    : historyComplete ? `${records.tasks.length} 个商品 · ${records.revisions.length} 条状态`
+      : `历史同步中 · 已载入 ${records.revisions.length} 条`;
+  state.dataset.state = historySyncError ? "failed" : historyComplete ? "complete" : "loading";
+  heading.append(title, state);
+  panel.append(heading);
+  const preview = document.createElement("div");
+  preview.className = "usage-account-history-preview";
+  for (const audit of records.tasks.slice(0, 5)) {
+    const line = document.createElement("div");
+    line.className = "usage-account-history-item";
+    const status = document.createElement("span");
+    status.className = "usage-account-history-status";
+    status.dataset.status = String(audit.status || "").toLowerCase();
+    status.textContent = String(audit.status || "unknown").toUpperCase();
+    const detail = document.createElement("span");
+    detail.className = "usage-account-history-description";
+    const time = formatTime(audit.updated_at || audit.recorded_at || audit.created_at);
+    const phase = String(audit.phase || audit.task_kind || "任务");
+    detail.textContent = `${time} · ${phase}${audit.error_text ? " · " + String(audit.error_text).slice(0, 100) : ""}`;
+    detail.title = audit.error_text || "";
+    line.append(status, detail);
+    preview.append(line);
+  }
+  if (!records.tasks.length) {
+    const empty = document.createElement("div");
+    empty.className = "usage-account-history-empty";
+    empty.textContent = historySyncError ? "任务历史暂未读取完整，请查看下方错误。" :
+      historyComplete ? "数据库中没有该账号的任务审计。" : "正在加载该账号完整任务历史…";
+    preview.append(empty);
+  }
+  panel.append(preview);
+  const open = document.createElement("button");
+  open.type = "button";
+  open.className = "usage-account-history-open";
+  open.textContent = "查看此账号全部任务与错误详情";
+  open.addEventListener("click", () => {
+    window.dispatchEvent(new CustomEvent("usage:monitor-user-filter", {
+      detail: { userId: String(user.user_id || "") }
+    }));
+  });
+  panel.append(open);
+  return panel;
+}
+
 function userAuditStats(userId) {
-  return auditStats(currentAudits.filter((audit) => String(audit?.user_id || "") === String(userId || "")));
+  return auditStats(visibleCompleteAudits().filter((audit) => String(audit?.user_id || "") === String(userId || "")));
 }
 
 function renderUser(user) {
   const card = document.createElement("article");
   card.className = "account-card cards usage-account-card";
+  card.dataset.userId = String(user.user_id || "");
   const stats = userAuditStats(user.user_id);
   const attempts = stats.success + stats.failed;
   const success = attempts ? `${((stats.success / attempts) * 100).toFixed(1)}%` : "—";
@@ -328,7 +410,9 @@ function renderUser(user) {
     createStatusLine("运行状态", user.online ? "在线" : "离线", user.online ? "ok" : "neutral"),
     createStatusLine("客户端版本", user.latest_app_version || "—"),
     createStatusLine("最后活跃", formatTime(user.last_seen_at)),
-    createStatusLine("最近商品任务成功率", success, attempts ? (stats.failed ? "warn" : "ok") : "neutral")
+    createStatusLine(historyComplete ? "历史商品任务成功率" : "近期摘要任务成功率", success, attempts ? (stats.failed ? "warn" : "ok") : "neutral"),
+    createStatusLine("任务历史覆盖", historySyncError ? "同步失败，详情见任务记录" :
+      historyComplete ? "所有已入库任务状态已载入" : "正在拉取全部历史")
   );
   const metrics = document.createElement("div");
   metrics.className = "release-meta usage-account-metrics";
@@ -347,7 +431,7 @@ function renderUser(user) {
   const authorization = document.createElement("span");
   authorization.textContent = user.enabled ? "AUTHORIZED" : "DISABLED";
   footer.append(telemetry, authorization);
-  card.append(head, createAccountMonitor(user), statePanel, metrics, footer);
+  card.append(head, createAccountMonitor(user), statePanel, metrics, renderAccountHistory(user), footer);
   return card;
 }
 
@@ -877,6 +961,76 @@ function renderTaskAudit(audit, usersById) {
   return card;
 }
 
+function appendFullAuditEvidence(body, data, sourceAuditId) {
+  const allRevisions = historyComplete
+    ? completeHistoryRows.filter((row) => String(row.source_audit_id || "").split(":")[0] === sourceAuditId)
+    : [];
+  const revisions = allRevisions.length ? allRevisions : (Array.isArray(data?.task_revisions) ? data.task_revisions : []);
+  const revisionSection = createAuditSection(`状态历史 · ${revisions.length} 次已入库变更`);
+  if (revisions.length) {
+    revisionSection.append(createAuditTable(
+      ["记录时间", "任务状态时间", "阶段", "状态", "来源", "错误摘要"],
+      revisions.map((item) => [
+        formatTime(item.recorded_at),
+        formatTime(item.source_updated_at || item.updated_at || item.task_completed_at),
+        item.phase || "—", item.status || "—",
+        item.snapshot_origin === "baseline_import" ? "历史基线（仅最近状态）" : "实时状态",
+        String(item.error_text || item.review_reason || "—").slice(0, 500),
+      ])
+    ));
+  } else {
+    revisionSection.append(createAuditTextBlock("状态历史", "没有已入库的状态历史；请检查同步进度。"));
+  }
+  if (!historyComplete && Array.isArray(data?.task_revisions) && data.task_revisions.length >= 120) {
+    revisionSection.append(createAuditTextBlock("分页提示", "这里只展示最近120条状态变更；完整记录请在下方任务历史中查看，勿将此处当成全部。"));
+  }
+  body.append(revisionSection);
+
+  const raw = Array.isArray(data?.task_log_chunks) ? data.task_log_chunks : [];
+  const groups = new Map();
+  for (const chunk of raw) {
+    const name = String(chunk.log_name || "workflow.log");
+    const sha = String(chunk.log_sha256 || "");
+    const key = name + "\u0000" + sha;
+    if (!groups.has(key)) groups.set(key, {
+      name, sha, expected: Number(chunk.chunk_count || 0),
+      byteCount: Number(chunk.byte_count || 0), lineCount: Number(chunk.line_count || 0),
+      parts: []
+    });
+    groups.get(key).parts.push(chunk);
+  }
+  const files = Array.from(groups.values());
+  if (!window.UsageMonitorLogGroups) window.UsageMonitorLogGroups = new Map();
+  window.UsageMonitorLogGroups.set(sourceAuditId, files);
+  const logSection = createAuditSection(`完整运行日志 · ${files.length} 份`);
+  if (!files.length) {
+    logSection.append(createAuditTextBlock("日志情况",
+      "数据库里没有这次任务的完整日志片段。旧客户端可能未上传，不能把缺失日志误当作没有运行。"));
+  }
+  files.forEach((file, index) => {
+    const box = document.createElement("div");
+    box.className = "usage-audit-log-entry";
+    const info = document.createElement("div");
+    info.className = "usage-account-history-item";
+    info.textContent = `${file.name} · ${file.parts.length}/${file.expected} 段 · ${file.lineCount} 行 · ${file.byteCount} 字节`;
+    box.append(info);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "usage-account-history-open";
+    btn.dataset.usageLogAuditId = sourceAuditId;
+    btn.dataset.usageLogIndex = String(index);
+    btn.textContent = "解码并校验完整日志";
+    if (file.parts.length !== file.expected || !file.expected) {
+      btn.disabled = true;
+      btn.textContent = "日志分段不完整，无法验证";
+      info.dataset.state = "failed";
+    }
+    box.append(btn);
+    logSection.append(box);
+  });
+  body.append(logSection);
+}
+
 async function hydrateTaskAuditCard(card) {
   if (!(card instanceof HTMLDetailsElement) || !card.matches(".usage-task-card")) return card;
   if (card.dataset.hydrated === "true") return card;
@@ -899,6 +1053,7 @@ async function hydrateTaskAuditCard(card) {
     const hydratedBody = hydrated.querySelector(":scope > .usage-task-body");
     const currentBody = card.querySelector(":scope > .usage-task-body");
     if (!hydratedBody || !currentBody) throw new Error("task_detail_render_failed");
+    appendFullAuditEvidence(hydratedBody, data, sourceAuditId);
     currentBody.replaceWith(hydratedBody);
     card.dataset.hydrated = "true";
     return card;
@@ -925,7 +1080,8 @@ function renderTaskAudits() {
   const usersById = new Map(currentUsers.map((user) => [String(user.user_id || ""), user]));
   const visible = currentAudits.filter((audit) => auditMatches(audit, usersById));
   taskAuditPanel.replaceChildren(...(visible.length ? visible.map((audit) => renderTaskAudit(audit, usersById)) : [renderAuditEmptyNode()]));
-  const suffix = currentAuditLimit ? ` · 最近最多 ${currentAuditLimit} 条轻量摘要` : "";
+  window.dispatchEvent(new Event("usage:core-audits-rendered"));
+  const suffix = currentAuditLimit ? ` · 概览最近最多 ${currentAuditLimit} 条（下方自动加载完整历史）` : "";
   auditHint.textContent = `${visible.length} / ${currentAudits.length} 个商品任务${suffix}`;
   taskAuditSection.hidden = false;
 }
@@ -934,6 +1090,7 @@ function renderSnapshot(snapshot) {
   const users = Array.isArray(snapshot?.users) ? snapshot.users : [];
   currentSnapshot = snapshot;
   currentUsers = users;
+  window.UsageMonitorUsersById = new Map(users.map((user) => [String(user.user_id || ""), user]));
   currentAudits = Array.isArray(snapshot?.task_audits) ? snapshot.task_audits : [];
   currentAuditLimit = asNumber(snapshot?.task_audit_limit);
   usersPanel.replaceChildren(...(users.length ? users.map(renderUser) : [renderEmptyNode()]));
@@ -942,7 +1099,7 @@ function renderSnapshot(snapshot) {
   const launches = users.reduce((sum, user) => sum + asNumber(user.launch_count), 0);
   const activeDevices = users.reduce((sum, user) => sum + asNumber(user.active_devices), 0);
   const maxDevices = users.reduce((sum, user) => sum + asNumber(user.max_devices), 0);
-  const stats = auditStats(currentAudits);
+  const stats = auditStats(visibleCompleteAudits());
   const attempts = stats.success + stats.failed;
   const globalSuccess = attempts ? `${((stats.success / attempts) * 100).toFixed(1)}%` : "—";
 
@@ -955,7 +1112,9 @@ function renderSnapshot(snapshot) {
   singleDoneCount.textContent = String(stats.singleCompleted);
   batchDoneCount.textContent = String(stats.batchCompleted);
   successRate.textContent = globalSuccess;
-  successRateMeta.textContent = attempts ? `${stats.success} 商品任务成功 · ${stats.failed} 失败` : "暂无商品任务";
+  successRateMeta.textContent = historySyncError ? "历史数据未同步完整，请查看任务记录"
+    : attempts ? `${stats.success} 商品任务成功 · ${stats.failed} 失败${historyComplete ? " · 全部已入库历史" : " · 最近摘要（同步中）"}`
+    : historyComplete ? "数据库未发现任务" : "正在读取完整任务历史";
   failureCount.textContent = String(stats.failed);
 
   const onlineWindow = asNumber(snapshot?.online_window_seconds);
@@ -1039,6 +1198,25 @@ async function init() {
   await refresh();
   autoRefresh = window.setInterval(() => void refresh(), 30_000);
 }
+
+window.addEventListener("usage:task-history-progress", (event) => {
+  const detail = event instanceof CustomEvent ? event.detail || {} : {};
+  completeHistoryRows = Array.isArray(detail.rows) ? detail.rows : [];
+  historyComplete = detail.complete === true;
+  historySyncError = String(detail.error || "");
+  historySyncLoaded = Number(detail.loaded || 0);
+  if (!currentSnapshot) return;
+  const stats = auditStats(visibleCompleteAudits());
+  const attempts = stats.success + stats.failed;
+  singleDoneCount.textContent = String(stats.singleCompleted);
+  batchDoneCount.textContent = String(stats.batchCompleted);
+  successRate.textContent = attempts ? `${(stats.success / attempts * 100).toFixed(1)}%` : "—";
+  successRateMeta.textContent = historySyncError ? `历史同步失败 · 已读 ${historySyncLoaded} 条，不能视为完整`
+    : historyComplete ? `全部已入库商品任务 · ${stats.success} 成功 · ${stats.failed} 失败`
+    : `任务历史同步中 · 已读 ${historySyncLoaded} 条状态`;
+  failureCount.textContent = String(stats.failed);
+  usersPanel.replaceChildren(...currentUsers.map(renderUser));
+});
 
 window.addEventListener("pagehide", () => {
   if (autoRefresh) window.clearInterval(autoRefresh);

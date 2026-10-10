@@ -27,8 +27,8 @@ if (brandSlot) {
   brandSlot.replaceWith(icon);
 }
 
-import "./usage-task-history-v2.js?v=20260901-history-pagination-1";
-import "./usage-admin-v2-core.js?v=20260902-lifecycle-1";
+import "./usage-task-history-v2.js?v=20261010-exhaustive-1";
+import "./usage-admin-v2-core.js?v=20261010-full-history-1";
 import "./usage-task-activity-v2.js?v=20260902-queued-1";
 import "./usage-running-motion-v1.js?v=20260902-seamless-1";
 

@@ -371,6 +371,55 @@ async function enhanceFailureEvidence(details) {
 }
 
 document.addEventListener("click", async (event) => {
+  const button = event.target instanceof Element ? event.target.closest("[data-usage-log-audit-id]") : null;
+  if (!(button instanceof HTMLButtonElement)) return;
+  event.preventDefault();
+  const auditId = String(button.dataset.usageLogAuditId || "");
+  const index = Number(button.dataset.usageLogIndex || -1);
+  const group = window.UsageMonitorLogGroups?.get(auditId)?.[index];
+  const parent = button.closest(".usage-audit-log-entry");
+  if (!group || !parent || button.disabled) return;
+  button.disabled = true;
+  button.textContent = "正在解压并校验…";
+  try {
+    const parts = [...group.parts].sort((a, b) => Number(a.chunk_index) - Number(b.chunk_index));
+    if (parts.length !== group.expected || parts.some((part, i) => Number(part.chunk_index) !== i)) {
+      throw new Error("日志分段缺失或顺序不连续，不能声称完整");
+    }
+    const text = await gunzipChunkedText({
+      encoding: "gzip+base64-chunks",
+      chunks: parts.map((part) => String(part.chunk_data || ""))
+    });
+    const bytes = new TextEncoder().encode(text).byteLength;
+    const lines = lineCount(text);
+    const digest = await sha256Hex(text);
+    const verified = (!group.sha || digest === group.sha.toLowerCase())
+      && (!group.byteCount || bytes === group.byteCount)
+      && (!group.lineCount || lines === group.lineCount);
+    const details = document.createElement("details");
+    details.className = "usage-audit-raw usage-full-task-log";
+    details.open = true;
+    const title = document.createElement("summary");
+    title.textContent = `${verified ? "校验通过" : "完整性校验失败"} · ${group.name} · ${bytes} 字节 / ${lines} 行`;
+    const pre = document.createElement("pre");
+    pre.textContent = text;
+    details.append(title, pre);
+    if (!button.isConnected) return;
+    parent.querySelector(".usage-full-task-log")?.remove();
+    parent.append(details);
+    button.textContent = verified ? "已显示完整日志" : "完整性校验失败，请核对";
+    if (!verified) button.dataset.state = "failed";
+  } catch (error) {
+    if (button.isConnected) {
+      button.textContent = `日志读取失败：${String(error?.message || error)}`;
+      button.dataset.state = "failed";
+    }
+  } finally {
+    if (button.isConnected) button.disabled = false;
+  }
+});
+
+document.addEventListener("click", async (event) => {
   const summary = event.target instanceof Element ? event.target.closest("summary") : null;
   if (!summary) return;
   const details = summary.parentElement;

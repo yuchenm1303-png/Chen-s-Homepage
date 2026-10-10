@@ -1,0 +1,31 @@
+name: Monitor history completeness
+on:
+  pull_request:
+    paths:
+      - "download/usage*.js"
+      - "download/usage*.html"
+      - "download/usage*.css"
+      - "tests/monitor_history_complete.test.cjs"
+  push:
+    branches: [main]
+    paths:
+      - "download/usage*.js"
+      - "download/usage*.html"
+      - "download/usage*.css"
+      - "tests/monitor_history_complete.test.cjs"
+jobs:
+  history-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify no audit pages or revisions are silently skipped
+        run: node tests/monitor_history_complete.test.cjs
+      - name: Validate all monitor JavaScript
+        run: |
+          node --check download/usage-task-history-v2.js
+          node --check download/usage-admin-v2-core.js
+          node --check download/usage-detail-modal-v1.js
+          node --input-type=module --check < download/usage-admin-v2.js

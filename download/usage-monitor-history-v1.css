@@ -1,0 +1,76 @@
+/* Monitor completeness: show persisted history without drowning out the main activity rail. */
+.usage-account-history {
+  margin: 12px 0 3px;
+  padding: 14px 16px;
+  border: 1px solid rgba(221, 238, 252, .12);
+  border-radius: 15px;
+  background: rgba(12, 29, 45, .12);
+  color: rgba(235, 244, 252, .92);
+}
+.usage-account-history-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.usage-account-history-heading > span { color: rgba(210, 225, 240, .74); font-size: 12px; }
+.usage-account-history-heading [data-state="failed"] { color: #ffc1bd; }
+.usage-account-history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 0;
+  border-top: 1px solid rgba(221, 238, 252, .075);
+  font-size: 12px;
+}
+.usage-account-history-status {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(149, 173, 195, .15);
+  color: #c3d7e6;
+  font-size: 10px;
+  letter-spacing: .035em;
+}
+.usage-account-history-status[data-status="completed"],
+.usage-account-history-status[data-status="ready"] { color: #9be9c1; background: rgba(26, 170, 112, .14); }
+.usage-account-history-status[data-status="failed"],
+.usage-account-history-status[data-status="cancelled"] { color: #ffb2ae; background: rgba(228, 86, 94, .16); }
+.usage-account-history-status[data-status="review"] { color: #f9d898; background: rgba(237, 180, 72, .15); }
+.usage-account-history-description { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgba(221, 234, 246, .76); }
+.usage-account-history-empty { font-size: 12px; color: rgba(221, 234, 246, .64); padding: 6px 0 12px; }
+.usage-account-history-open {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 9px;
+  min-height: 34px;
+  max-width: 100%;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(216, 235, 248, .21);
+  color: #e8f4ff;
+  background: rgba(180, 211, 232, .10);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease;
+}
+.usage-account-history-open:hover { background: rgba(180, 211, 232, .18); border-color: rgba(216, 235, 248, .34); }
+.usage-account-history-open:disabled { opacity: .65; cursor: not-allowed; }
+.usage-history-progress { align-items: center; gap: 10px; flex-wrap: wrap; }
+.usage-history-progress > span { flex: 1 1 200px; }
+.usage-audit-log-entry { padding: 11px 0; border-bottom: 1px solid rgba(200, 223, 241, .12); }
+.usage-audit-log-entry .usage-full-task-log { margin-top: 10px; }
+.usage-full-task-log pre { max-height: min(60vh, 680px); overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 720px) {
+  .usage-account-history { padding: 12px; }
+  .usage-account-history-heading { align-items: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .usage-account-history-open { transition: none; }
+}
